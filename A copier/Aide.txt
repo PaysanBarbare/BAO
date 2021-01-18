@@ -1,0 +1,6 @@
+Dans ce dossier, copiez ce que vous voulez :
+- Un lien vers votre site Internet
+- Votre logiciel d'aide à distance.
+Etc.
+
+Ces fichiers seront copiés dans le dossier rapport sur le bureau.
