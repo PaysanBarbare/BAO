@@ -1,0 +1,3 @@
+Créer un dossier pour créer un menu dans le logiciel
+Si le nom du fichier .url commence par #, il est considéré comme un lien
+En cas de téléchargement indirect, ecrire nomdulogiciel.ext (ex: Ccleaner.zip)
