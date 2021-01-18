@@ -1,8 +1,5 @@
-# BAO
-Logiciel de dépannage informatique pour les professionnels
-
-# Boite A Outils
-Boite A Outils est un logiciel d'aide au dépannage informatique
+# BAO (Boite A Outils)
+Boite A Outils est un logiciel d'aide au dépannage informatique pour les professionnels
 
 ## Execution
 Ouvrez BAO.exe ou BAO-x64.exe si vous disposez d'un système d'exploitation 64 bits
