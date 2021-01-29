@@ -24,6 +24,12 @@ Func _Restauration($sDescription = "")
 	GUICtrlSetData($statusbarprogress, 10)
 	If($sDescription = "") Then
 		$sDescription = InputBox("Création d'un point de restauration", "Description du point de restauration", "Point de restauration BAO")
+		If @error Then
+			GUICtrlSetData($statusbar, "")
+			GUICtrlSetData($statusbarprogress, 0)
+			_ChangerEtatBouton($iIDAction, "Desactiver")
+			Return
+		EndIf
 	EndIf
 
 	GUICtrlSetData($statusbarprogress, 50)

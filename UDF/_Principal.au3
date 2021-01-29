@@ -733,7 +733,7 @@ Func _APropos()
 		GUICtrlCreateLabel("Nouvelle version disponible !",220, 45)
 		GUICtrlSetColor(-1, $COLOR_RED)
 	EndIf
-	GUICtrlCreateLabel('"Boîte A Outils" est un logiciel d' & "'" & 'aide au dépannage informatique'&@CRLF&"Auteur : Bastien Rouchès""Licence : GPL-3.0-or-later"&@CRLF&"https://www.isergues.fr"&@CRLF&"Copyright 2019, 2020 Bastien Rouches", 10, 75)
+	GUICtrlCreateLabel('"Boîte A Outils" est un logiciel d' & "'" & 'aide au dépannage informatique'&@CRLF&"Auteur : Bastien Rouchès""Licence : GPL-3.0-or-later"&@CRLF&"https://www.isergues.fr"&@CRLF&"Copyright 2019 - 2021 Bastien Rouches", 10, 75)
  	GUICtrlCreateLabel("Aller sur le site du logiciel : ", 40, 145)
 	local $iIdLien = GUICtrlCreateButton("GitHub", 200, 140, 100)
 	GUICtrlCreateLabel("Encourager le développeur : ", 40, 170)
