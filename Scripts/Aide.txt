@@ -1,0 +1,5 @@
+Vous pouvez dans le dossier script créer des dossiers, et enregitrer à l'intérieur :
+- des script bat
+- powershell
+- des exe, des msi, des jpg, des raccoucis vers vos applications, etc.
+- des dossiers contenant des logiciels portables

@@ -28,7 +28,7 @@ Func _Scripts()
 	Else
 
 		Local $eGet, $aButton[], $aBut[0], $sTmp, $sScriptname, $sDocscript, $iFilenbr = false
-		Local $hGUIscripts = GUICreate("Scripts", 500, 500)
+		Local $hGUIscripts = GUICreate("Scripts et outils", 500, 500)
 
 		Local $aTab = _FileListToArray($sScriptDir & "\Scripts\", "*", 2)
 
@@ -60,7 +60,7 @@ Func _Scripts()
 
 				GUICtrlCreateTabItem($aTab[$i])
 
-				Local $aTmp = _FileListToArray($sScriptDir & "\Scripts\" & $aTab[$i], "*", 1)
+				Local $aTmp = _FileListToArray($sScriptDir & "\Scripts\" & $aTab[$i], "*")
 
 				If @error = 4 Then
 					GUICtrlCreateLabel("Il n'y a pas de script dans cet onglet", 20, 40)
@@ -136,7 +136,7 @@ Func _Scripts()
 		ElseIf (StringRight($sScriptname, 3) = ".ps1") Then
 			RunWait(@ComSpec & ' /c powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' & $sScriptname & '"', $sDocscript)
 		Else
-			_Attention('Seules les extensions "bat", "cmd" et "ps1" sont prises en charge')
+			ShellExecute($sScriptname, "", $sDocscript)
 		EndIf
 
 	EndIf

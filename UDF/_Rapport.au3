@@ -77,6 +77,13 @@ Func _EnvoiFTP($sFichier, $sDossier)
 		If $sMdp <> "" Then
 			GUICtrlSetData($statusbar, " Envoi FTP")
 			GUICtrlSetData($statusbarprogress, 20)
+
+			; Ajout de BAO dans le pare-feu Windows
+			RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall delete rule name = "BAO" program = "' & @AutoItExe & '" dir = in', "", @SW_HIDE)
+			RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall add rule name = "BAO" dir = in action = allow program = "' & @AutoItExe & '" enable = yes', "", @SW_HIDE)
+
+			GUICtrlSetData($statusbarprogress, 35)
+
 			Local $Err, $sFTP_Message
 			Local $hOpen = _FTP_Open('FTP')
 

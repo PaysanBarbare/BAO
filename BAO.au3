@@ -1,6 +1,6 @@
 #cs
 
-Copyright 2019 Bastien Rouches
+Copyright 2019-2021 Bastien Rouches
 
 This file is part of "Boîte A Outils"
 
@@ -44,6 +44,7 @@ This file is part of "Boîte A Outils"
 		$aDescriptionDeLaVariable = Array
 
 #ce
+
 #RequireAdmin
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Compile_Both=y ; Compilation x86 et x64
@@ -54,9 +55,9 @@ This file is part of "Boîte A Outils"
 #pragma compile(UPX, False)
 #pragma compile(FileDescription, BAO - Boîte à outils)
 #pragma compile(ProductName, BAO)
-#pragma compile(ProductVersion, 0.5.6)
-#pragma compile(FileVersion, 0.5.6)
-#pragma compile(LegalCopyright, Bastien Rouches@Isergues Informatique 2020)
+#pragma compile(ProductVersion, 0.5.7)
+#pragma compile(FileVersion, 0.5.7)
+#pragma compile(LegalCopyright, Bastien Rouches@Isergues Informatique 2021)
 #pragma compile(CompanyName, 'Isergues Informatique 2020')
 
 Opt("MustDeclareVars", 1)
@@ -89,7 +90,7 @@ Opt("MustDeclareVars", 1)
 _Singleton(@ScriptName, 0)
 
 Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon
-Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $sScriptDir = @ScriptDir, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\"
+Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $sScriptDir = @ScriptDir, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration
 
 If @OSArch = "X64" Then
     $HKLM = "HKLM64"
@@ -119,6 +120,7 @@ Const $sConfig = $sScriptDir & "\config.ini"
 #include "UDF\_Pilotes.au3"
 #include "UDF\_Principal.au3"
 #include "UDF\_Rapport.au3"
+#include "UDF\_Restauration.au3"
 #include "UDF\_Sauvegarde.au3"
 #include "UDF\_Scripts.au3"
 #include "UDF\_Sfx.au3"
@@ -171,10 +173,22 @@ $sNomDesinstalleur = IniRead($sConfig, "Desinfection", "Desinstalleur", "")
 $sPrivazer = IniRead($sConfig, "Desinfection", "Privazer", "Free")
 $sListeProgdes = _StringExplode(IniRead($sConfig, "Desinfection", "Programmes de desinfection", "RogueKiller AdwCleaner MalwareByte ZHPCleaner"), " ")
 
-GUICreate("Boîte A Outils (bêta)", 860, 420 + UBound($sListeProgdes) * 25)
-$statusbar = GUICtrlCreateLabel("", 10, 345 + UBound($sListeProgdes) * 25, 410, 20, $SS_CENTERIMAGE)
-$statusbarprogress = GUICtrlCreateProgress(440, 345 + UBound($sListeProgdes) * 25, 250, 20)
-$iIDCancelDL = GUICtrlCreateButton("Annuler le téléchargement", 700, 345 + UBound($sListeProgdes) * 25, 150, 20)
+; Déclaration des boutons de fonctions (pour calculer la taille de la fenêtre BAO)
+Local $iIDButtonBureaudistant
+Local $iIDButtonInstallation
+Local $iIDButtonSauvegarde
+Local $iIDButtonWU
+Local $iIDButtonPilotes
+Local $iIDButtonStabilite
+Local $iIDButtonScripts
+
+; Soit :
+Local $iFonctions = 7
+
+GUICreate("Boîte A Outils (bêta)", 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+$statusbar = GUICtrlCreateLabel("", 10, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 410, 20, $SS_CENTERIMAGE)
+$statusbarprogress = GUICtrlCreateProgress(440, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 250, 20)
+$iIDCancelDL = GUICtrlCreateButton("Annuler le téléchargement", 700, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 150, 20)
 GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
 GUICtrlSetFont($statusbar, 11)
 
@@ -184,6 +198,7 @@ Local $iIDMenu1dossierRapport = GUICtrlCreateMenuItem("Ouvrir dossier Rapport", 
 Local $iIDMenu1dossier = GUICtrlCreateMenuItem("Ouvrir dossier du programme", $iIDMenu1)
 Local $iIDMenu1dossierAppdata = GUICtrlCreateMenuItem("Ouvrir dossier AppData", $iIDMenu1)
 Local $iIDMenu1reini = GUICtrlCreateMenuItem("Reinitialiser BAO", $iIDMenu1)
+Local $iIDMenu1tech = GUICtrlCreateMenuItem("Passer en mode Tech/Client", $iIDMenu1)
 Local $iIDMenu1clearcache = GUICtrlCreateMenuItem("Effacer le cache installation (Tech)", $iIDMenu1)
 Local $iIDMenu1update = GUICtrlCreateMenuItem("Tout mettre à jour (Tech)", $iIDMenu1)
 Local $iIDMenu1copier = GUICtrlCreateMenuItem("Copier BAO sur support externe (Tech)", $iIDMenu1)
@@ -273,7 +288,18 @@ For $i = 1 To $aDoc[0]
 Next
 
 $iDernElement = $sIDSM
-
+Local $iIDMenuVar = GUICtrlCreateMenu("Variables d'environnement")
+Local $sIDVarALLUSERSPROFILE = GUICtrlCreateMenuItem("ALLUSERSPROFILE", $iIDMenuVar)
+Local $sIDVarAPPDATA = GUICtrlCreateMenuItem("APPDATA", $iIDMenuVar)
+Local $sIDVarLOCALAPPDATA = GUICtrlCreateMenuItem("LOCALAPPDATA", $iIDMenuVar)
+Local $sIDVarProgramData = GUICtrlCreateMenuItem("ProgramData", $iIDMenuVar)
+Local $sIDVarProgramFiles = GUICtrlCreateMenuItem("ProgramFiles", $iIDMenuVar)
+Local $sIDVarProgramFiles86 = GUICtrlCreateMenuItem("ProgramFiles(x86)", $iIDMenuVar)
+Local $sIDVarPUBLIC = GUICtrlCreateMenuItem("PUBLIC", $iIDMenuVar)
+Local $sIDVarTEMP = GUICtrlCreateMenuItem("TEMP", $iIDMenuVar)
+Local $sIDVarTMP = GUICtrlCreateMenuItem("TMP", $iIDMenuVar)
+Local $sIDVarUSERPROFILE = GUICtrlCreateMenuItem("USERPROFILE", $iIDMenuVar)
+Local $sIDVarwindir = GUICtrlCreateMenuItem("windir", $iIDMenuVar)
 Local $iIDMenuHelp = GUICtrlCreateMenu("?")
 Local $sIDHelp = GUICtrlCreateMenuItem("Aide", $iIDMenuHelp)
 Local $sIDapropos = GUICtrlCreateMenuItem("A propos", $iIDMenuHelp)
@@ -292,18 +318,18 @@ $sOSv = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion
 Local $sYear = @YEAR
 Local $sMon = @MON
 Local $sDay = @MDAY
-$sHeure = GUICtrlCreateLabel(@MDAY &"/"& @MON &"/"& @YEAR &" - "& @HOUR &":"& @MIN , 10, 374 + UBound($sListeProgdes) * 25)
+$sHeure = GUICtrlCreateLabel(@MDAY &"/"& @MON &"/"& @YEAR &" - "& @HOUR &":"& @MIN , 10, 164 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 
-Local $tempp = _NowTime
-If(_IsInternetConnected() = 1) Then
-	Run(@ComSpec & ' /C w32tm /resync', "", @SW_HIDE)
-EndIf
+;If(_IsInternetConnected() = 1) Then
+Run(@ComSpec & ' /C w32tm /resync', "", @SW_HIDE)
+;EndIf
 
-Local $iIDCheckboxwu = GUICtrlCreateCheckbox("Désactiver Windows Update", 350,370+UBound($sListeProgdes) * 25)
+Local $iIDCheckboxwu = GUICtrlCreateCheckbox("Désactiver Windows Update", 350, 160 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 If(_FichierCacheExist("WUInactif") = 1) Then
 	GUICtrlSetState(-1, $GUI_CHECKED)
 EndIf
 
+Local $iIDRestau = GUICtrlCreateButton("Créer un point de restauration", 130, 160 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 190, 20)
 
 If(StringLeft($sNom, 4) <> "Tech") Then
 	_UACDisable()
@@ -315,7 +341,7 @@ If(StringLeft($sNom, 4) <> "Tech") Then
 	EndIf
 
 	If _FichierCacheExist("Autologon") = 1 Then
-		$iIDAutologon = GUICtrlCreateCheckbox("Autologon", 570,370+UBound($sListeProgdes) * 25)
+		$iIDAutologon = GUICtrlCreateCheckbox("Autologon", 570, 160 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 		If $iAutoAdmin = 1 Then
 			GUICtrlSetState($iIDAutologon, $GUI_CHECKED)
 		EndIf
@@ -341,15 +367,15 @@ GUICtrlCreateLabel("OS : " & $sOSv, 500, 20)
 GUICtrlCreateLabel("Début : " & $sDate, 500, 38)
 
 
-Local $iIDButtonBureaudistant = GUICtrlCreateButton("Bureau distant", 10, 50, 150, 25)
-Local $iIDButtonInstallation = GUICtrlCreateButton("Installation", 10, 80, 150, 25)
-Local $iIDButtonSauvegarde = GUICtrlCreateButton("Sauvegarde", 10, 110, 150, 25)
-Local $iIDButtonWU = GUICtrlCreateButton("Windows et Office", 10, 140, 150, 25)
-Local $iIDButtonPilotes = GUICtrlCreateButton("Pilotes", 10, 170, 150, 25)
-Local $iIDButtonStabilite = GUICtrlCreateButton("Test de mémoire vive", 10, 200, 150, 25)
-Local $iIDButtonScripts = GUICtrlCreateButton("Scripts", 10, 230, 150, 25)
+$iIDButtonBureaudistant = GUICtrlCreateButton("Bureau distant", 10, 50, 150, 25)
+$iIDButtonInstallation = GUICtrlCreateButton("Installation", 10, 80, 150, 25)
+$iIDButtonSauvegarde = GUICtrlCreateButton("Sauvegarde", 10, 110, 150, 25)
+$iIDButtonWU = GUICtrlCreateButton("Windows et Office", 10, 140, 150, 25)
+$iIDButtonPilotes = GUICtrlCreateButton("Pilotes", 10, 170, 150, 25)
+$iIDButtonStabilite = GUICtrlCreateButton("Test de mémoire vive", 10, 200, 150, 25)
+$iIDButtonScripts = GUICtrlCreateButton("Scripts et outils", 10, 230, 150, 25)
 
-Local $y = 230+50
+Local $y = 70 + ($iFonctions * 30)
 Local $pgroup = $y-20
 
 Local $iIDButtonNettoyage = GUICtrlCreateButton("1 - Nettoyage", 10, $y, 150, 25)
@@ -407,11 +433,19 @@ If _FichierCacheExist("StabiliteTime") = 1 Then
 	_FichierCache("StabiliteTime", -1)
 EndIf
 
-GUICtrlCreateGroup("Rapport", 170, 50, 520, 287 + UBound($sListeProgdes) * 25)
-$iIDEditRapport = GUICtrlCreateEdit("", 180, 70,500,257 + UBound($sListeProgdes) * 25, BitOR($ES_READONLY, $WS_VSCROLL))
+GUICtrlCreateGroup("Rapport", 170, 50, 520, 77 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+$iIDEditRapport = GUICtrlCreateEdit("", 180, 70,500, 47 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, BitOR($ES_READONLY, $WS_VSCROLL))
 _UpdEdit($iIDEditRapport, $hFichierRapport)
 
 GUISetState(@SW_SHOW)
+
+If _FichierCacheExist("Restauration") = 0 Then
+	$sRestauration = IniRead($sConfig, "Parametrages", "Restauration", 0)
+	If $sRestauration = 1 Then
+		_Restauration("Démarrage de BAO")
+		_FichierCache("Restauration", 1)
+	EndIf
+EndIf
 
 Local $stdoutwu, $datawu
 
@@ -445,7 +479,13 @@ While 1
 				_FichierCache("WUInactif", -1)
 			EndIf
 
+		Case $iIDRestau
+			_Restauration()
+
 		Case $iIDAutologon
+
+			Local $sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
+
 			If(GUICtrlRead($iIDAutologon) = $GUI_CHECKED) Then
 				Local $sMdps = InputBox("Mot de passe de session", "Entrez votre mot de passe de session", "", "*")
 
@@ -453,7 +493,6 @@ While 1
 					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 1)
 					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName","REG_SZ", @UserName)
 					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword","REG_SZ", $sMdps)
-					Local $sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
 					If($sDomaine <> "") Then
 						RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain","REG_SZ", $sDomaine)
 					EndIf
@@ -462,7 +501,11 @@ While 1
 				EndIf
 			Else
 				RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 0)
+				RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName")
 				RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword")
+				If($sDomaine <> "") Then
+					RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain")
+				EndIf
 			EndIf
 
 		Case $GUI_EVENT_CLOSE
@@ -506,6 +549,11 @@ While 1
 			_ReiniBAO()
 			Exit
 
+		Case $iIDMenu1tech
+
+			_ChangerMode()
+			Exit
+
 		Case $iIDMenu2ajout
 
 			_CreerIDSuivi()
@@ -517,6 +565,16 @@ While 1
 		Case $iIDMenu2index
 
 			_CreerIndex()
+
+		Case $sIDVarALLUSERSPROFILE, $sIDVarAPPDATA, $sIDVarLOCALAPPDATA, $sIDVarProgramData, $sIDVarProgramFiles, $sIDVarProgramFiles86, $sIDVarPUBLIC, $sIDVarTEMP, $sIDVarTMP, $sIDVarUSERPROFILE, $sIDVarwindir
+
+			Local $sVarValue = EnvGet(GUICtrlRead($iIDAction, 1))
+
+			If($sVarValue and StringInStr($sVarValue, "\")) Then
+				ShellExecute($sVarValue)
+			Else
+				_Attention("Cette variable d'environnement n'exite pas ou n'est pas un dossier")
+			EndIf
 
 		Case $iIDButtonBureaudistant
 

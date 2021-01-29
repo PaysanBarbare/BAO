@@ -122,7 +122,6 @@ Func _Telecharger($sNom, $sChemin)
 
 			$dlFileSize = InetGetSize($url)
 
-
 			If(FileExists($sProgrun)) Then
 
 				$FileSize = FileGetSize($sProgrun)
@@ -165,6 +164,7 @@ Func _Telecharger($sNom, $sChemin)
 			EndIf
 
 			if $dl = 1 Then
+
 				; Téléchargement direct
 				$hDownload = InetGet($url, $sProgrun, 1, 1)
 				$TotalSize = Round($dlFileSize / 1024)
@@ -206,6 +206,7 @@ Func _Telecharger($sNom, $sChemin)
 						_Attention("Erreur lors du téléchargement de " & $aLien[0])
 					EndIf
 				Else
+					Sleep(100)
 					If FileExists($sProgrun) And FileGetSize($sProgrun) = $dlFileSize Then
 						$bOK = True
 					Else
@@ -223,6 +224,7 @@ Func _Telecharger($sNom, $sChemin)
 
 						$oStatusCode = $oHTTP.Status
 						$oReceived = $oHTTP.ResponseBody
+
 						If $oStatusCode == 200 then
 							$file = FileOpen($sProgrun, 2) ; The value of 2 overwrites the file if it already exists
 							FileWrite($file, $oReceived)

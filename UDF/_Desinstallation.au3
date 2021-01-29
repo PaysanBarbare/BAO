@@ -30,7 +30,7 @@ Func _DesinstallerBAO()
 		Local $sNomFichier = $sDossierRapport & "\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt"
 		FileMove($sDossierRapport & "\Rapport intervention.txt", $sNomFichier, 1)
 		If(StringInStr(@ScriptDir, "\\")) Then
-			FileCopy($sDossierRapport & "\" & $sNomFichier, $sScriptDir & "\Rapports\", 9)
+			FileCopy($sNomFichier, $sScriptDir & "\Rapports\", 9)
 		EndIf
 		Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
 		Local $iRetour
@@ -84,11 +84,14 @@ EndFunc
 ; ===============================================================================================================================
 Func _Uninstall($iRep)
 
-	FileDelete(@DesktopDir & '\BAO.lnk')
-	FileDelete(@DesktopDir & '\BAO - Installation de Windows 10.lnk')
+	Run(@ComSpec & ' /c del "' & @DesktopDir & '\BAO*.lnk"', "", @SW_HIDE)
 	FileDelete(@DesktopDir & '\ESET Online Scanner.lnk')
 	FileDelete(@UserProfileDir & "\Downloads\BAO-sfx.exe")
 	Run(@ComSpec & ' /c del "' & @DesktopDir & '\ZHPCleaner*"', "", @SW_HIDE)
+
+	If $sRestauration = 1 Then
+		_Restauration("Fin d'intevervention BAO")
+	EndIf
 
     If @Compiled And StringLeft($sScriptDir, 2) = @HomeDrive Then
 		ShellExecute ( @ComSpec , ' /c RMDIR /S /Q "' & FileGetShortName(@ScriptDir) & '"', "" , "", @SW_HIDE )
@@ -96,6 +99,28 @@ Func _Uninstall($iRep)
 
 	If $iRep = 6 Then
 		ShellExecute ( @ComSpec , " /c shutdown -s -t 15" , "" , "", @SW_HIDE )
+	EndIf
+
+EndFunc
+
+; #FUNCTION# ====================================================================================================================
+; Name ..........: _RelancerBAO()
+; Description ...:
+; Syntax ........:
+; Parameters ....:
+; Return values..:
+;
+; Author.........:
+; Modified ......:
+; ===============================================================================================================================
+Func _ChangerMode()
+
+	If(StringLeft($sNom, 4) <> "Tech") Then ;Mode lecture
+		_FichierCache("Client", -1)
+		_FichierCache("Client", "Tech " & $sNom)
+	Else
+		_FichierCache("Client", -1)
+		_FichierCache("Client", StringTrimLeft($sNom, 5))
 	EndIf
 
 EndFunc

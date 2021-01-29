@@ -18,4 +18,5 @@ https://www.isergues.fr/bao.php
 * Chocolatey Open Source : Apache 2.0
 * Snappy Driver Installer Origin : GNU General Public License
 * 7zip :  GNU LGPL
+* PrivaZer : voir licence sur le site
 * Les logiciels personnalisables par l'utilisateur sont soumis à leurs licences respectives

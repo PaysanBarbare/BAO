@@ -54,7 +54,7 @@ Func _InitialisationBAO($sConfig)
 		EndIf
 	Else
 		; Création du fichier config.ini
-		IniWriteSection($sConfig,"Parametrages", "Dossier=Rapport"&@LF&"Icones=1"&@CRLF)
+		IniWriteSection($sConfig,"Parametrages", "Dossier=Rapport"&@LF&"Icones=1"&@LF&"Restauration=0"&@CRLF)
 
 		IniWriteSection($sConfig,"Installation", "Defaut=GoogleChrome LibreOffice-fresh K-LiteCodecPackFull 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Safari Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh"&@LF&"3=Multimedia K-LiteCodecPackFull Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler ImgBurn JavaRuntime TeamViewer"&@CRLF)
 
@@ -734,10 +734,12 @@ Func _APropos()
 		GUICtrlSetColor(-1, $COLOR_RED)
 	EndIf
 	GUICtrlCreateLabel('"Boîte A Outils" est un logiciel d' & "'" & 'aide au dépannage informatique'&@CRLF&"Auteur : Bastien Rouchès""Licence : GPL-3.0-or-later"&@CRLF&"https://www.isergues.fr"&@CRLF&"Copyright 2019, 2020 Bastien Rouches", 10, 75)
- 	GUICtrlCreateLabel("Aller sur le site du logiciel : ", 10, 150)
-	local $iIdLien = GUICtrlCreateButton("https://www.isergues.fr/bao.php", 160, 145)
+ 	GUICtrlCreateLabel("Aller sur le site du logiciel : ", 40, 145)
+	local $iIdLien = GUICtrlCreateButton("GitHub", 200, 140, 100)
+	GUICtrlCreateLabel("Encourager le développeur : ", 40, 170)
+	local $iIdDon = GUICtrlCreateButton("Faire un don", 200, 165, 100)
 
- 	GUICtrlCreateLabel("Licences des logiciels :"&@CRLF&""&@CRLF&"DWService Agent : MPLv2"&@CRLF&"Chocolatey Open Source : Apache 2.0"&@CRLF&"Snappy Driver Installer Origin : GNU General Public License"&@CRLF&"Windows-ISO-Downloader : Heidoc"&@CRLF&"Privaser : Licence jointe avec le logiciel"&@CRLF&"7zip :  GNU LGPL"&@CRLF&""&@CRLF&""&@CRLF&"Les logiciels personnalisables par l'utilisateur sont soumis à leurs licences"&@CRLF&"respectives", 10, 195)
+ 	GUICtrlCreateLabel("Licences des logiciels :"&@CRLF&""&@CRLF&"DWService Agent : MPLv2"&@CRLF&"Chocolatey Open Source : Apache 2.0"&@CRLF&"Snappy Driver Installer Origin : GNU General Public License"&@CRLF&"Windows-ISO-Downloader : Heidoc"&@CRLF&"PrivaZer : Licence jointe avec le logiciel"&@CRLF&"7zip :  GNU LGPL"&@CRLF&""&@CRLF&""&@CRLF&"Les logiciels personnalisables par l'utilisateur sont soumis à leurs licences"&@CRLF&"respectives", 10, 195)
 	GUISetState(@SW_SHOW)
 
 	Local $iIdAc
@@ -750,7 +752,10 @@ Func _APropos()
 				ExitLoop
 
 			Case $iIdLien
-				ShellExecute("https://www.isergues.fr/bao.php")
+				ShellExecute("https://github.com/PaysanBarbare/BAO")
+
+			Case $iIdDon
+				ShellExecute("https://www.paypal.com/biz/fund?id=9DCB6M93TUS3C")
 
 		EndSwitch
 	WEnd
@@ -758,3 +763,25 @@ Func _APropos()
 	GUIDelete()
 
 EndFunc
+
+Func _CreateSystemRestorePoint ( $discription , $disable = True )
+
+Local $bReturn = False
+Local $obj = ObjGet ( "winmgmts:{impersonationLevel = impersonate}!root/default:SystemRestore" )
+
+$obj.Enable ( "" )
+$obj.CreateRestorePoint ( $discription , 12 , 100 )
+
+If Not $obj.CreateRestorePoint ( $discription , 12 , 100 ) = 0 Then
+	_Attention("Le point de restauration n'a pas été créé")
+Else
+	$bReturn = True
+EndIf
+
+If $disable Then
+$obj.Disable ( "" )
+EndIf
+
+Return $bReturn
+
+EndFunc ; == >_CreateSystemRestorePoint
