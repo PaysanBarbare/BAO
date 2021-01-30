@@ -55,10 +55,10 @@ This file is part of "Boîte A Outils"
 #pragma compile(UPX, False)
 #pragma compile(FileDescription, BAO - Boîte à outils)
 #pragma compile(ProductName, BAO)
-#pragma compile(ProductVersion, 0.5.7)
-#pragma compile(FileVersion, 0.5.7)
-#pragma compile(LegalCopyright, Bastien Rouches@Isergues Informatique 2021)
-#pragma compile(CompanyName, 'Isergues Informatique 2020')
+#pragma compile(ProductVersion, 0.5.8)
+#pragma compile(FileVersion, 0.5.8)
+#pragma compile(LegalCopyright, Bastien Rouches@Isergues Informatique 2019-2021)
+#pragma compile(CompanyName, 'Isergues Informatique')
 
 Opt("MustDeclareVars", 1)
 #include-once
@@ -77,6 +77,7 @@ Opt("MustDeclareVars", 1)
 #include <GuiMenu.au3>
 #include <IE.au3>
 #include <Inet.au3>
+#include <MemoryConstants.au3>
 #include <Misc.au3>
 #include <Process.au3>
 #include <ProgressConstants.au3>
@@ -152,6 +153,8 @@ Local $sFTPAdresse = IniRead($sConfig, "FTP", "Adresse", "")
 Local $sFTPUser = IniRead($sConfig, "FTP", "Utilisateur", "")
 Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 
+$iFreeSpace = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
+
 if(_FichierCacheExist("Client") = 0) Then
 
 	If($sFTPAdresse <> "" And $sFTPUser <> "" And $sFTPDossierSuivi) Then
@@ -186,6 +189,8 @@ Local $iIDButtonScripts
 Local $iFonctions = 7
 
 GUICreate("Boîte A Outils (bêta)", 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+GUISetBkColor($COLOR_WHITE)
+
 $statusbar = GUICtrlCreateLabel("", 10, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 410, 20, $SS_CENTERIMAGE)
 $statusbarprogress = GUICtrlCreateProgress(440, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 250, 20)
 $iIDCancelDL = GUICtrlCreateButton("Annuler le téléchargement", 700, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 150, 20)
@@ -206,6 +211,7 @@ Local $iIDMenu1sfx = GUICtrlCreateMenuItem("Créer archive SFX (Tech)", $iIDMenu
 
 Local $iIDMenu2 = GUICtrlCreateMenu("&Suivi")
 Local $iIDMenu2ajout = GUICtrlCreateMenuItem("Générer un code de suivi", $iIDMenu2)
+Local $iIDMenu2completer = GUICtrlCreateMenuItem("Ajouter une information de suivi", $iIDMenu2)
 Local $iIDMenu2supp = GUICtrlCreateMenuItem("Supprimer l'association", $iIDMenu2)
 Local $iIDMenu2index = GUICtrlCreateMenuItem("Créer index.php sur le serveur FTP (Tech)", $iIDMenu2)
 
@@ -213,7 +219,7 @@ Local $sFTPAdresse = IniRead($sConfig, "FTP", "Adresse", "")
 Local $sFTPUser = IniRead($sConfig, "FTP", "Utilisateur", "")
 
 If(_FichierCacheExist("Suivi") = 0) Then
-	GUICtrlDelete($iIDMenu2)
+	GUICtrlSetState($iIDMenu2, $GUI_DISABLE)
 EndIf
 
 
@@ -229,21 +235,24 @@ Local $aDoc = _FileListToArray($sScriptDir & "\Liens\", "*", 2)
 Local $sHeure, $iMin = @MIN
 Local $i, $j, $iPremElement, $iDernElement, $x = 70
 
-$iPremElement = $iIDMenu2index + 1
+Local $iIDMenuLog = GUICtrlCreateMenu("Logiciels")
+
+$iPremElement = $iIDMenuLog + 1
 
 For $i = 1 To $aDoc[0]
 
 	Local $aTemp
 
 	If @OSArch = "X64" Then
-		$aTemp = _FileListToArrayRec($sScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt|*-x86.url")
+		$aTemp = _FileListToArrayRec($sScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x86.url")
 	Else
-		$aTemp = _FileListToArrayRec($sScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt|*-x64.url")
+		$aTemp = _FileListToArrayRec($sScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x64.url")
 	EndIf
 
 	If	@error <> 1 Then
 		If $aDoc[$i] <> "Favoris" Then
-			Local $iIDMenuDoc = GUICtrlCreateMenu($aDoc[$i])
+
+			Local $iIDMenuDoc = GUICtrlCreateMenu($aDoc[$i], $iIDMenuLog)
 			For $j = 1 To $aTemp[0]
 				Local $aTempLog[3]
 				Local $sNomLog = StringTrimRight($aTemp[$j], 4)
@@ -270,6 +279,9 @@ For $i = 1 To $aDoc[0]
 				Local $sURL
 				If(StringRight($aTemp[$j], 3) = "url") Then
 					$sURL = IniRead( $sScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j], "InternetShortcut","URL", "ERROR")
+				ElseIf(StringRight($aTemp[$j], 3) = "lnk") Then
+					Local $aShortcut = FileGetShortcut($sScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
+					$sURL = $aShortcut[0]
 				Else
 					$sURL = FileReadLine($sScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
 				EndIf
@@ -288,7 +300,7 @@ For $i = 1 To $aDoc[0]
 Next
 
 $iDernElement = $sIDSM
-Local $iIDMenuVar = GUICtrlCreateMenu("Variables d'environnement")
+Local $iIDMenuVar = GUICtrlCreateMenu("Var. env.")
 Local $sIDVarALLUSERSPROFILE = GUICtrlCreateMenuItem("ALLUSERSPROFILE", $iIDMenuVar)
 Local $sIDVarAPPDATA = GUICtrlCreateMenuItem("APPDATA", $iIDMenuVar)
 Local $sIDVarLOCALAPPDATA = GUICtrlCreateMenuItem("LOCALAPPDATA", $iIDMenuVar)
@@ -341,7 +353,7 @@ If(StringLeft($sNom, 4) <> "Tech") Then
 	EndIf
 
 	If _FichierCacheExist("Autologon") = 1 Then
-		$iIDAutologon = GUICtrlCreateCheckbox("Autologon", 570, 160 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+		$iIDAutologon = GUICtrlCreateCheckbox("Autologon", 530, 160 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 		If $iAutoAdmin = 1 Then
 			GUICtrlSetState($iIDAutologon, $GUI_CHECKED)
 		EndIf
@@ -359,12 +371,18 @@ Else
 	$iLabelPC = GUICtrlCreateLabel($sNom, 10, 10, 540)
 EndIf
 
+Local $iIDespacelibre = GUICtrlCreateLabel(@HomeDrive & " " & $iFreeSpace & " Go libre", 620, 164 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+Local $aMemStats = MemGetStats()
+Local $iIDRAMlibre = GUICtrlCreateLabel("RAM : " & $aMemStats[$MEM_LOAD] & '% utilisée', 720, 164 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+
+
 GUICtrlSetFont($iLabelPC, 18)
 
 Local $sDate = _FichierCache("PremierLancement")
 GUICtrlCreateLabel("PC : " & @ComputerName, 500, 2)
 GUICtrlCreateLabel("OS : " & $sOSv, 500, 20)
-GUICtrlCreateLabel("Début : " & $sDate, 500, 38)
+GUICtrlCreateLabel("Début : " & $sDate, 500, 38, 200)
+GUICtrlSetFont(-1, Default, 600)
 
 
 $iIDButtonBureaudistant = GUICtrlCreateButton("Bureau distant", 10, 50, 150, 25)
@@ -416,7 +434,7 @@ Local $iIDButtonQuit = GUICtrlCreateButton("Quitter", 700, $y , 150, 25)
 
 If ($x > $y - 65) Then _Attention("Il y a trop de liens dans le dossier Favoris, merci d'en supprimer")
 
-GUICtrlCreateGroup("Favoris", 695, 50, 160, $y - 128)
+GUICtrlCreateGroup("Favoris et raccourcis", 695, 50, 160, $y - 128)
 
 If _FichierCacheExist("Bureaudistant") = 1 Then	_ChangerEtatBouton($iIDButtonBureaudistant, "Activer")
 
@@ -434,6 +452,7 @@ If _FichierCacheExist("StabiliteTime") = 1 Then
 EndIf
 
 GUICtrlCreateGroup("Rapport", 170, 50, 520, 77 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+
 $iIDEditRapport = GUICtrlCreateEdit("", 180, 70,500, 47 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, BitOR($ES_READONLY, $WS_VSCROLL))
 _UpdEdit($iIDEditRapport, $hFichierRapport)
 
@@ -447,7 +466,7 @@ If _FichierCacheExist("Restauration") = 0 Then
 	EndIf
 EndIf
 
-Local $stdoutwu, $datawu
+Local $stdoutwu, $datawu, $iFreeSpacech
 
 While 1
 	$iIDAction = GUIGetMsg()
@@ -465,6 +484,15 @@ While 1
 		If(GUICtrlRead($iIDCheckboxwu) = $GUI_CHECKED) Then
 			Run(@ComSpec & ' /c net stop wuauserv & net stop bits & net stop dosvc', '', @SW_HIDE)
 		EndIf
+
+		$iFreeSpacech = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
+		If($iFreeSpacech <> $iFreeSpace) Then
+			GUICtrlSetData($iIDespacelibre, @HomeDrive & " " & $iFreeSpacech & " Go libre")
+			$iFreeSpace = $iFreeSpacech
+		EndIf
+
+		$aMemStats = MemGetStats()
+		GUICtrlSetData($iIDRAMlibre, "RAM : " & $aMemStats[$MEM_LOAD] & '% utilisée')
 
 	EndIf
 
@@ -557,6 +585,10 @@ While 1
 		Case $iIDMenu2ajout
 
 			_CreerIDSuivi()
+
+		Case $iIDMenu2completer
+
+			_CompleterSuivi()
 
 		Case $iIDMenu2supp
 
