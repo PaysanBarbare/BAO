@@ -54,6 +54,67 @@ Func _CreerIDSuivi()
 	EndIf
 EndFunc
 
+Func _CompleterSuivi()
+
+	Local $hGUIsuivi = GUICreate("Compléter le suivi", 400, 110)
+	Local $iPIN, $eGet, $iRetour
+
+	If(StringLeft($sNom, 4) = "Tech") Then
+		Local $aSuivi = _FileListToArrayRec($sScriptDir & "\Cache\Suivi\", "*.txt")
+		Local $iIDCombo
+
+		If $aSuivi <> "" And _FichierCacheExist("Suivi") = 1 Then
+			GUICtrlCreateLabel("Choisissez un code de suivi existant", 10, 10)
+			Local $iIDCombo = GUICtrlCreateCombo(StringTrimRight($aSuivi[1], 4),200, 5, 190)
+			For $i=2 To $aSuivi[0]
+				GUICtrlSetData($iIDCombo, StringTrimRight($aSuivi[$i], 4))
+			Next
+			GUICtrlCreateLabel("(L'intervention sera automatiquement débutée)", 10, 30)
+		EndIf
+
+	Else
+		$iPIN = _FichierCache("Suivi")
+		If $iPIN = 1 Then
+			_CreerIDSuivi()
+			$iPIN = _FichierCache("Suivi")
+		EndIf
+		GUICtrlCreateLabel("Ajouter une information de suivi au client : " & $sNom & " (" & $iPIN & ")", 10, 10)
+	EndIf
+
+	GUICtrlCreateLabel("Information à ajouter :", 10, 55)
+	Local $sInfosuivi = GUICtrlCreateInput("", 120, 50,270)
+
+
+	Local $iIDValider = GUICtrlCreateButton("Enregitrer", 40, 80, 150, 25, $BS_DEFPUSHBUTTON)
+	Local $iIDAnnuler = GUICtrlCreateButton("Annuler", 210, 80, 150, 25)
+
+	GUISetState(@SW_SHOW)
+
+	While $eGet <> $GUI_EVENT_CLOSE And $eGet <> $iIDAnnuler And $eGet <> $iIDValider
+		$eGet = GUIGetMsg()
+	WEnd
+
+	If($eGet = $iIDValider) Then
+		If(StringLeft($sNom, 4) = "Tech") Then
+			$iPIN = GUICtrlRead($iIDCombo)
+		EndIf
+		Local $sNomFichier = $sScriptDir & '\Cache\Suivi\' & $iPIN & '.txt'
+		If FileReadLine($sNomFichier) = "" Then
+			FileWriteLine($sNomFichier,  _Now() & " - Intervention débutée")
+		EndIf
+		If $sInfosuivi <> "" Then
+			FileWriteLine($sNomFichier,  _Now() & " - " & GUICtrlRead($sInfosuivi))
+		EndIf
+		GUIDelete()
+		Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
+		Do
+			$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierSuivi & $iPIN & '.txt')
+		Until $iRetour <> -1
+	Else
+		GUIDelete()
+	EndIf
+EndFunc
+
 Func _SupprimerIDSuivi($idSuivi)
 	If FileExists($sScriptDir & '\Cache\Suivi\' & $idSuivi & '.txt') Then
 		FileDelete($sScriptDir & '\Cache\Suivi\' & $idSuivi & '.txt')

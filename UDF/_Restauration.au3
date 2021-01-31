@@ -45,3 +45,25 @@ Func _Restauration($sDescription = "")
 	GUICtrlSetData($statusbarprogress, 0)
 
 EndFunc
+
+
+Func _CreateSystemRestorePoint ( $discription , $disable = True )
+
+Local $bReturn = False
+Local $obj = ObjGet ( "winmgmts:{impersonationLevel = impersonate}!root/default:SystemRestore" )
+
+$obj.Enable ( "" )
+
+If Not $obj.CreateRestorePoint ( $discription , 12 , 100 ) = 0 Then
+	_Attention("Le point de restauration n'a pas été créé")
+Else
+	$bReturn = True
+EndIf
+
+If $disable Then
+$obj.Disable ( "" )
+EndIf
+
+Return $bReturn
+
+EndFunc ; == >_CreateSystemRestorePoint
