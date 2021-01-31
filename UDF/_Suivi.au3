@@ -56,8 +56,8 @@ EndFunc
 
 Func _CompleterSuivi()
 
-	Local $hGUIsuivi = GUICreate("Compléter le suivi", 400, 110)
-	Local $iPIN, $eGet, $iRetour
+	Local $hGUIsuivi = GUICreate("Compléter le suivi", 400, 140)
+	Local $iPIN, $eGet, $iRetour, $iIDCloture
 
 	If(StringLeft($sNom, 4) = "Tech") Then
 		Local $aSuivi = _FileListToArrayRec($sScriptDir & "\Cache\Suivi\", "*.txt")
@@ -70,6 +70,10 @@ Func _CompleterSuivi()
 				GUICtrlSetData($iIDCombo, StringTrimRight($aSuivi[$i], 4))
 			Next
 			GUICtrlCreateLabel("(L'intervention sera automatiquement débutée)", 10, 30)
+		Else
+			_Attention("Il n'y a aucun code de suivi disponible")
+			GUIDelete()
+			Return
 		EndIf
 
 	Else
@@ -84,9 +88,9 @@ Func _CompleterSuivi()
 	GUICtrlCreateLabel("Information à ajouter :", 10, 55)
 	Local $sInfosuivi = GUICtrlCreateInput("", 120, 50,270)
 
-
-	Local $iIDValider = GUICtrlCreateButton("Enregitrer", 40, 80, 150, 25, $BS_DEFPUSHBUTTON)
-	Local $iIDAnnuler = GUICtrlCreateButton("Annuler", 210, 80, 150, 25)
+	Local $iIDCloture = GUICtrlCreateCheckbox("Terminer l'intervention ?", 10, 80)
+	Local $iIDValider = GUICtrlCreateButton("Enregistrer", 40, 110, 150, 25, $BS_DEFPUSHBUTTON)
+	Local $iIDAnnuler = GUICtrlCreateButton("Annuler", 210, 110, 150, 25)
 
 	GUISetState(@SW_SHOW)
 
@@ -102,9 +106,18 @@ Func _CompleterSuivi()
 		If FileReadLine($sNomFichier) = "" Then
 			FileWriteLine($sNomFichier,  _Now() & " - Intervention débutée")
 		EndIf
-		If $sInfosuivi <> "" Then
+		If GUICtrlRead($sInfosuivi) <> "" Then
 			FileWriteLine($sNomFichier,  _Now() & " - " & GUICtrlRead($sInfosuivi))
 		EndIf
+
+		If(GUICtrlRead($iIDCloture) = $GUI_CHECKED) Then
+			_FinIntervention($iPIN)
+			_SupprimerIDSuivi($iPIN)
+			If(StringLeft($sNom, 4) <> "Tech") Then
+				GUICtrlSetData($iLabelPC, "Client : " & $sNom)
+			EndIf
+		EndIf
+
 		GUIDelete()
 		Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 		Do
@@ -124,8 +137,8 @@ EndFunc
 Func _SupprimerSuivi()
 	Local $iSuivi = _FichierCache("Suivi")
 	_SupprimerIDSuivi($iSuivi)
-	_FichierCache("Suivi", 1)
 	If(StringLeft($sNom, 4) <> "Tech") Then
+		_FichierCache("Suivi", 1)
 		GUICtrlSetData($iLabelPC, "Client : " & $sNom)
 	EndIf
 EndFunc

@@ -439,7 +439,11 @@ Func _ExecuteProg()
 		If(StringInStr(($aMenuID[$iIDAction])[2], " ") > 0) Then
 			Run(($aMenuID[$iIDAction])[2])
 		Else
-			ShellExecute(($aMenuID[$iIDAction])[2])
+			If((($aMenuID[$iIDAction])[2] = "rstrui" or ($aMenuID[$iIDAction])[2] = "rstrui.exe") And @OSArch = "X64") Then
+				ShellExecute(@WindowsDir & "\sysnative\rstrui.exe")
+			Else
+				ShellExecute(($aMenuID[$iIDAction])[2])
+			EndIf
 		EndIf
 	EndIf
 EndFunc
