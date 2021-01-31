@@ -26,7 +26,6 @@ Func _DesinstallerBAO()
 	EndIf
 
 	If ($sRepsup = 6 Or $sRepsup = 7) Then
-		FileWriteLine($hFichierRapport, "Espace libre sur " & @HomeDrive & " à la fin de l'intervention : " & $iFreeSpace & " Go")
 		FileClose($hFichierRapport)
 		Local $sNomFichier = $sDossierRapport & "\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt"
 		FileMove($sDossierRapport & "\Rapport intervention.txt", $sNomFichier, 1)

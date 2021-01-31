@@ -128,6 +128,8 @@ Func _PremierLancement()
 		_DesinstallerBAO()
 	EndIf
 
+	$iFreeSpace = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
+
 	If($iFreeSpace < 30) Then
 		Local $sRepnet = MsgBox($MB_YESNOCANCEL, "Nettoyage", "L'espace libre sur le disque " & @HomeDrive & " est seulement de " & $iFreeSpace & " Go." & @CR & "Voulez vous supprimer les fichiers temporaires et les anciennes installations de Windows ?")
 		If($sRepnet = 6) Then
@@ -761,3 +763,25 @@ Func _APropos()
 	GUIDelete()
 
 EndFunc
+
+Func _CreateSystemRestorePoint ( $discription , $disable = True )
+
+Local $bReturn = False
+Local $obj = ObjGet ( "winmgmts:{impersonationLevel = impersonate}!root/default:SystemRestore" )
+
+$obj.Enable ( "" )
+$obj.CreateRestorePoint ( $discription , 12 , 100 )
+
+If Not $obj.CreateRestorePoint ( $discription , 12 , 100 ) = 0 Then
+	_Attention("Le point de restauration n'a pas été créé")
+Else
+	$bReturn = True
+EndIf
+
+If $disable Then
+$obj.Disable ( "" )
+EndIf
+
+Return $bReturn
+
+EndFunc ; == >_CreateSystemRestorePoint

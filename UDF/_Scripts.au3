@@ -133,7 +133,7 @@ Func _Scripts()
 
 		If(StringRight($sScriptname, 4) = ".bat" Or StringRight($sScriptname, 4) = ".cmd" Or StringRight($sScriptname, 4) = ".reg") Then
 			RunWait(@ComSpec & ' /c "' & $sDocscript & $sScriptname & '"',$sDocscript)
-		ElseIf (StringRight($sScriptname, 4) = ".ps1") Then
+		ElseIf (StringRight($sScriptname, 3) = ".ps1") Then
 			RunWait(@ComSpec & ' /c powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' & $sScriptname & '"', $sDocscript)
 		Else
 			ShellExecute($sScriptname, "", $sDocscript)
