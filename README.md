@@ -6,7 +6,7 @@ Boite A Outils est un logiciel d'aide au dépannage informatique pour les profes
 * Compatibilité partielle avec Windows Vista et Windows 7
 
 ## Execution
-Ouvrez BAO.exe ou BAO-x64.exe si vous disposez d'un système d'exploitation 64 bits
+Ouvrez run.bat
 
 ## Auteur
 Bastien ROUCHES
