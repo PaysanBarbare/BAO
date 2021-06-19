@@ -122,10 +122,10 @@ Func _SauvegardeAutomatique()
 					EndIf
 				EndIf
 
-				If $iBrowser = 1 And MapExists($aMenu, "WebBrowserPassView") Then
-					_Telecharger("WebBrowserPassView", ($aMenu["WebBrowserPassView"])[2])
+				If $iBrowser = 1 And MapExists($aMenu, "&WebBrowserPassView.zip") Then
+					_Telecharger("&WebBrowserPassView.zip", ($aMenu["&WebBrowserPassView.zip"])[2])
 					TrayTip ( "Aide", 'Cliquez sur "View > HTML Report - All Items"', 10 , 1 )
-					Local $iPidW = _Executer("WebBrowserPassView")
+					Local $iPidW = _Executer("&WebBrowserPassView.zip")
 					While(ProcessExists($iPidW))
 						If FileExists($sScriptDir & "\Cache\Download\WebBrowserPassView\report.html") Then
 							FileMove($sScriptDir & "\Cache\Download\WebBrowserPassView\report.html", $sDossierDesti & "\BrowsersPwd.html", 1)

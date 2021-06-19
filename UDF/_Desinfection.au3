@@ -62,7 +62,7 @@ EndFunc
 Func _Nettoyage()
 
 	_ChangerEtatBouton($iIDAction, "Patienter")
-	Local $eGet, $aListeAvSupp, $t = 0, $sProgDes
+	Local $eGet, $t = 0, $sProgDes
 	Local $hGUImaj = GUICreate("Réglages des paramètres de nettoyage", 400, 130)
 
 	Local $iIDPrivazer = GUICtrlCreateCheckbox("Nettoyer avec Privazer", 10, 10)
@@ -133,12 +133,7 @@ Func _Nettoyage()
 			If $iIDPrivazer = 1 Then
 				If MapExists($aMenu, "Privazer") Then
 					If(_Telecharger("Privazer", ($aMenu["Privazer"])[2])) Then
-						If(FileExists($sScriptDir & "\Cache\Download\PrivaZer-donor.ini")) Then
-							$iPIDclean = _Executer("Privazer", "CLEAN PrivaZer-donor.ini")
-							FileDelete($sScriptDir & "\Cache\Download\PrivaZer-donor.ini")
-						Else
-							$iPIDclean = _Executer("Privazer")
-						EndIf
+						$iPIDclean = _Executer("Privazer")
 					EndIf
 				Else
 					_Attention("Privazer n'existe pas dans les liens")
@@ -146,7 +141,6 @@ Func _Nettoyage()
 			EndIf
 
 			If $iIDUninstall = 1 Then
-				$aListeAvSupp = _ListeProgrammes()
 
 				If($sNomDesinstalleur <> "") Then
 					If MapExists($aMenu, $sNomDesinstalleur) Then
@@ -185,7 +179,8 @@ Func _Nettoyage()
 					$sProgDes &= " - " & $sProgAvSupp & @CRLF
 				EndIf
 			Next
-
+			_debug($aListeAvSupp)
+			_debug($aListeApSupp)
 			If $t > 0 Then
 				FileWriteLine($hFichierRapport, " " & $t & " programme(s) désinstallé(s) : ")
 				FileWrite($hFichierRapport, $sProgDes)

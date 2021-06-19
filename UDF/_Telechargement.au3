@@ -46,6 +46,7 @@ Func _Telecharger($sNom, $sChemin)
 	Local $iInternet = 1
 	Local $sec, $TotalSize, $Bytes, $CalBytes, $Percentage
 	Local $oHTTP, $oReceived, $oStatusCode, $file
+	Local $bPWD=0
 
 	If _isInternetConnected() = 0 Then
 		$iInternet = 0
@@ -58,16 +59,26 @@ Func _Telecharger($sNom, $sChemin)
 
 		; Téléchargement indirect
 		If (StringLeft(StringRight($sNom, 4), 1)) = "." Then
+
+			if(StringLeft($sNom, 1) = "&") Then
+				$sNom = StringTrimLeft($sNom, 1)
+				$bPWD = 1
+			EndIf
 			$ext = StringRight($sNom, 4)
 			$aLien[0] = StringTrimRight($sNom, 4)
 
 			Local $source = BinaryToString(InetRead($url), 4)
 			$url = StringRegExp($source, ' href="(.*?)' & $ext & '"', 3)
+			If $bPWD = 1 Then
+				Local $aPWD = StringRegExp($source, "copyTextToClipboard\(\'(.*?)\'\);", 1)
+				$sPWDZip = $aPWD[0]
+			EndIf
+
 
 			If(IsArray($url)) Then
 				$url = $url[0] & $ext
 
-				; le lien réupéré dans la page est un lien relatif (surement à améliorer)
+				; le lien récupéré dans la page est un lien relatif (surement à améliorer)
 				If(StringLeft($url,4) <> "http") Then
 					_IEErrorHandlerRegister()
 					Local $oIE=_IECreate($sChemin,0,0)
@@ -253,7 +264,12 @@ EndFunc   ;==>_Telecharger
 ; ===============================================================================================================================
 Func _Executer($sNom, $arg = "", $norun = 0)
 
-	Local $sDocp, $iPid = 0, $sProgruntmp = $sProgrun
+	Local $sDocp, $iPid = 0, $sProgruntmp = $sProgrun, $bPWD=0
+
+	if(StringLeft($sNom, 1) = "&") Then
+		$sNom = StringTrimLeft($sNom, 1)
+		$bPWD = 1
+	EndIf
 
 	GUICtrlSetData($statusbar, "Exécution de " & $sNom)
 
@@ -270,31 +286,35 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 		$sDocp = $sScriptDir & "\Cache\Download\" & $sNom & "\"
 
 		If FileExists($sDocp) = 0 Then
-			If _Zip_UnzipAll($sProgruntmp, $sDocp) = 0 Then
+			If($bPWD = 1) Then
+				RunWait(@ComSpec & ' /c ' & $sScriptDir & "\Outils\7z.exe x " & $sProgruntmp & " -o" & $sDocp & " -p" & $sPWDZip, $sScriptDir & "\Cache\Download\", @SW_HIDE)
+			Else
+				If _Zip_UnzipAll($sProgruntmp, $sDocp) = 0 Then
 
-				Switch @error
-					Case 1
-						_Attention('Unzip : zipfldr.dll does not exist')
-;
-					Case 2
-						_Attention('Unzip : Library not installed')
+					Switch @error
+						Case 1
+							_Attention('Unzip : zipfldr.dll does not exist')
+	;
+						Case 2
+							_Attention('Unzip : Library not installed')
 
-					Case 3
-						_Attention('Unzip : Not a full path')
+						Case 3
+							_Attention('Unzip : Not a full path')
 
-					Case 4
-						_Attention('Unzip : ZIP file does not exist')
+						Case 4
+							_Attention('Unzip : ZIP file does not exist')
 
-					Case 5
-						_Attention('Unzip : Failed to create destination (if necessary)')
+						Case 5
+							_Attention('Unzip : Failed to create destination (if necessary)')
 
-					Case 6
-						_Attention('Unzip : Failed to open destination')
+						Case 6
+							_Attention('Unzip : Failed to open destination')
 
-					Case 7
-						_Attention('Unzip : Failed to extract file(s)')
+						Case 7
+							_Attention('Unzip : Failed to extract file(s)')
 
-				EndSwitch
+					EndSwitch
+				EndIf
 			EndIf
 		EndIf
 
@@ -440,7 +460,7 @@ Func _ExecuteProg()
 			Run(($aMenuID[$iIDAction])[2])
 		Else
 			If((($aMenuID[$iIDAction])[2] = "rstrui" or ($aMenuID[$iIDAction])[2] = "rstrui.exe") And @OSArch = "X64") Then
-				ShellExecute(@WindowsDir & "\sysnative\rstrui.exe")
+				ShellExecute(@WindowsDir & "\system32\rstrui.exe")
 			Else
 				ShellExecute(($aMenuID[$iIDAction])[2])
 			EndIf

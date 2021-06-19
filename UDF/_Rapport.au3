@@ -30,7 +30,7 @@ Func _CompleterRapport()
 
 EndFunc
 
-Func _EnvoiFTP($sFichier, $sDossier)
+Func _EnvoiFTP($sFichier, $sDossier, $bRemove = 0)
 	Local $sFTPAdresse = IniRead($sConfig, "FTP", "Adresse", "")
 	Local $sFTPUser = IniRead($sConfig, "FTP", "Utilisateur", "")
 	Local $sFTPPort = IniRead($sConfig, "FTP", "Port", "21")
@@ -105,10 +105,14 @@ Func _EnvoiFTP($sFichier, $sDossier)
 
 				GUICtrlSetData($statusbarprogress, 75)
 
-				If(StringRight($sFichier, 3) = "txt" Or StringRight($sFichier, 3) = "php") Then
-					_FTP_FilePut($hConn, $sFichier, $sDossier, $INTERNET_FLAG_TRANSFER_ASCII)
+				If($bRemove = 1) Then
+					_FTP_FileDelete($hConn, $sDossier)
 				Else
-					_FTP_FilePut($hConn, $sFichier, $sDossier)
+					If(StringRight($sFichier, 3) = "txt" Or StringRight($sFichier, 3) = "php") Then
+						_FTP_FilePut($hConn, $sFichier, $sDossier, $INTERNET_FLAG_TRANSFER_ASCII)
+					Else
+						_FTP_FilePut($hConn, $sFichier, $sDossier)
+					EndIf
 				EndIf
 				GUICtrlSetData($statusbarprogress, 100)
 			EndIf

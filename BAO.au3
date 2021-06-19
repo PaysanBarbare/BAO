@@ -1,3 +1,12 @@
+#RequireAdmin
+#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_Version=Beta
+#AutoIt3Wrapper_Outfile_type=a3x
+#AutoIt3Wrapper_Icon=bao.ico
+#AutoIt3Wrapper_Outfile=D:\GitHub\BAO\BAO\BAO.a3x
+#AutoIt3Wrapper_Compile_Both=y
+#AutoIt3Wrapper_UseX64=y
+#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #cs
 
 Copyright 2019-2021 Bastien Rouches
@@ -45,18 +54,13 @@ This file is part of "Boîte A Outils"
 
 #ce
 
-#RequireAdmin
-#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
-#AutoIt3Wrapper_Compile_Both=y ; Compilation x86 et x64
-#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-
 #pragma compile(Icon, bao.ico)
 #pragma compile(Compatibility, win7)
 #pragma compile(UPX, False)
 #pragma compile(FileDescription, BAO - Boîte à outils)
 #pragma compile(ProductName, BAO)
-#pragma compile(ProductVersion, 0.5.8)
-#pragma compile(FileVersion, 0.5.8)
+#pragma compile(ProductVersion, 0.6.0)
+#pragma compile(FileVersion, 0.6.0)
 #pragma compile(LegalCopyright, Bastien Rouches@Isergues Informatique 2019-2021)
 #pragma compile(CompanyName, 'Isergues Informatique')
 
@@ -90,8 +94,8 @@ Opt("MustDeclareVars", 1)
 ; BAO ne peut être lancé qu'une fois.
 _Singleton(@ScriptName, 0)
 
-Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon
-Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $sScriptDir = @ScriptDir, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration
+Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt"
+Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $sScriptDir = @ScriptDir, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp
 
 If @OSArch = "X64" Then
     $HKLM = "HKLM64"
@@ -106,7 +110,7 @@ EndIf
 
 ; Création du raccourci sur le bureau
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
-	FileCreateShortcut(@AutoItExe, @DesktopDir & "\BAO.lnk")
+	FileCreateShortcut($sScriptDir & "\run.bat", @DesktopDir & "\BAO.lnk", $sScriptDir, "", "Boîte à Outils", $sScriptDir & "\bao.ico")
 EndIf
 
 Const $sConfig = $sScriptDir & "\config.ini"
@@ -176,6 +180,13 @@ $sNomDesinstalleur = IniRead($sConfig, "Desinfection", "Desinstalleur", "")
 $sPrivazer = IniRead($sConfig, "Desinfection", "Privazer", "Free")
 $sListeProgdes = _StringExplode(IniRead($sConfig, "Desinfection", "Programmes de desinfection", "RogueKiller AdwCleaner MalwareByte ZHPCleaner"), " ")
 
+If(FileExists($sListeProgrammes)) Then
+	_FileReadToArray($sListeProgrammes, $aListeAvSupp)
+Else
+	$aListeAvSupp = _ListeProgrammes()
+	_FileWriteFromArray($sListeProgrammes, $aListeAvSupp)
+EndIf
+
 ; Déclaration des boutons de fonctions (pour calculer la taille de la fenêtre BAO)
 Local $iIDButtonBureaudistant
 Local $iIDButtonInstallation
@@ -212,7 +223,14 @@ Local $iIDMenu1sfx = GUICtrlCreateMenuItem("Créer archive SFX (Tech)", $iIDMenu
 Local $iIDMenu2 = GUICtrlCreateMenu("&Suivi")
 Local $iIDMenu2ajout = GUICtrlCreateMenuItem("Générer un code de suivi", $iIDMenu2)
 Local $iIDMenu2completer = GUICtrlCreateMenuItem("Ajouter une information de suivi", $iIDMenu2)
-Local $iIDMenu2supp = GUICtrlCreateMenuItem("Supprimer l'association", $iIDMenu2)
+
+Local $iIDMenu2supp
+If(StringLeft($sNom, 4) <> "Tech") Then
+	$iIDMenu2supp = GUICtrlCreateMenuItem("Supprimer l'association", $iIDMenu2)
+Else
+	$iIDMenu2supp = GUICtrlCreateMenuItem("Supprimer un code de suivi", $iIDMenu2)
+EndIf
+
 Local $iIDMenu2index = GUICtrlCreateMenuItem("Créer index.php sur le serveur FTP (Tech)", $iIDMenu2)
 
 Local $sFTPAdresse = IniRead($sConfig, "FTP", "Adresse", "")

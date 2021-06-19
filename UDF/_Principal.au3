@@ -431,6 +431,14 @@ Func _GetInfoSysteme()
 		$sInfos &= " Système d'exploitation : " & $Obj_Item.Caption & " " & @OSArch & " version " & $Obj_Item.Version & @CRLF
 	Next
 
+	; BIOS
+	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_BIOS")
+	Local $Obj_Item
+	For $Obj_Item In $Obj_Services
+		$sInfos &= " Numéro de série : " & $Obj_Item.SerialNumber & @CRLF
+		$sInfos &= " Version du BIOS : " & $Obj_Item.SMBIOSBIOSVersion & @CRLF
+	Next
+
 	; Ordinateur
 	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_ComputerSystem")
 	Local $Obj_Item

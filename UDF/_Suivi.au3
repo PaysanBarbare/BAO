@@ -135,11 +135,55 @@ Func _SupprimerIDSuivi($idSuivi)
 EndFunc
 
 Func _SupprimerSuivi()
-	Local $iSuivi = _FichierCache("Suivi")
-	_SupprimerIDSuivi($iSuivi)
+
 	If(StringLeft($sNom, 4) <> "Tech") Then
+		Local $iSuivi = _FichierCache("Suivi")
+		_SupprimerIDSuivi($iSuivi)
 		_FichierCache("Suivi", 1)
 		GUICtrlSetData($iLabelPC, "Client : " & $sNom)
+	Else
+		Local $hGUIsuivi = GUICreate("Suppression d'un code de suivi en cours", 400, 140)
+		Local $iPIN, $eGet, $iRetour
+
+		Local $aSuivi = _FileListToArrayRec($sScriptDir & "\Cache\Suivi\", "*.txt")
+		Local $iIDCombo
+
+		If $aSuivi <> "" And _FichierCacheExist("Suivi") = 1 Then
+			GUICtrlCreateLabel("Choisissez le code de suivi à supprimer", 10, 10)
+			Local $iIDCombo = GUICtrlCreateCombo(StringTrimRight($aSuivi[1], 4),200, 5, 190)
+			For $i=2 To $aSuivi[0]
+				GUICtrlSetData($iIDCombo, StringTrimRight($aSuivi[$i], 4))
+			Next
+			GUICtrlCreateLabel("(Le suivi en ligne sera également supprimé)", 10, 30)
+		Else
+			_Attention("Il n'y a aucun code de suivi disponible")
+			GUIDelete()
+			Return
+		EndIf
+
+		Local $iIDValider = GUICtrlCreateButton("Enregistrer", 40, 110, 150, 25, $BS_DEFPUSHBUTTON)
+		Local $iIDAnnuler = GUICtrlCreateButton("Annuler", 210, 110, 150, 25)
+
+		GUISetState(@SW_SHOW)
+
+		While $eGet <> $GUI_EVENT_CLOSE And $eGet <> $iIDAnnuler And $eGet <> $iIDValider
+			$eGet = GUIGetMsg()
+		WEnd
+
+		If($eGet = $iIDValider) Then
+			$iPIN = GUICtrlRead($iIDCombo)
+
+			Local $sNomFichier = $sScriptDir & '\Cache\Suivi\' & $iPIN & '.txt'
+			_SupprimerIDSuivi($iPIN)
+
+			GUIDelete()
+			Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
+			Do
+				$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierSuivi & $iPIN & '.txt', 1)
+			Until $iRetour <> -1
+		Else
+			GUIDelete()
+		EndIf
 	EndIf
 EndFunc
 
