@@ -432,8 +432,8 @@ EndFunc
 ; ===============================================================================================================================
 
 Func _DriveMapDel()
-	If(StringInStr(@ScriptDir, "\\")) Then ;UNC
-		DriveMapDel($sScriptDir)
+	If(DriveMapGet(StringLeft(@ScriptDir, 2))) Then ;UNC
+		DriveMapDel(StringLeft(@ScriptDir, 2))
 	EndIf
 EndFunc
 

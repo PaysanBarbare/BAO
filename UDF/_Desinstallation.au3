@@ -30,9 +30,7 @@ Func _DesinstallerBAO()
 		FileClose($hFichierRapport)
 		Local $sNomFichier = $sDossierRapport & "\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt"
 		FileMove($sDossierRapport & "\Rapport intervention.txt", $sNomFichier, 1)
-		If(StringInStr(@ScriptDir, "\\")) Then
-			FileCopy($sNomFichier, $sScriptDir & "\Rapports\", 9)
-		EndIf
+		FileCopy($sNomFichier, $sScriptDir & "\Rapports\", 9)
 		Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
 		Local $iRetour
 		Do
