@@ -110,7 +110,12 @@ EndIf
 
 ; Création du raccourci sur le bureau
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
-	FileCreateShortcut($sScriptDir & "\run.bat", @DesktopDir & "\BAO.lnk", $sScriptDir, "", "Boîte à Outils", $sScriptDir & "\bao.ico")
+	Local $sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
+	If($sDriveMap) Then
+		FileCreateShortcut($sDriveMap & StringTrimLeft(@WorkingDir,2) & "\run.bat", @DesktopDir & "\BAO.lnk", $sDriveMap & StringTrimLeft(@WorkingDir,2), "", "Boîte à Outils", $sDriveMap & StringTrimLeft(@WorkingDir,2) & "\bao.ico")
+	Else
+		FileCreateShortcut($sScriptDir & "\run.bat", @DesktopDir & "\BAO.lnk", $sScriptDir, "", "Boîte à Outils", $sScriptDir & "\bao.ico")
+	EndIf
 EndIf
 
 Const $sConfig = $sScriptDir & "\config.ini"

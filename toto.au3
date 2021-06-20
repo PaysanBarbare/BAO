@@ -1,4 +1,5 @@
-Local $source = BinaryToString(InetRead("https://www.nirsoft.net/utils/web_browser_password.html"), 4)
-	local $array = StringRegExp($source, "copyTextToClipboard\(\'(.*?)\'\);", 1)
+#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_Outfile_type=a3x
+#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
-			MsgBox(0,"", $array[0])
+			MsgBox(0,"", @WorkingDir)
