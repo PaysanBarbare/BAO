@@ -109,8 +109,9 @@ EndIf
 ;~ EndIf
 
 ; Création du raccourci sur le bureau
+Local $sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
+
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
-	Local $sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
 	If($sDriveMap) Then
 		FileCreateShortcut($sDriveMap & StringTrimLeft(@WorkingDir,2) & "\run.bat", @DesktopDir & "\BAO.lnk", $sDriveMap & StringTrimLeft(@WorkingDir,2), "", "Boîte à Outils", $sDriveMap & StringTrimLeft(@WorkingDir,2) & "\bao.ico")
 	Else
@@ -369,7 +370,12 @@ Local $iIDRestau = GUICtrlCreateButton("Créer un point de restauration", 130, 1
 If(StringLeft($sNom, 4) <> "Tech") Then
 	_UACDisable()
 	; Activation de BAO au démarrage
-	; RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & @ScriptDir & '\run.bat"') // créé par run.bat
+	If($sDriveMap) Then
+		RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & $sDriveMap & StringTrimLeft(@WorkingDir,2) & '\run.bat"')
+	Else
+		RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & @ScriptDir & '\run.bat"')
+	EndIf
+
 	Local $iAutoAdmin = RegRead($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon")
 	if _FichierCacheExist("Autologon") = 0 And $iAutoAdmin = 0 Then
 		_FichierCache("Autologon", 1)
