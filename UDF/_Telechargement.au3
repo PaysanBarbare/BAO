@@ -318,7 +318,7 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 			EndIf
 		EndIf
 
-		If(StringInStr(@ScriptDir, "\\")) Then ;UNC
+		If($sDriveMap) Then ;UNC
  			;DriveMapDel($sScriptDir)
 ; 			$sScriptDir = @ScriptDir
  ;			$sDocp = @ScriptDir & "\Cache\Download\" & $sNom & "\"

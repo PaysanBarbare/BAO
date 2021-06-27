@@ -159,7 +159,7 @@ Func _MiseAJourOS()
 
 					Local $sDocTE =  $sScriptDir & '\Cache\ISO\tmp\'
 
-					If(StringInStr(@ScriptDir, "\\") And (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso")) Then
+					If($sDriveMap And (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso")) Then
 						GUICtrlSetData($statusbar, "Copie en cours, patientez")
 						GUICtrlSetData($statusbarprogress, 10)
 
@@ -179,7 +179,7 @@ Func _MiseAJourOS()
 							;_Debug(@ComSpec & ' /c 7z.exe x ..\' &  $sFileTE & ' & ' & $sDocTE)
 
 							If FileExists($sDocTE & "setup.exe") Then
-								If(StringInStr(@ScriptDir, "\\")) Then
+								If($sDriveMap) Then
 									FileDelete($sDocTE & '..\' & $sFileTE)
 								EndIf
 								FileCreateShortcut($sDocTE & "setup.exe", @DesktopDir & "\BAO - Installation de " & $sFileTE)

@@ -179,8 +179,6 @@ Func _Nettoyage()
 					$sProgDes &= " - " & $sProgAvSupp & @CRLF
 				EndIf
 			Next
-			_debug($aListeAvSupp)
-			_debug($aListeApSupp)
 			If $t > 0 Then
 				FileWriteLine($hFichierRapport, " " & $t & " programme(s) désinstallé(s) : ")
 				FileWrite($hFichierRapport, $sProgDes)

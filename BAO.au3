@@ -2,11 +2,10 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Version=Beta
 #AutoIt3Wrapper_Outfile_type=a3x
-#AutoIt3Wrapper_Icon=bao.ico
-#AutoIt3Wrapper_Outfile=D:\GitHub\BAO\BAO\BAO.a3x
-#AutoIt3Wrapper_Compile_Both=y
-#AutoIt3Wrapper_UseX64=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
+#pragma compile(Out, BAO.a3x)
+#pragma compile(ProductName, BAO)
+#pragma compile(FileVersion, 0.6.1) ; The last parameter is optional.
 #cs
 
 Copyright 2019-2021 Bastien Rouches
@@ -54,16 +53,6 @@ This file is part of "Boîte A Outils"
 
 #ce
 
-#pragma compile(Icon, bao.ico)
-#pragma compile(Compatibility, win7)
-#pragma compile(UPX, False)
-#pragma compile(FileDescription, BAO - Boîte à outils)
-#pragma compile(ProductName, BAO)
-#pragma compile(ProductVersion, 0.6.0)
-#pragma compile(FileVersion, 0.6.0)
-#pragma compile(LegalCopyright, Bastien Rouches@Isergues Informatique 2019-2021)
-#pragma compile(CompanyName, 'Isergues Informatique')
-
 Opt("MustDeclareVars", 1)
 #include-once
 #include <APIDiagConstants.au3>
@@ -88,6 +77,7 @@ Opt("MustDeclareVars", 1)
 #include <StaticConstants.au3>
 #include <String.au3>
 #include <StringConstants.au3>
+#include <WinAPIConv.au3>
 #include <WinAPIShellEx.au3>
 #include <WindowsConstants.au3>
 
@@ -95,7 +85,7 @@ Opt("MustDeclareVars", 1)
 _Singleton(@ScriptName, 0)
 
 Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt"
-Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $sScriptDir = @ScriptDir, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp
+Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $sScriptDir = @ScriptDir, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $sDriveMap
 
 If @OSArch = "X64" Then
     $HKLM = "HKLM64"
@@ -109,7 +99,7 @@ EndIf
 ;~ EndIf
 
 ; Création du raccourci sur le bureau
-Local $sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
+$sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
 
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
 	If($sDriveMap) Then

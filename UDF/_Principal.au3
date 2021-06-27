@@ -724,7 +724,7 @@ Func _APropos()
 		Local $aVersion = StringRegExp($SSource, 'Version (.*?)]', 3)
 
 		If IsArray($aVersion) Then
-			If(_ArraySearch($aVersion, FileGetVersion ( @ScriptFullPath, $FV_PRODUCTVERSION)) > 0) Then
+			If(_ArraySearch($aVersion, FileGetVersion ( @ScriptDir & '\' & @ScriptName, $FV_FILEVERSION)) > 0) Then
 				$iVersion = 1;
 			EndIf
 		EndIf
@@ -734,7 +734,7 @@ Func _APropos()
 
     Local $iIdApropos = GUICtrlCreateLabel('A propos de "Boîte A Outils"', 80, 10, 300)
 	GUICtrlSetFont($iIdApropos, 12, 800)
-	GUICtrlCreateLabel("Version "& FileGetVersion ( @ScriptFullPath, $FV_PRODUCTVERSION),10, 45)
+	GUICtrlCreateLabel("Version "& FileGetVersion ( @ScriptDir & '\' & @ScriptName, $FV_FILEVERSION),10, 45)
 	If $iVersion = 1 Then
 		GUICtrlCreateLabel("Nouvelle version disponible !",220, 45)
 		GUICtrlSetColor(-1, $COLOR_RED)

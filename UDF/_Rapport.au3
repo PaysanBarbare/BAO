@@ -79,8 +79,13 @@ Func _EnvoiFTP($sFichier, $sDossier, $bRemove = 0)
 			GUICtrlSetData($statusbarprogress, 20)
 
 			; Ajout de BAO dans le pare-feu Windows
-			RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall delete rule name = "BAO" program = "' & @AutoItExe & '" dir = in', "", @SW_HIDE)
-			RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall add rule name = "BAO" dir = in action = allow program = "' & @AutoItExe & '" enable = yes', "", @SW_HIDE)
+			 If $sDriveMap Then
+				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall delete rule name = "BAO" dir = in', "", @SW_HIDE)
+				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall add rule name = "BAO" dir = in action = allow program = "' & $sDriveMap & StringTrimLeft(@WorkingDir,2) & '\Outils\AutoIt3.exe" enable = yes', "", @SW_HIDE)
+			Else
+				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall delete rule name = "BAO" dir = in', "", @SW_HIDE)
+				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall add rule name = "BAO" dir = in action = allow program = "' & @AutoItExe & '" enable = yes', "", @SW_HIDE)
+			EndIf
 
 			GUICtrlSetData($statusbarprogress, 35)
 

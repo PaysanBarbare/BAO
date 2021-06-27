@@ -101,7 +101,7 @@ Func _InstallationAutomatique()
 	$p = $p+1
 	Local $iIDCache = GUICtrlCreateCheckbox("Utiliser le cache ? (Décochez pour installer Firefox)", 20, $iHauteurCadre1 + $iHauteurCadre2 + 70)
 	GUICtrlSetState (-1, 1)
-	If(StringInStr(@ScriptDir, "\\") = 0) Then ;UNC
+	If($sDriveMap = "") Then ;UNC
 		GUICtrlSetState($iIDCache, 32)
 	EndIf
 	Local $iIDButtonInstaller = GUICtrlCreateButton("Installer", 125, $iHauteurCadre1 + $iHauteurCadre2 + 100, 150, 25, $BS_DEFPUSHBUTTON)

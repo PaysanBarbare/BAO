@@ -252,7 +252,7 @@ Func _SauvegardeAutomatique()
 				FileWriteLine($hFichierRapport, "")
 
 				FileSetPos($hFichierRapport, 0, $FILE_BEGIN)
-				Local $hFichierSauvegarde = FileOpen($sDossierDesti & "\Infos sauvegarde.txt", 129)
+				Local $hFichierSauvegarde = FileOpen($sDossierDesti & "\Infos sauvegarde.txt", 1)
 				FileWrite($hFichierSauvegarde, FileRead($hFichierRapport))
 
 				Local $aListe = _ListeProgrammes()
@@ -265,15 +265,15 @@ Func _SauvegardeAutomatique()
 
 				FileWriteLine($hFichierSauvegarde, "Liste des imprimantes installées :")
 
+				Local $iPID1 = Run(@ComSpec & ' /c wmic printer get DriverName, Name, Portname', "", @SW_HIDE, $STDOUT_CHILD)
+				ProcessWaitClose($iPID1)
+				FileWrite($hFichierSauvegarde, _WinAPI_OemToChar(StdoutRead($iPID1)))
+
+				Local $iPID2 = Run(@ComSpec & ' /c ipconfig /all', "", @SW_HIDE, $STDOUT_CHILD)
+				ProcessWaitClose($iPID2)
+				FileWrite($hFichierSauvegarde, _WinAPI_OemToChar(StdoutRead($iPID2)))
+
 				FileClose($hFichierSauvegarde)
-
-				RunWait(@ComSpec & ' /c wmic /append:"' & $sDossierDesti & '\Infos sauvegarde.txt" printer get DriverName, Name, Portname', "", @SW_HIDE)
-
-				FileWriteLine($hFichierSauvegarde, "")
-
-				RunWait(@ComSpec & ' /c ipconfig /all >> "' & $sDossierDesti & '\Infos sauvegarde.txt"', "", @SW_HIDE)
-
-				FileWriteLine($hFichierSauvegarde, "")
 
 				FileCreateShortcut($sDossierDesti, $sDossierRapport & "\Sauvegarde.lnk")
 
