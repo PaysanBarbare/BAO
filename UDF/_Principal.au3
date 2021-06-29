@@ -68,7 +68,7 @@ Func _InitialisationBAO($sConfig)
 		ShellExecuteWait($sConfig)
 	EndIf
 
-	If(FileExists($sScriptDir & "\Liens\") = 0) Then _Erreur('Dossier "Liens" manquant')
+	If(FileExists(@ScriptDir & "\Liens\") = 0) Then _Erreur('Dossier "Liens" manquant')
 
 EndFunc
 
@@ -79,7 +79,7 @@ Func _PremierLancement()
 	Local $iNomTmp = GUICtrlCreateInput(@UserName, 130, 12, 250)
 	GUICtrlCreateLabel('(Indiquez "Tech" suivi de votre nom pour la version Technicien)', 10, 40)
 
-	Local $aSuivi = _FileListToArrayRec($sScriptDir & "\Cache\Suivi\", "*.txt")
+	Local $aSuivi = _FileListToArrayRec(@ScriptDir & "\Cache\Suivi\", "*.txt")
 	Local $iIDCombo
 
 	If $aSuivi <> "" And _FichierCacheExist("Suivi") = 1 Then

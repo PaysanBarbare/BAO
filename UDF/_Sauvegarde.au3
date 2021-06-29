@@ -127,8 +127,8 @@ Func _SauvegardeAutomatique()
 					TrayTip ( "Aide", 'Cliquez sur "View > HTML Report - All Items"', 10 , 1 )
 					Local $iPidW = _Executer("&WebBrowserPassView.zip")
 					While(ProcessExists($iPidW))
-						If FileExists($sScriptDir & "\Cache\Download\WebBrowserPassView\report.html") Then
-							FileMove($sScriptDir & "\Cache\Download\WebBrowserPassView\report.html", $sDossierDesti & "\BrowsersPwd.html", 1)
+						If FileExists(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html") Then
+							FileMove(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html", $sDossierDesti & "\BrowsersPwd.html", 1)
 							FileWriteLine($hFichierRapport, "  Mots de passe de navigateurs copiés")
 							ProcessClose($iPidW)
 						EndIf
@@ -148,8 +148,8 @@ Func _SauvegardeAutomatique()
  					TrayTip ( "Aide", 'Cliquez sur "View > HTML Report - All Items"', 10 , 1 )
  					Local $iPidM = _Executer("MailPassView")
  					While(ProcessExists($iPidM))
- 						If FileExists($sScriptDir & "\Cache\Download\MailPassView\report.html") Then
- 							FileMove($sScriptDir & "\Cache\Download\MailPassView\report.html", $sDossierDesti & "\MailsPwd.html", 1)
+ 						If FileExists(@ScriptDir & "\Cache\Download\MailPassView\report.html") Then
+ 							FileMove(@ScriptDir & "\Cache\Download\MailPassView\report.html", $sDossierDesti & "\MailsPwd.html", 1)
  							FileWriteLine($hFichierRapport, "  Mots de passe mail copiés")
  							ProcessClose($iPidM)
  						EndIf
@@ -169,8 +169,8 @@ Func _SauvegardeAutomatique()
 ;~ 					TrayTip ( "Aide", 'Cliquez sur "View > HTML Report - All Items"', 10 , 1 )
 ;~ 					Local $iPidM = _Executer("MailPassView")
 ;~ 					While(ProcessExists($iPidM))
-;~ 						If FileExists($sScriptDir & "\Cache\Download\MailPassView\report.html") Then
-;~ 							FileMove($sScriptDir & "\Cache\Download\MailPassView\report.html", $sDossierDesti & "\MailsPwd.html", 1)
+;~ 						If FileExists(@ScriptDir & "\Cache\Download\MailPassView\report.html") Then
+;~ 							FileMove(@ScriptDir & "\Cache\Download\MailPassView\report.html", $sDossierDesti & "\MailsPwd.html", 1)
 ;~ 							FileWriteLine($hFichierRapport, "  Mots de passe mail copiés")
 ;~ 							ProcessClose($iPidM)
 ;~ 						EndIf
@@ -182,8 +182,8 @@ Func _SauvegardeAutomatique()
 ;~ 					TrayTip ( "Aide", 'Cliquez sur "View > HTML Report - All Items"', 10 , 1 )
 ;~ 					Local $iPidW = _Executer("WebBrowserPassView")
 ;~ 					While(ProcessExists($iPidW))
-;~ 						If FileExists($sScriptDir & "\Cache\Download\WebBrowserPassView\report.html") Then
-;~ 							FileMove($sScriptDir & "\Cache\Download\WebBrowserPassView\report.html", $sDossierDesti & "\BrowsersPwd.html", 1)
+;~ 						If FileExists(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html") Then
+;~ 							FileMove(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html", $sDossierDesti & "\BrowsersPwd.html", 1)
 ;~ 							FileWriteLine($hFichierRapport, "  Mots de passe de navigateurs copiés")
 ;~ 							ProcessClose($iPidW)
 ;~ 						EndIf
@@ -404,9 +404,9 @@ Func _CopierSur()
 
 		$sDossierDesti = $sLetter & "\BAO"
 		GUICtrlSetData($statusbar, "Copie en cours")
-		RunWait(@ComSpec & ' /c robocopy "' & $sScriptDir & '" "' &  $sDossierDesti & '" /E /XD "' & $sScriptDir & '\Cache\Pwd\"')
+		RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '" "' &  $sDossierDesti & '" /E /XD "' & @ScriptDir & '\Cache\Pwd\"')
 		GUICtrlSetData($statusbar, "")
-		;DirCopy($sScriptDir, $sDossierDesti, 1)
+		;DirCopy(@ScriptDir, $sDossierDesti, 1)
 	Else
 		GUIDelete()
 	EndIf

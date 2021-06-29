@@ -31,21 +31,21 @@ Func _MiseAJourOS()
 
 		Local $iNoWIN=0, $iNoOFF=0, $iNoAutre=0, $l=0, $eGet, $iBT[0], $iHauteur, $sNomF, $iBT[0], $aWIN[0], $aOFF[0], $aAUTRE[0]
 
-		Local $aTmpWIN = _FileListToArray($sScriptDir & "\Cache\ISO\", "*win*.*", 1)
+		Local $aTmpWIN = _FileListToArray(@ScriptDir & "\Cache\ISO\", "*win*.*", 1)
 		If @error Then
 			$iNoWIN = 1
 			_ArrayAdd($aWIN,0)
 		Else
 			$aWIN = $aTmpWIN
 		EndIf
-		Local $aTmpOFF = _FileListToArray($sScriptDir & "\Cache\ISO\", "*off*.*", 1)
+		Local $aTmpOFF = _FileListToArray(@ScriptDir & "\Cache\ISO\", "*off*.*", 1)
 		If @error Then
 			$iNoOFF = 1
 			_ArrayAdd($aOFF,0)
 		Else
 			$aOFF = $aTmpOFF
 		EndIf
-		Local $aTmpAUTRE = _FileListToArrayRec($sScriptDir & "\Cache\ISO\", "*.*|*off*.*;*win*.*", 1)
+		Local $aTmpAUTRE = _FileListToArrayRec(@ScriptDir & "\Cache\ISO\", "*.*|*off*.*;*win*.*", 1)
 		If @error Then
 			$iNoAutre = 1
 			_ArrayAdd($aAUTRE,0)
@@ -157,13 +157,13 @@ Func _MiseAJourOS()
 					Local $sFileTE = GUICtrlRead($eGet)
 					GUIDelete($hGUImaj)
 
-					Local $sDocTE =  $sScriptDir & '\Cache\ISO\tmp\'
+					Local $sDocTE =  @ScriptDir & '\Cache\ISO\tmp\'
 
-					If($sDriveMap And (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso")) Then
+					If(StringInStr(@ScriptDir, "\\") And (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso")) Then
 						GUICtrlSetData($statusbar, "Copie en cours, patientez")
 						GUICtrlSetData($statusbarprogress, 10)
 
-						RunWait(@ComSpec & ' /c robocopy "' & $sScriptDir & '\Cache\ISO" "' &  @LocalAppDataDir & '\bao" "' &  $sFileTE & '"')
+						RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '\Cache\ISO" "' &  @LocalAppDataDir & '\bao" "' &  $sFileTE & '"')
 						$sDocTE = @LocalAppDataDir & '\bao\tmp\'
 					EndIf
 
@@ -171,7 +171,7 @@ Func _MiseAJourOS()
 
 					If (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso") Then
 
-						If(FileCopy($sScriptDir & "\Outils\7z.*", $sDocTE, 9)) Then
+						If(FileCopy(@ScriptDir & "\Outils\7z.*", $sDocTE, 9)) Then
 							GUICtrlSetData($statusbar, "Extraction en cours, patientez")
 							GUICtrlSetData($statusbarprogress, 20)
 							RunWait(@ComSpec & ' /c 7z.exe x "..\' &  $sFileTE & '"', $sDocTE)
@@ -179,7 +179,7 @@ Func _MiseAJourOS()
 							;_Debug(@ComSpec & ' /c 7z.exe x ..\' &  $sFileTE & ' & ' & $sDocTE)
 
 							If FileExists($sDocTE & "setup.exe") Then
-								If($sDriveMap) Then
+								If(StringInStr(@ScriptDir, "\\")) Then
 									FileDelete($sDocTE & '..\' & $sFileTE)
 								EndIf
 								FileCreateShortcut($sDocTE & "setup.exe", @DesktopDir & "\BAO - Installation de " & $sFileTE)
@@ -195,7 +195,7 @@ Func _MiseAJourOS()
 					Else
 						GUICtrlSetData($statusbar, "Lancement de " & $sFileTE)
 						GUICtrlSetData($statusbarprogress, 50)
-						Run($sScriptDir & '\Cache\ISO\' & $sFileTE)
+						Run(@ScriptDir & '\Cache\ISO\' & $sFileTE)
 						Sleep(5000)
 					EndIf
 
@@ -246,7 +246,7 @@ Func _DlISO()
 					ProcessClose($iPIDIsoD)
 					_Attention('Le fichier va être téléchargé via votre navigateur. Vous pourrez ensuite le renommer et le copier dans le dossier "Cache\ISO\"')
 					ShellExecute(ClipGet())
-					ShellExecute($sScriptDir & "\Cache\ISO\")
+					ShellExecute(@ScriptDir & "\Cache\ISO\")
 					$bStop = True
 					ExitLoop
 				EndIf
@@ -264,7 +264,7 @@ Func _DlISO()
 				$sNomFicIso = InputBox("Nom du fichier", "Entrez le nom du fichier : ", $sNomFicIso)
 
 				If($sNomFicIso <> "") Then
-					Local $sDestiso = $sScriptDir & "\Cache\ISO\"
+					Local $sDestiso = @ScriptDir & "\Cache\ISO\"
 					DirCreate($sDestiso)
 
 					Local $sec, $TotalSize, $Bytes, $CalBytes, $Percentage, $hDownload

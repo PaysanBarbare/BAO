@@ -227,11 +227,11 @@ Func _NettoyageProg($aButtonDes)
 			EndIf
 
 		EndIf
-	ElseIf(FileExists($sScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & ".bat")) Then
-		RunWait(@ComSpec & ' /c "' & $aButtonDes[$iIDAction + 1] & '.bat uninstall"', $sScriptDir & "\Cache\Download\", @SW_HIDE)
-		FileDelete($sScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & ".bat")
+	ElseIf(FileExists(@ScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & ".bat")) Then
+		RunWait(@ComSpec & ' /c "' & $aButtonDes[$iIDAction + 1] & '.bat uninstall"', @ScriptDir & "\Cache\Download\", @SW_HIDE)
+		FileDelete(@ScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & ".bat")
 	Else
-		If FileExists($sScriptDir & "\Outils\" & $aButtonDes[$iIDAction + 1] & "\" & $aButtonDes[$iIDAction + 1] & ".bat") = 0 Then
+		If FileExists(@ScriptDir & "\Outils\" & $aButtonDes[$iIDAction + 1] & "\" & $aButtonDes[$iIDAction + 1] & ".bat") = 0 Then
 			_Attention($sNomProgDes & " n'existe pas dans les liens")
 		Else
 			_Attention('Ce bouton sert à désinstaller "' & $aButtonDes[$iIDAction + 1] & '" après un redémarrage de l' & "'" & 'ordinateur ou un arrêt intempestif de bao')
@@ -242,9 +242,9 @@ EndFunc
 Func _ResetBrowser()
 	_FichierCache("ResetBrowser", $iIDAction)
 	_ChangerEtatBouton($iIDAction, "Patienter")
-;~ 	If(FileExists($sScriptDir & "\Outils\ResetBrowser.exe")) Then
+;~ 	If(FileExists(@ScriptDir & "\Outils\ResetBrowser.exe")) Then
 ;~ 			FileWriteLine($hFichierRapport, " Nettoyage des navigateurs Internet")
-;~ 			Run($sScriptDir & "\Outils\ResetBrowser.exe")
+;~ 			Run(@ScriptDir & "\Outils\ResetBrowser.exe")
 ;~ 			_UpdEdit($iIDEditRapport, $hFichierRapport)
 ;~ 	Else
 ;~ 		_Attention("ResetBrowser.exe n'est pas dans le dossier Outils, Téléchagez le")

@@ -99,11 +99,11 @@ Func _InstallationAutomatique()
 	Local $iIDButtonDeselectionner = GUICtrlCreateButton("Aucun", 165, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
 	Local $iIDButtonDefaut = GUICtrlCreateButton("Par défaut", 240, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
 	$p = $p+1
-	Local $iIDCache = GUICtrlCreateCheckbox("Utiliser le cache ? (Décochez pour installer Firefox)", 20, $iHauteurCadre1 + $iHauteurCadre2 + 70)
-	GUICtrlSetState (-1, 1)
-	If($sDriveMap = "") Then ;UNC
-		GUICtrlSetState($iIDCache, 32)
-	EndIf
+;~ 	Local $iIDCache = GUICtrlCreateCheckbox("Utiliser le cache ? (Décochez pour installer Firefox)", 20, $iHauteurCadre1 + $iHauteurCadre2 + 70)
+;~ 	GUICtrlSetState (-1, 1)
+;~ 	If(StringInStr(@ScriptDir, "\\") = 0) Then ;UNC
+;~ 		GUICtrlSetState($iIDCache, 32)
+;~ 	EndIf
 	Local $iIDButtonInstaller = GUICtrlCreateButton("Installer", 125, $iHauteurCadre1 + $iHauteurCadre2 + 100, 150, 25, $BS_DEFPUSHBUTTON)
 
 	 ; Boucle jusqu'à ce que l'utilisateur quitte.
@@ -193,11 +193,11 @@ Func _InstallationAutomatique()
 		$idMsgInst = GUIGetMsg()
 	WEnd
 
-	If GUICtrlRead($iIDCache) = $GUI_CHECKED Then
-		$iIDCache = 1
-	Else
-		$iIDCache = 0
-	EndIf
+;~ 	If GUICtrlRead($iIDCache) = $GUI_CHECKED Then
+;~ 		$iIDCache = 1
+;~ 	Else
+;~ 		$iIDCache = 0
+;~ 	EndIf
 
 	; Supprime l'interface graphique précédente et tous ses contrôles.
 
@@ -232,11 +232,11 @@ Func _InstallationAutomatique()
 
 		If(_FichierCacheExist("Installation") = 1) Then
 
-			If $iIDCache = 1 Then
+;~ 			If $iIDCache = 1 Then
 				RunWait( @ComSpec & ' /c ' & 'choco config set cacheLocation "' & @ScriptDir & '\Cache\Choco"', "", @SW_HIDE)
-			Else
-				RunWait( @ComSpec & ' /c ' & 'choco config unset cacheLocation', "", @SW_HIDE)
-			EndIf
+;~ 			Else
+;~ 				RunWait( @ComSpec & ' /c ' & 'choco config unset cacheLocation', "", @SW_HIDE)
+;~ 			EndIf
 
 			_InstallationEnCours($aSofts)
 

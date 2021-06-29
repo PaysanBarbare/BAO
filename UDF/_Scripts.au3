@@ -23,18 +23,18 @@ Func _Scripts()
 	_ChangerEtatBouton($iIDAction, "Patienter")
 
 	If(StringLeft($sNom, 4) = "Tech") Then
-		DirCreate($sScriptDir & "\Scripts\")
-		ShellExecute($sScriptDir & "\Scripts\")
+		DirCreate(@ScriptDir & "\Scripts\")
+		ShellExecute(@ScriptDir & "\Scripts\")
 	Else
 
 		Local $eGet, $aButton[], $aBut[0], $sTmp, $sScriptname, $sDocscript, $iFilenbr = false
 		Local $hGUIscripts = GUICreate("Scripts et outils", 500, 500)
 
-		Local $aTab = _FileListToArray($sScriptDir & "\Scripts\", "*", 2)
+		Local $aTab = _FileListToArray(@ScriptDir & "\Scripts\", "*", 2)
 
 		If @error = 4 Then
 
-			Local $aFiles = _FileListToArray($sScriptDir & "\Scripts\", "*", 1)
+			Local $aFiles = _FileListToArray(@ScriptDir & "\Scripts\", "*", 1)
 
 			If @error = 4 Then
 
@@ -60,7 +60,7 @@ Func _Scripts()
 
 				GUICtrlCreateTabItem($aTab[$i])
 
-				Local $aTmp = _FileListToArray($sScriptDir & "\Scripts\" & $aTab[$i], "*")
+				Local $aTmp = _FileListToArray(@ScriptDir & "\Scripts\" & $aTab[$i], "*")
 
 				If @error = 4 Then
 					GUICtrlCreateLabel("Il n'y a pas de script dans cet onglet", 20, 40)
@@ -77,7 +77,7 @@ Func _Scripts()
 
 			Next
 
-			Local $aFilesa = _FileListToArray($sScriptDir & "\Scripts\", "*", 1)
+			Local $aFilesa = _FileListToArray(@ScriptDir & "\Scripts\", "*", 1)
 
 			If @error = 0 Then
 
@@ -120,9 +120,9 @@ Func _Scripts()
 
 					$sScriptname = GUICtrlRead($eGet)
 					If($aButton[$eGet] = "root") Then
-						$sDocscript = $sScriptDir & "\Scripts\"
+						$sDocscript = @ScriptDir & "\Scripts\"
 					Else
-						$sDocscript = $sScriptDir & "\Scripts\" & $aButton[$eGet] & "\"
+						$sDocscript = @ScriptDir & "\Scripts\" & $aButton[$eGet] & "\"
  					EndIf
 					ExitLoop
 

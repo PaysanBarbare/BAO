@@ -27,7 +27,7 @@ Func _Crypter($sType, $sPwd, $sCle)
 
 	If($sPwd <> "") Then
 		Local $bEncrypted = _Crypt_EncryptData($sPwd, $sCle, $CALG_AES_256) ; Encrypt the data using the generic password string.
-		Local $hFileSha = FileOpen($sScriptDir & '\Cache\Pwd\' & $sType & '.sha', 10)
+		Local $hFileSha = FileOpen(@ScriptDir & '\Cache\Pwd\' & $sType & '.sha', 10)
 		FileWrite($hFileSha, $bEncrypted)
 		FileClose($hFileSha)
 	EndIf

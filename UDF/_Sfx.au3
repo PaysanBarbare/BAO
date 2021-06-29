@@ -26,24 +26,25 @@ Fonction : Création de fichier auto extractible avec 7zip et envoi sur FTP
 Func _CreerSFX()
 
 	; Création de l'archive 7z
-	If FileExists($sScriptDir & "\Outils\BAO.7z") Then FileDelete($sScriptDir & "\Outils\BAO.7z")
-	If FileExists($sScriptDir & "\Outils\BAO-sfx.exe") Then FileDelete($sScriptDir & "\Outils\BAO-sfx.exe")
+	If FileExists(@ScriptDir & "\Outils\BAO.7z") Then FileDelete(@ScriptDir & "\Outils\BAO.7z")
+	If FileExists(@ScriptDir & "\Outils\BAO-sfx.exe") Then FileDelete(@ScriptDir & "\Outils\BAO-sfx.exe")
 	GUICtrlSetData($statusbar, " Création de l'archive SFX")
 	GUICtrlSetData($statusbarprogress, 0)
-	RunWait(@ComSpec & ' /c 7z.exe a BAO.7z .\..\* -x!Cache -x!Rapports -xr!PrivaZer-donor.ini', $sScriptDir & "\Outils\", @SW_HIDE)
+	RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" a "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\*" -x!"' & @ScriptDir & '\Cache" -x!"' & @ScriptDir & '\Rapports""', @ScriptDir & "\Outils\", @SW_HIDE)
+	ClipPut(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" a "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\*" -x!"' & @ScriptDir & '\Cache" -x!"' & @ScriptDir & '\Rapports""')
 	GUICtrlSetData($statusbarprogress, 50)
-	RunWait(@ComSpec & ' /c copy /b 7zsd_All.sfx + sfx.config + BAO.7z BAO-sfx.exe', $sScriptDir & "\Outils\", @SW_HIDE)
+	RunWait(@ComSpec & ' /c copy /b "' & @ScriptDir & '\Outils\7zsd_All.sfx" + "' & @ScriptDir & '\Outils\sfx.config" + "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\Outils\BAO-sfx.exe"', @ScriptDir & "\Outils\", @SW_HIDE)
 	GUICtrlSetData($statusbarprogress, 100)
 
 	Local $sFTPDossierSFX = IniRead($sConfig, "FTP", "DossierSFX", "")
 
 	Local $iRetour
 	Do
-		$iRetour = _EnvoiFTP($sScriptDir & "\Outils\BAO-sfx.exe", $sFTPDossierSFX & "BAO-sfx.exe")
+		$iRetour = _EnvoiFTP(@ScriptDir & "\Outils\BAO-sfx.exe", $sFTPDossierSFX & "BAO-sfx.exe")
 	Until $iRetour <> -1
 
 	if $iRetour = 0 Then
-		FileMove($sScriptDir & "\Outils\BAO-sfx.exe", @DesktopDir, 1)
+		FileMove(@ScriptDir & "\Outils\BAO-sfx.exe", @DesktopDir, 1)
 		_Attention("L'archive BAO-sfx.exe a été enregistrée sur votre bureau")
 	EndIf
 

@@ -40,8 +40,8 @@ Func _BureauDistant()
 				_ChangerEtatBouton($iIDAction, "Patienter")
 				If(_Telecharger("DWAgent", $sAgent)) Then
 					Local $sMdp, $bSVGMdp = 0, $iIdDWS
-					If(FileExists($sScriptDir & '\Cache\Pwd\dws.sha')) Then
-						$sMdp = BinaryToString(_Crypt_DecryptData(FileReadLine($sScriptDir & '\Cache\Pwd\dws.sha'), $sMailBD, $CALG_AES_256))
+					If(FileExists(@ScriptDir & '\Cache\Pwd\dws.sha')) Then
+						$sMdp = BinaryToString(_Crypt_DecryptData(FileReadLine(@ScriptDir & '\Cache\Pwd\dws.sha'), $sMailBD, $CALG_AES_256))
 					Else
 						Local $hGUIDWS = GUICreate("Activation du bureau distant", 400, 105)
 						GUICtrlCreateLabel('Saisissez le mot de passe DWService pour "' & $sMailBD & '" :',10, 15)

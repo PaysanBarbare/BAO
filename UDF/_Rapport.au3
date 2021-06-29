@@ -39,8 +39,8 @@ Func _EnvoiFTP($sFichier, $sDossier, $bRemove = 0)
 	If($sFTPAdresse <> "" And $sFTPUser <> "" And $sDossier <> "") Then
 		Local $sMdp, $bSVGMdp = 0, $iIdFTP
 
-		If(FileExists($sScriptDir & '\Cache\Pwd\ftp.sha')) Then
-			$sMdp = BinaryToString(_Crypt_DecryptData(FileReadLine($sScriptDir & '\Cache\Pwd\ftp.sha'), $sFTPUser, $CALG_AES_256))
+		If(FileExists(@ScriptDir & '\Cache\Pwd\ftp.sha')) Then
+			$sMdp = BinaryToString(_Crypt_DecryptData(FileReadLine(@ScriptDir & '\Cache\Pwd\ftp.sha'), $sFTPUser, $CALG_AES_256))
 		Else
 			Local $hGUIFTP = GUICreate("Envoi sur FTP", 400, 105)
 			GUICtrlCreateLabel('Saisissez le mot de passe FTP (' & $sFTPUser & '@' & $sFTPAdresse & ') :',10, 15)
@@ -79,13 +79,8 @@ Func _EnvoiFTP($sFichier, $sDossier, $bRemove = 0)
 			GUICtrlSetData($statusbarprogress, 20)
 
 			; Ajout de BAO dans le pare-feu Windows
-			 If $sDriveMap Then
-				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall delete rule name = "BAO" dir = in', "", @SW_HIDE)
-				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall add rule name = "BAO" dir = in action = allow program = "' & $sDriveMap & StringTrimLeft(@WorkingDir,2) & '\Outils\AutoIt3.exe" enable = yes', "", @SW_HIDE)
-			Else
-				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall delete rule name = "BAO" dir = in', "", @SW_HIDE)
-				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall add rule name = "BAO" dir = in action = allow program = "' & @AutoItExe & '" enable = yes', "", @SW_HIDE)
-			EndIf
+			RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall delete rule name = "BAO" dir = in', "", @SW_HIDE)
+			RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall add rule name = "BAO" dir = in action = allow program = "' & @AutoItExe & '" enable = yes', "", @SW_HIDE)
 
 			GUICtrlSetData($statusbarprogress, 35)
 

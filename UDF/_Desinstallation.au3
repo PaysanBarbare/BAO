@@ -30,7 +30,7 @@ Func _DesinstallerBAO()
 		FileClose($hFichierRapport)
 		Local $sNomFichier = $sDossierRapport & "\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt"
 		FileMove($sDossierRapport & "\Rapport intervention.txt", $sNomFichier, 1)
-		FileCopy($sNomFichier, $sScriptDir & "\Rapports\", 9)
+		FileCopy($sNomFichier, @ScriptDir & "\Rapports\", 9)
 		Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
 		Local $iRetour
 		Do
@@ -92,7 +92,7 @@ Func _Uninstall($iRep)
 		_Restauration("Fin d'intevervention BAO")
 	EndIf
 
-    If @Compiled And StringLeft($sScriptDir, 2) = @HomeDrive Then
+    If @Compiled And StringLeft(@ScriptDir, 2) = @HomeDrive Then
 		ShellExecute ( @ComSpec , ' /c RMDIR /S /Q "' & FileGetShortName(@ScriptDir) & '"', "" , "", @SW_HIDE )
 	EndIf
 

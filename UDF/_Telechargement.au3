@@ -52,20 +52,25 @@ Func _Telecharger($sNom, $sChemin)
 		$iInternet = 0
 	Else
 
-		DirCreate($sScriptDir & "\Cache\Download\")
+		DirCreate(@ScriptDir & "\Cache\Download\")
 		$dl = 0
 
 		$url = $sChemin
 
 		; Téléchargement indirect
-		If (StringLeft(StringRight($sNom, 4), 1)) = "." Then
+		If (StringLeft(StringRight($sNom, 4), 1)) = "." Or (StringLeft(StringRight($sNom, 3), 1)) = "." Then
 
 			if(StringLeft($sNom, 1) = "&") Then
 				$sNom = StringTrimLeft($sNom, 1)
 				$bPWD = 1
 			EndIf
-			$ext = StringRight($sNom, 4)
-			$aLien[0] = StringTrimRight($sNom, 4)
+			If (StringLeft(StringRight($sNom, 4), 1) = ".") Then
+				$ext = StringRight($sNom, 4)
+				$aLien[0] = StringTrimRight($sNom, 4)
+			Else
+				$ext = StringRight($sNom, 3)
+				$aLien[0] = StringTrimRight($sNom, 3)
+			EndIf
 
 			Local $source = BinaryToString(InetRead($url), 4)
 			$url = StringRegExp($source, ' href="(.*?)' & $ext & '"', 3)
@@ -85,7 +90,7 @@ Func _Telecharger($sNom, $sChemin)
 					Local $oLinks = _IELinkGetCollection($oIE)
 
 					For $oLink In $oLinks
-						If(StringRight($oLink.href, 4) = $ext) Then
+						If(StringRight($oLink.href, 4) = $ext Or StringRight($oLink.href, 3) = $ext) Then
 							$url = $oLink.href
 						EndIf
 						if(StringLeft($url,4) = "http") Then
@@ -116,11 +121,11 @@ Func _Telecharger($sNom, $sChemin)
 			EndIf
 		EndIf
 
-		$sProgrun = $sScriptDir & "\Cache\Download\" & $aLien[0] & $ext
+		$sProgrun = @ScriptDir & "\Cache\Download\" & $aLien[0] & $ext
 
 ;~ 		If(StringInStr(@ScriptDir, "\\") And $ext = ".zip") Then ;UNC
-;~ 			;$sScriptDir = DriveMapAdd("*", @ScriptDir)
-;~ 			$sProgrunUNC = $sScriptDir & "\Cache\Download\" & $aLien[0] & $ext
+;~ 			;@ScriptDir = DriveMapAdd("*", @ScriptDir)
+;~ 			$sProgrunUNC = @ScriptDir & "\Cache\Download\" & $aLien[0] & $ext
 ;~ 		EndIf
 
 		If($iInternet = 0) Then
@@ -139,7 +144,7 @@ Func _Telecharger($sNom, $sChemin)
 
 				If($dlFileSize <> 0 And $dlFileSize <> $FileSize And $sNom <> "SDI.zip") Then
 					$dl = 1
-					FileMove($sProgrun, $sScriptDir & "\Cache\Download\Old\", 1 + 8)
+					FileMove($sProgrun, @ScriptDir & "\Cache\Download\Old\", 1 + 8)
 					If(StringRight($sProgrun, 4) = ".zip") Then
 						If(FileExists(StringTrimRight($sProgrun, 4))) Then
 							If(DirGetSize(StringTrimRight($sProgrun, 4))/1048576 > 500) Then
@@ -158,7 +163,7 @@ Func _Telecharger($sNom, $sChemin)
 					Local $sDate = FileGetTime ($sProgrun)
 					If(_DateDiff( "D" ,$sDate[0] & "/" & $sDate[1] & "/" & $sDate[2], _NowCalcDate ( )) > 5) Then
 						$dl = 1
-						FileMove($sProgrun, $sScriptDir & "\Cache\Download\Old\", 1 + 8)
+						FileMove($sProgrun, @ScriptDir & "\Cache\Download\Old\", 1 + 8)
 						If(StringRight($sProgrun, 4) = ".zip") Then
 							If(FileExists(StringTrimRight($sProgrun, 4))) Then
 								DirRemove(StringTrimRight($sProgrun, 4), 1)
@@ -193,7 +198,7 @@ Func _Telecharger($sNom, $sChemin)
 					GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
 					FileDelete($sProgrun)
 					InetClose($hDownload)
-					If(FileExists($sScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext)) Then FileMove($sScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext, $sScriptDir & "\Cache\Download\", 1 + 8)
+					If(FileExists(@ScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext)) Then FileMove(@ScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext, @ScriptDir & "\Cache\Download\", 1 + 8)
 					Return False
 				EndIf
 				WEnd
@@ -209,8 +214,8 @@ Func _Telecharger($sNom, $sChemin)
 
 				Local $aData = InetGetInfo($hDownload)
 				If @error Then
-					If(FileExists($sScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext)) Then
-						FileMove($sScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext, $sScriptDir & "\Cache\Download\", 1 + 8)
+					If(FileExists(@ScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext)) Then
+						FileMove(@ScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext, @ScriptDir & "\Cache\Download\", 1 + 8)
 						_Attention("Erreur lors du téléchargement de " & $aLien[0] & ". La version précédente sera exécutée")
 						$bOK = True
 					Else
@@ -275,52 +280,29 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 
 	If(StringRight($sNom, 4) = ".zip") Then
 		$sNom = StringTrimRight($sNom, 4)
+	ElseIf(StringRight($sNom, 3) = ".7z") Then
+		$sNom = StringTrimRight($sNom, 3)
 	EndIf
 
-	If(StringRight($sProgrun, 4) = ".zip") Then
+	If(StringRight($sProgrun, 4) = ".zip" Or StringRight($sProgrun, 3) = ".7z") Then
 
 		If($sProgrunUNC <> "") Then ;UNC
 			$sProgruntmp = $sProgrunUNC
 		EndIf
 
-		$sDocp = $sScriptDir & "\Cache\Download\" & $sNom & "\"
+		$sDocp = @ScriptDir & "\Cache\Download\" & $sNom & "\"
 
 		If FileExists($sDocp) = 0 Then
 			If($bPWD = 1) Then
-				RunWait(@ComSpec & ' /c ' & $sScriptDir & "\Outils\7z.exe x " & $sProgruntmp & " -o" & $sDocp & " -p" & $sPWDZip, $sScriptDir & "\Cache\Download\", @SW_HIDE)
+				RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" x "' & $sProgruntmp & '" -o"' & $sDocp & '" -p"' & $sPWDZip&'""', @ScriptDir & '\Cache\Download\', @SW_HIDE)
 			Else
-				If _Zip_UnzipAll($sProgruntmp, $sDocp) = 0 Then
-
-					Switch @error
-						Case 1
-							_Attention('Unzip : zipfldr.dll does not exist')
-	;
-						Case 2
-							_Attention('Unzip : Library not installed')
-
-						Case 3
-							_Attention('Unzip : Not a full path')
-
-						Case 4
-							_Attention('Unzip : ZIP file does not exist')
-
-						Case 5
-							_Attention('Unzip : Failed to create destination (if necessary)')
-
-						Case 6
-							_Attention('Unzip : Failed to open destination')
-
-						Case 7
-							_Attention('Unzip : Failed to extract file(s)')
-
-					EndSwitch
-				EndIf
+				RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" x "' & $sProgruntmp & '" -o"' & $sDocp & '""', @ScriptDir & '\Cache\Download\', @SW_HIDE)
 			EndIf
 		EndIf
 
-		If($sDriveMap) Then ;UNC
- 			;DriveMapDel($sScriptDir)
-; 			$sScriptDir = @ScriptDir
+		If(StringInStr(@ScriptDir, "\\")) Then ;UNC
+ 			;DriveMapDel(@ScriptDir)
+; 			@ScriptDir = @ScriptDir
  ;			$sDocp = @ScriptDir & "\Cache\Download\" & $sNom & "\"
 			; attribution des droits sur les fichiers en réseau
 			;ClipPut('icacls "' & $sDocp & '" /T /grant *S-1-1-0:F')
@@ -331,12 +313,12 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 		$sDocp = _RechercheExeInZip($sDocp, $sNom)
 	EndIf
 
-	Local $sDocOutil = $sScriptDir & "\Outils\" & $sNom & "\"
+	Local $sDocOutil = @ScriptDir & "\Outils\" & $sNom & "\"
 	If(FileExists($sDocOutil)) Then
 		If($sDocp <> "") Then
 			FileCopy($sDocOutil & "*", $sDocp, 1)
 		Else
-			FileCopy($sDocOutil & "*", $sScriptDir & "\Cache\Download\")
+			FileCopy($sDocOutil & "*", @ScriptDir & "\Cache\Download\")
 		EndIf
 	EndIf
 
@@ -344,7 +326,7 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 
 		If(FileExists($sDocOutil & $sNom & ".bat")) Then
 			If($sDocp = "") Then
-				$sDocp = $sScriptDir & "\Cache\Download\"
+				$sDocp = @ScriptDir & "\Cache\Download\"
 			EndIf
 
 			RunWait(@ComSpec & ' /c "' & $sNom & '.bat" install' ,$sDocp)
@@ -353,7 +335,7 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 
 		ElseIf($arg <> "") Then
 			If($sDocp = "") Then
-				$sDocp = $sScriptDir & "\Cache\Download\"
+				$sDocp = @ScriptDir & "\Cache\Download\"
 			EndIf
 
 			$iPid = ShellExecute($sProgrun, $arg, $sDocp)
@@ -430,12 +412,6 @@ EndFunc
 ; Author.........: Bastien
 ; Modified ......:
 ; ===============================================================================================================================
-
-Func _DriveMapDel()
-	If(DriveMapGet(StringLeft(@ScriptDir, 2))) Then ;UNC
-		DriveMapDel(StringLeft(@ScriptDir, 2))
-	EndIf
-EndFunc
 
 Func _UpdateProg()
 

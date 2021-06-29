@@ -1,11 +1,7 @@
 #RequireAdmin
-#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
-#AutoIt3Wrapper_Version=Beta
-#AutoIt3Wrapper_Outfile_type=a3x
-#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #pragma compile(Out, BAO.a3x)
 #pragma compile(ProductName, BAO)
-#pragma compile(FileVersion, 0.6.1) ; The last parameter is optional.
+#pragma compile(FileVersion, 0.6.2) ; The last parameter is optional.
 #cs
 
 Copyright 2019-2021 Bastien Rouches
@@ -85,7 +81,7 @@ Opt("MustDeclareVars", 1)
 _Singleton(@ScriptName, 0)
 
 Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt"
-Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $sScriptDir = @ScriptDir, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $sDriveMap
+Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp
 
 If @OSArch = "X64" Then
     $HKLM = "HKLM64"
@@ -95,21 +91,17 @@ EndIf
 
 ; Si BAO est sur un partage, création d'un lecteur réseau (créé par run.bat)
 ;~ If(StringInStr(@ScriptDir, "\\")) Then ;UNC
-;~ 	$sScriptDir = DriveMapAdd("*", @ScriptDir)
+;~ 	@ScriptDir = DriveMapAdd("*", @ScriptDir)
 ;~ EndIf
 
 ; Création du raccourci sur le bureau
-$sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
+;$sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
 
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
-	If($sDriveMap) Then
-		FileCreateShortcut($sDriveMap & StringTrimLeft(@WorkingDir,2) & "\run.bat", @DesktopDir & "\BAO.lnk", $sDriveMap & StringTrimLeft(@WorkingDir,2), "", "Boîte à Outils", $sDriveMap & StringTrimLeft(@WorkingDir,2) & "\bao.ico")
-	Else
-		FileCreateShortcut($sScriptDir & "\run.bat", @DesktopDir & "\BAO.lnk", $sScriptDir, "", "Boîte à Outils", $sScriptDir & "\bao.ico")
-	EndIf
+	FileCreateShortcut(@ScriptDir & '\Outils\AutoIt3.exe', @DesktopDir & "\BAO.lnk", @ScriptDir, "BAO.a3x", "Boîte à Outils",@ScriptDir & "\Outils\bao.ico")
 EndIf
 
-Const $sConfig = $sScriptDir & "\config.ini"
+Const $sConfig = @ScriptDir & "\config.ini"
 
 #include "UDF\_BureauDistant.au3"
 #include "UDF\_Desinfection.au3"
@@ -128,7 +120,6 @@ Const $sConfig = $sScriptDir & "\config.ini"
 #include "UDF\_Stabilite.au3"
 #include "UDF\_Suivi.au3"
 #include "UDF\_Telechargement.au3"
-#include "UDF\_Zip.au3"
 
 
 ; Désactivation de la mise en veille https://www.autoitscript.com/forum/topic/152381-screensaver-sleep-lock-and-power-save-disabling/
@@ -137,7 +128,7 @@ _PowerKeepAlive()
 ; Lancement des fonctions à la fermeture
 OnAutoItExitRegister("_PowerResetState")
 OnAutoItExitRegister("_ProcessExit")
-OnAutoItExitRegister("_DriveMapDel")
+;OnAutoItExitRegister("_DriveMapDel")
 ;OnAutoItExitRegister("_StartWU")
 
 _InitialisationBAO($sConfig)
@@ -169,7 +160,7 @@ Else
 	EndIf
 EndIf
 
-If(FileExists($sScriptDir & "\Liens\") = 0) Then _Erreur('Dossier "Liens" manquant')
+If(FileExists(@ScriptDir & "\Liens\") = 0) Then _Erreur('Dossier "Liens" manquant')
 
 ; initialisation désinfection
 $sNomDesinstalleur = IniRead($sConfig, "Desinfection", "Desinstalleur", "")
@@ -245,7 +236,7 @@ If(StringLeft($sNom, 4) <> "Tech") Then
 	GUICtrlSetState($iIDMenu2index, $GUI_DISABLE)
 EndIf
 
-Local $aDoc = _FileListToArray($sScriptDir & "\Liens\", "*", 2)
+Local $aDoc = _FileListToArray(@ScriptDir & "\Liens\", "*", 2)
 Local $sHeure, $iMin = @MIN
 Local $i, $j, $iPremElement, $iDernElement, $x = 70
 
@@ -258,9 +249,9 @@ For $i = 1 To $aDoc[0]
 	Local $aTemp
 
 	If @OSArch = "X64" Then
-		$aTemp = _FileListToArrayRec($sScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x86.url")
+		$aTemp = _FileListToArrayRec(@ScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x86.url")
 	Else
-		$aTemp = _FileListToArrayRec($sScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x64.url")
+		$aTemp = _FileListToArrayRec(@ScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x64.url")
 	EndIf
 
 	If	@error <> 1 Then
@@ -272,9 +263,9 @@ For $i = 1 To $aDoc[0]
 				Local $sNomLog = StringTrimRight($aTemp[$j], 4)
 				Local $sURL
 				If(StringRight($aTemp[$j], 3) = "url") Then
-					$sURL = IniRead( $sScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j], "InternetShortcut","URL", "ERROR")
+					$sURL = IniRead( @ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j], "InternetShortcut","URL", "ERROR")
 				Else
-					$sURL = FileReadLine($sScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
+					$sURL = FileReadLine(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
 				EndIf
 
 				Local $sIDSM = GUICtrlCreateMenuItem($sNomLog, $iIDMenuDoc)
@@ -292,12 +283,12 @@ For $i = 1 To $aDoc[0]
 				Local $sNomLog = StringTrimRight($aTemp[$j], 4)
 				Local $sURL
 				If(StringRight($aTemp[$j], 3) = "url") Then
-					$sURL = IniRead( $sScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j], "InternetShortcut","URL", "ERROR")
+					$sURL = IniRead( @ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j], "InternetShortcut","URL", "ERROR")
 				ElseIf(StringRight($aTemp[$j], 3) = "lnk") Then
-					Local $aShortcut = FileGetShortcut($sScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
+					Local $aShortcut = FileGetShortcut(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
 					$sURL = $aShortcut[0]
 				Else
-					$sURL = FileReadLine($sScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
+					$sURL = FileReadLine(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
 				EndIf
 
 				Local $sIDSM = GUICtrlCreateButton($sNomLog, 700, $x, 150, 25)
@@ -360,11 +351,7 @@ Local $iIDRestau = GUICtrlCreateButton("Créer un point de restauration", 130, 1
 If(StringLeft($sNom, 4) <> "Tech") Then
 	_UACDisable()
 	; Activation de BAO au démarrage
-	If($sDriveMap) Then
-		RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & $sDriveMap & StringTrimLeft(@WorkingDir,2) & '\run.bat"')
-	Else
-		RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & @ScriptDir & '\run.bat"')
-	EndIf
+	RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & @ScriptDir & '\BAO.lnk"')
 
 	Local $iAutoAdmin = RegRead($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon")
 	if _FichierCacheExist("Autologon") = 0 And $iAutoAdmin = 0 Then
@@ -425,7 +412,7 @@ Local $z
 Local $iIDMenuDes, $iLargeur
 
 For $z = 1 To UBound($sListeProgdes)
-	If FileExists($sScriptDir & "\Outils\" & $sListeProgdes[$z - 1] & "\" & $sListeProgdes[$z - 1] & ".bat") Then
+	If FileExists(@ScriptDir & "\Outils\" & $sListeProgdes[$z - 1] & "\" & $sListeProgdes[$z - 1] & ".bat") Then
 		$iLargeur = 125
 		GUICtrlCreateButton("X", 135, $y, 25, 25)
 	Else
@@ -567,7 +554,7 @@ While 1
 			ShellExecuteWait($sConfig)
 
 		Case $iIDMenu1dossier
-			ShellExecute($sScriptDir)
+			ShellExecute(@ScriptDir)
 
 		Case $iIDMenu1dossierAppdata
 			ShellExecute(@LocalAppDataDir & "\bao")
@@ -681,7 +668,7 @@ While 1
 
 		Case $sIDHelp
 
-			ShellExecute($sScriptDir & "\bao_manuel.pdf")
+			ShellExecute(@ScriptDir & "\bao_manuel.pdf")
 
 		Case $sIDapropos
 

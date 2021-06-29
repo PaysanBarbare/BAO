@@ -38,8 +38,8 @@ Func _CreerIDSuivi()
 	EndIf
 
 	If ($iPIN <> "") Then
-		If FileExists($sScriptDir & '\Cache\Suivi\' & $iPIN & '.txt') = 0 Then
-			Local $hSuivi = FileOpen($sScriptDir & '\Cache\Suivi\' & $iPIN & '.txt', 9)
+		If FileExists(@ScriptDir & '\Cache\Suivi\' & $iPIN & '.txt') = 0 Then
+			Local $hSuivi = FileOpen(@ScriptDir & '\Cache\Suivi\' & $iPIN & '.txt', 9)
 			FileClose($hSuivi)
 
 			If(StringLeft($sNom, 4) <> "Tech") Then
@@ -60,7 +60,7 @@ Func _CompleterSuivi()
 	Local $iPIN, $eGet, $iRetour, $iIDCloture
 
 	If(StringLeft($sNom, 4) = "Tech") Then
-		Local $aSuivi = _FileListToArrayRec($sScriptDir & "\Cache\Suivi\", "*.txt")
+		Local $aSuivi = _FileListToArrayRec(@ScriptDir & "\Cache\Suivi\", "*.txt")
 		Local $iIDCombo
 
 		If $aSuivi <> "" And _FichierCacheExist("Suivi") = 1 Then
@@ -102,7 +102,7 @@ Func _CompleterSuivi()
 		If(StringLeft($sNom, 4) = "Tech") Then
 			$iPIN = GUICtrlRead($iIDCombo)
 		EndIf
-		Local $sNomFichier = $sScriptDir & '\Cache\Suivi\' & $iPIN & '.txt'
+		Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iPIN & '.txt'
 		If FileReadLine($sNomFichier) = "" Then
 			FileWriteLine($sNomFichier,  _Now() & " - Intervention débutée")
 		EndIf
@@ -129,8 +129,8 @@ Func _CompleterSuivi()
 EndFunc
 
 Func _SupprimerIDSuivi($idSuivi)
-	If FileExists($sScriptDir & '\Cache\Suivi\' & $idSuivi & '.txt') Then
-		FileDelete($sScriptDir & '\Cache\Suivi\' & $idSuivi & '.txt')
+	If FileExists(@ScriptDir & '\Cache\Suivi\' & $idSuivi & '.txt') Then
+		FileDelete(@ScriptDir & '\Cache\Suivi\' & $idSuivi & '.txt')
 	EndIf
 EndFunc
 
@@ -145,7 +145,7 @@ Func _SupprimerSuivi()
 		Local $hGUIsuivi = GUICreate("Suppression d'un code de suivi en cours", 400, 140)
 		Local $iPIN, $eGet, $iRetour
 
-		Local $aSuivi = _FileListToArrayRec($sScriptDir & "\Cache\Suivi\", "*.txt")
+		Local $aSuivi = _FileListToArrayRec(@ScriptDir & "\Cache\Suivi\", "*.txt")
 		Local $iIDCombo
 
 		If $aSuivi <> "" And _FichierCacheExist("Suivi") = 1 Then
@@ -173,7 +173,7 @@ Func _SupprimerSuivi()
 		If($eGet = $iIDValider) Then
 			$iPIN = GUICtrlRead($iIDCombo)
 
-			Local $sNomFichier = $sScriptDir & '\Cache\Suivi\' & $iPIN & '.txt'
+			Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iPIN & '.txt'
 			_SupprimerIDSuivi($iPIN)
 
 			GUIDelete()
@@ -189,7 +189,7 @@ EndFunc
 
 Func _DebutIntervention($iCodeSuivi)
 	local $iRetour
-	Local $sNomFichier = $sScriptDir & '\Cache\Suivi\' & $iCodeSuivi & '.txt'
+	Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iCodeSuivi & '.txt'
 	FileWriteLine($sNomFichier, _FichierCache("PremierLancement") & " - Intervention débutée")
 	Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 	Do
@@ -200,7 +200,7 @@ EndFunc
 
 Func _FinIntervention($iCodeSuivi)
 	local $iRetour
-	Local $sNomFichier = $sScriptDir & '\Cache\Suivi\' & $iCodeSuivi & '.txt'
+	Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iCodeSuivi & '.txt'
 	FileWriteLine($sNomFichier, _Now() & " - Intervention terminée")
 	Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 	Do
@@ -214,7 +214,7 @@ Func _CreerIndex()
 	GUICtrlSetData($statusbar, " Création et envoi du fichier index.php")
 	GUICtrlSetData($statusbarprogress, 20)
 
-	Local $sNomFichier = $sScriptDir & '\Cache\Suivi\index.php'
+	Local $sNomFichier = @ScriptDir & '\Cache\Suivi\index.php'
 	Local $hIndexPhp = FileOpen($sNomFichier, 10)
 	FileWrite($hIndexPhp, '<!DOCTYPE html>' & @CRLF & @TAB & '<html>' & @CRLF & @TAB &  @TAB &  '<head>' & @CRLF & @TAB &  @TAB &  @TAB & '<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>' & @CRLF & @TAB & @TAB & @TAB & '<title>Suivi des interventions</title>' & @CRLF & @TAB & @TAB & '</head>' & @CRLF & @TAB & @TAB & '<body>' & @CRLF & @TAB & @TAB & @TAB & '<form method="POST">' & @CRLF & @TAB & @TAB & @TAB & @TAB & 'Entrez votre code de suivi : <input type="text" name="suivi" value="<?php if(!empty($_POST[''suivi''])) echo $_POST[''suivi''] ?>" />' & @CRLF & @TAB & @TAB & @TAB & @TAB & '<button type="submit">Envoyer</button>' & @CRLF & @TAB & @TAB & @TAB & @TAB & '<hr />' & @CRLF &'<?php ' & @CRLF & @TAB & 'if(!empty($_POST[''suivi'']))' & @CRLF & @TAB & '{' & @CRLF & @TAB & @TAB & '$file = htmlspecialchars($_POST[''suivi'']).".txt";' & @CRLF & @TAB & @TAB & 'If (file_exists($file))' & @CRLF &	@TAB & @TAB & '{' & @CRLF & @TAB & @TAB & @TAB & '$inter = file_get_contents($file);' & @CRLF & @TAB & @TAB & @TAB & 'echo nl2br($inter);' & @CRLF & @TAB & @TAB & '}' & @CRLF & @TAB & @TAB & 'else' & @CRLF & @TAB & @TAB & '{' & @CRLF &	@TAB & @TAB & @TAB & 'echo "Aucune intervention en cours avec ce code";' & @CRLF & @TAB & @TAB & '}' & @CRLF & @TAB & '}' & @CRLF & '?>' & @CRLF & @CRLF & @TAB & @TAB & @TAB & '</form>' & @CRLF & @TAB & @TAB & '</body>' & @CRLF & @TAB & '</html>')
 	FileClose($hIndexPhp)
