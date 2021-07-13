@@ -132,9 +132,9 @@ Func _Scripts()
 		GUIDelete($hGUIscripts)
 
 		If(StringRight($sScriptname, 4) = ".bat" Or StringRight($sScriptname, 4) = ".cmd" Or StringRight($sScriptname, 4) = ".reg") Then
-			RunWait(@ComSpec & ' /c "' & $sDocscript & $sScriptname & '"',$sDocscript)
+			RunWait(@ComSpec & ' /c "' & $sDocscript & $sScriptname & '"')
 		ElseIf (StringRight($sScriptname, 4) = ".ps1") Then
-			RunWait(@ComSpec & ' /c powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' & $sScriptname & '"', $sDocscript)
+			RunWait(@ComSpec & ' /k "powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' & $sDocscript & $sScriptname & '"')
 		Else
 			ShellExecute($sScriptname, "", $sDocscript)
 		EndIf

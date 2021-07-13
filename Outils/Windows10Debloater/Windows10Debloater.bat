@@ -9,7 +9,7 @@ goto:eof
 goto:eof
 
 :run
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File Windows10Debloater.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File %~dp0\Windows10Debloater.ps1
 
 :uninstall
 goto:eof

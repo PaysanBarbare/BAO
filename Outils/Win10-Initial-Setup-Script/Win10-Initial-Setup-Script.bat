@@ -9,7 +9,7 @@ goto:eof
 goto:eof
 
 :run
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File Win10.ps1 -include Win10.psm1 -preset mypreset.txt
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File %~dp0\Win10.ps1 -include %~dp0\Win10.psm1 -preset %~dp0\mypreset.txt
 goto:eof
 
 :uninstall

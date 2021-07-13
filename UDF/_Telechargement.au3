@@ -225,6 +225,8 @@ Func _Telecharger($sNom, $sChemin)
 					Sleep(100)
 					If FileExists($sProgrun) And FileGetSize($sProgrun) = $dlFileSize Then
 						$bOK = True
+					ElseIf FileExists($sProgrun) And $dlFileSize = 0 And FileGetSize($sProgrun) > 5000  Then
+						$bOK =True
 					Else
 						; Essai de téléchargement avec headers, certains log Nirsoft nécessite cela
 						$oHTTP = ObjCreate("winhttp.winhttprequest.5.1")
@@ -324,14 +326,23 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 
 	If($norun = 0) Then
 
+		If FileExists($sProgrun) = 0 Then
+			_Attention($sProgrun & " n'existe pas. Si votre antivirus l'a mis en quarantaine, restaurez le maintenant", 1)
+		EndIf
+
 		If(FileExists($sDocOutil & $sNom & ".bat")) Then
 			If($sDocp = "") Then
 				$sDocp = @ScriptDir & "\Cache\Download\"
 			EndIf
 
-			RunWait(@ComSpec & ' /c "' & $sNom & '.bat" install' ,$sDocp)
-			$sProgrun = @ComSpec & ' /c "' & $sNom & '.bat" run ' & @OSArch
+			RunWait(@ComSpec & ' /c ""' & $sDocp & $sNom & '.bat" install"' ,$sDocp)
+			$sProgrun = @ComSpec & ' /c ""' & $sDocp & $sNom & '.bat" run ' & @OSArch & '"'
 			$iPid = Run($sProgrun, $sDocp)
+
+			If $iPid = 0 And @error <> 0 Then
+				_Attention($sProgrun & " a échoué. Si votre antivirus l'a mis en quarantaine, restaurez le maintenant", 1)
+				$iPid = Run($sProgrun, $sDocp)
+			EndIf
 
 		ElseIf($arg <> "") Then
 			If($sDocp = "") Then
@@ -339,11 +350,23 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 			EndIf
 
 			$iPid = ShellExecute($sProgrun, $arg, $sDocp)
+			If $iPid = 0 And @error <> 0 Then
+				_Attention($sProgrun & " a échoué. Si votre antivirus l'a mis en quarantaine, restaurez le maintenant", 1)
+				$iPid = ShellExecute($sProgrun, $arg, $sDocp)
+			EndIf
 		Else
 			If(StringInStr (FileGetAttrib ($sProgrun), "D")) Then
-				ShellExecute($sProgrun)
+				$iPid = ShellExecute($sProgrun)
+				If $iPid = 0 And @error <> 0 Then
+					_Attention($sProgrun & " a échoué. Si votre antivirus l'a mis en quarantaine, restaurez le maintenant", 1)
+					$iPid = ShellExecute($sProgrun, $arg, $sDocp)
+				EndIf
 			Else
 				$iPid = Run($sProgrun, $sDocp)
+				If $iPid = 0 And @error <> 0 Then
+					_Attention($sProgrun & " a échoué. Si votre antivirus l'a mis en quarantaine, restaurez le maintenant", 1)
+					$iPid = Run($sProgrun, $sDocp)
+				EndIf
 			EndIf
 		EndIf
 	Else
@@ -402,16 +425,6 @@ Func _RechercheExeInZip($doc, $sNom)
 	Return $doc
 
 EndFunc
-
-; #FUNCTION# ====================================================================================================================
-; Name ..........: _DriveMapDel
-; Description ...:
-; Syntax ........:
-; Parameters ....:
-; Return values..:
-; Author.........: Bastien
-; Modified ......:
-; ===============================================================================================================================
 
 Func _UpdateProg()
 

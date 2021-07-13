@@ -128,6 +128,7 @@ Func _SauvegardeAutomatique()
 					Local $iPidW = _Executer("&WebBrowserPassView.zip")
 					While(ProcessExists($iPidW))
 						If FileExists(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html") Then
+							Sleep(2000)
 							FileMove(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html", $sDossierDesti & "\BrowsersPwd.html", 1)
 							FileWriteLine($hFichierRapport, "  Mots de passe de navigateurs copiés")
 							ProcessClose($iPidW)
@@ -149,6 +150,7 @@ Func _SauvegardeAutomatique()
  					Local $iPidM = _Executer("MailPassView")
  					While(ProcessExists($iPidM))
  						If FileExists(@ScriptDir & "\Cache\Download\MailPassView\report.html") Then
+							Sleep(2000)
  							FileMove(@ScriptDir & "\Cache\Download\MailPassView\report.html", $sDossierDesti & "\MailsPwd.html", 1)
  							FileWriteLine($hFichierRapport, "  Mots de passe mail copiés")
  							ProcessClose($iPidM)
@@ -308,9 +310,9 @@ Func _SauvegardeAutomatique()
 				FileWriteLine($hFichierRapport, "Démarrage de la sauvegarde")
 				If MapExists($aMenu, "ProduKey") Then
 					_Telecharger("ProduKey", ($aMenu["ProduKey"])[2])
-					Local $iPidPK = _Executer("ProductKey", "/external /shtml ProductKeys.html")
+					Local $iPidPK = _Executer("ProduKey", '/external /shtml "' & $sDossierDesti & '\ProduKeys.html')
 					ProcessWaitClose($iPidPK)
-					If(FileMove("ProductKeys.html", $sDossierDesti, 1) = 1) Then
+					If(FileExists($sDossierDesti & '\ProduKeys.html')) Then
 						FileWriteLine($hFichierRapport, "  Clés de produit copiées")
 					Else
 						_Attention("Clés de produits non copiées")
@@ -404,7 +406,7 @@ Func _CopierSur()
 
 		$sDossierDesti = $sLetter & "\BAO"
 		GUICtrlSetData($statusbar, "Copie en cours")
-		RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '" "' &  $sDossierDesti & '" /E /XD "' & @ScriptDir & '\Cache\Pwd\"')
+		RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '" "' &  $sDossierDesti & '" /MIR /XD "' & @ScriptDir & '\Cache\Pwd\"')
 		GUICtrlSetData($statusbar, "")
 		;DirCopy(@ScriptDir, $sDossierDesti, 1)
 	Else

@@ -1,7 +1,16 @@
 #RequireAdmin
-#pragma compile(Out, BAO.a3x)
+#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_Version=Beta
+#AutoIt3Wrapper_Outfile_type=a3x
+#AutoIt3Wrapper_Icon=bao.ico
+#AutoIt3Wrapper_UseUpx=y
+#AutoIt3Wrapper_Compile_Both=y
+#AutoIt3Wrapper_UseX64=y
+#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #pragma compile(ProductName, BAO)
-#pragma compile(FileVersion, 0.6.2) ; The last parameter is optional.
+#pragma compile(CompanyName, Isergues Informatique)
+#pragma compile(FileDescription, Boite A Outils)
+#pragma compile(FileVersion, 0.6.3)
 #cs
 
 Copyright 2019-2021 Bastien Rouches
@@ -98,7 +107,8 @@ EndIf
 ;$sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
 
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
-	FileCreateShortcut(@ScriptDir & '\Outils\AutoIt3.exe', @DesktopDir & "\BAO.lnk", @ScriptDir, "BAO.a3x", "Boîte à Outils",@ScriptDir & "\Outils\bao.ico")
+	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", @ScriptDir, "", "Boîte à Outils",@ScriptDir & "\Outils\bao.ico")
+	;FileCreateShortcut(@ScriptFullPath, @DesktopDir & "\BAO.lnk", @ScriptDir)
 EndIf
 
 Const $sConfig = @ScriptDir & "\config.ini"
@@ -351,7 +361,7 @@ Local $iIDRestau = GUICtrlCreateButton("Créer un point de restauration", 130, 1
 If(StringLeft($sNom, 4) <> "Tech") Then
 	_UACDisable()
 	; Activation de BAO au démarrage
-	RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & @ScriptDir & '\BAO.lnk"')
+	RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & @ScriptFullPath & '"')
 
 	Local $iAutoAdmin = RegRead($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon")
 	if _FichierCacheExist("Autologon") = 0 And $iAutoAdmin = 0 Then

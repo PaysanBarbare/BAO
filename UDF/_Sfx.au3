@@ -31,7 +31,7 @@ Func _CreerSFX()
 	GUICtrlSetData($statusbar, " Création de l'archive SFX")
 	GUICtrlSetData($statusbarprogress, 0)
 	RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" a "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\*" -x!"' & @ScriptDir & '\Cache" -x!"' & @ScriptDir & '\Rapports""', @ScriptDir & "\Outils\", @SW_HIDE)
-	ClipPut(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" a "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\*" -x!"' & @ScriptDir & '\Cache" -x!"' & @ScriptDir & '\Rapports""')
+
 	GUICtrlSetData($statusbarprogress, 50)
 	RunWait(@ComSpec & ' /c copy /b "' & @ScriptDir & '\Outils\7zsd_All.sfx" + "' & @ScriptDir & '\Outils\sfx.config" + "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\Outils\BAO-sfx.exe"', @ScriptDir & "\Outils\", @SW_HIDE)
 	GUICtrlSetData($statusbarprogress, 100)
