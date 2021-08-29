@@ -10,7 +10,6 @@
 #pragma compile(ProductName, BAO)
 #pragma compile(CompanyName, Isergues Informatique)
 #pragma compile(FileDescription, Boite A Outils)
-#pragma compile(FileVersion, 0.6.3)
 #cs
 
 Copyright 2019-2021 Bastien Rouches
@@ -59,6 +58,9 @@ This file is part of "Boîte A Outils"
 #ce
 
 Opt("MustDeclareVars", 1)
+
+Global $sVersion = "0.6.4" ; 29/08/21
+
 #include-once
 #include <APIDiagConstants.au3>
 #include <Array.au3>
@@ -89,8 +91,8 @@ Opt("MustDeclareVars", 1)
 ; BAO ne peut être lancé qu'une fois.
 _Singleton(@ScriptName, 0)
 
-Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt"
-Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp
+Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv
+Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid
 
 If @OSArch = "X64" Then
     $HKLM = "HKLM64"
@@ -107,7 +109,7 @@ EndIf
 ;$sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
 
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
-	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", @ScriptDir, "", "Boîte à Outils",@ScriptDir & "\Outils\bao.ico")
+	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", "", "", "Boîte à Outils",@ScriptDir & "\Outils\bao.ico")
 	;FileCreateShortcut(@ScriptFullPath, @DesktopDir & "\BAO.lnk", @ScriptDir)
 EndIf
 
@@ -156,6 +158,17 @@ Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 
 $iFreeSpace = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
 
+If(@OSVersion = "WIN_7") Then
+	$releaseid = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "CSDVersion")
+ElseIf(@OSVersion = "WIN_10") Then
+	$releaseid = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "ReleaseId")
+	If $releaseid = "2009" Then
+		$releaseid = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "DisplayVersion")
+	EndIf
+EndIf
+
+$sOSv = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "ProductName") & " " & @OSArch & " " & $releaseid
+
 if(_FichierCacheExist("Client") = 0) Then
 
 	If($sFTPAdresse <> "" And $sFTPUser <> "" And $sFTPDossierSuivi) Then
@@ -178,7 +191,7 @@ $sPrivazer = IniRead($sConfig, "Desinfection", "Privazer", "Free")
 $sListeProgdes = _StringExplode(IniRead($sConfig, "Desinfection", "Programmes de desinfection", "RogueKiller AdwCleaner MalwareByte ZHPCleaner"), " ")
 
 If(FileExists($sListeProgrammes)) Then
-	_FileReadToArray($sListeProgrammes, $aListeAvSupp)
+	_FileReadToArray($sListeProgrammes, $aListeAvSupp, 0)
 Else
 	$aListeAvSupp = _ListeProgrammes()
 	_FileWriteFromArray($sListeProgrammes, $aListeAvSupp)
@@ -218,7 +231,7 @@ Local $iIDMenu1copier = GUICtrlCreateMenuItem("Copier BAO sur support externe (T
 Local $iIDMenu1sfx = GUICtrlCreateMenuItem("Créer archive SFX (Tech)", $iIDMenu1)
 
 Local $iIDMenu2 = GUICtrlCreateMenu("&Suivi")
-Local $iIDMenu2ajout = GUICtrlCreateMenuItem("Générer un code de suivi", $iIDMenu2)
+Local $iIDMenu2ajout = GUICtrlCreateMenuItem("Nouveau code de suivi", $iIDMenu2)
 Local $iIDMenu2completer = GUICtrlCreateMenuItem("Ajouter une information de suivi", $iIDMenu2)
 
 Local $iIDMenu2supp
@@ -331,17 +344,6 @@ Local $iIDMenuHelp = GUICtrlCreateMenu("?")
 Local $sIDHelp = GUICtrlCreateMenuItem("Aide", $iIDMenuHelp)
 Local $sIDapropos = GUICtrlCreateMenuItem("A propos", $iIDMenuHelp)
 
-Local $releaseid, $sOSv
-
-If(@OSVersion = "WIN_7") Then
-	$releaseid = " " & RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "CSDVersion")
-ElseIf(@OSVersion = "WIN_10") Then
-	$releaseid = " " & RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "ReleaseId")
-EndIf
-
-$sOSv = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "ProductName") & $releaseid
-
-
 Local $sYear = @YEAR
 Local $sMon = @MON
 Local $sDay = @MDAY
@@ -361,7 +363,7 @@ Local $iIDRestau = GUICtrlCreateButton("Créer un point de restauration", 130, 1
 If(StringLeft($sNom, 4) <> "Tech") Then
 	_UACDisable()
 	; Activation de BAO au démarrage
-	RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & @ScriptFullPath & '"')
+	RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & @DesktopDir & '\BAO.lnk"')
 
 	Local $iAutoAdmin = RegRead($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon")
 	if _FichierCacheExist("Autologon") = 0 And $iAutoAdmin = 0 Then

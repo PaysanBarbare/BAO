@@ -128,6 +128,9 @@ Func _PremierLancement()
 		_DesinstallerBAO()
 	EndIf
 
+	FileWriteLine($hFichierRapport, "Espace disque libre sur " & @HomeDrive & " : " & $iFreeSpace & " Go")
+	FileWriteLine($hFichierRapport, "")
+
 	If($iFreeSpace < 30) Then
 		Local $sRepnet = MsgBox($MB_YESNOCANCEL, "Nettoyage", "L'espace libre sur le disque " & @HomeDrive & " est seulement de " & $iFreeSpace & " Go." & @CR & "Voulez vous supprimer les fichiers temporaires et les anciennes installations de Windows ?")
 		If($sRepnet = 6) Then
@@ -145,9 +148,6 @@ Func _PremierLancement()
 		EndIf
 		FileWriteLine($hFichierRapport, "Nettoyage de disque : " & (Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2) - $iFreeSpace) & " Go libérés")
 		FileWriteLine($hFichierRapport, "")
-	Else
-		FileWriteLine($hFichierRapport, "Espace disque libre sur " & @HomeDrive & " : " & $iFreeSpace & " Go")
-		FileWriteLine($hFichierRapport, "")
 	EndIf
 
 	Local $iIcones = IniRead($sConfig, "Parametrages", "Icones", 1)
@@ -162,6 +162,8 @@ EndFunc
 
 Func _RapportInfos()
 	FileWriteLine($hFichierRapport, "Rapport PC " & @ComputerName & " de " & $sNom & " du " & _NowDate())
+	FileWriteLine($hFichierRapport, "")
+	FileWriteLine($hFichierRapport, "Début de l'intervention : " & _Now())
 	FileWriteLine($hFichierRapport, "")
 	FileWriteLine($hFichierRapport, "Informations système")
 	$sRetourInfo = _GetInfoSysteme()
@@ -428,39 +430,88 @@ Func _GetInfoSysteme()
 	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_OperatingSystem")
 	Local $Obj_Item
 	For $Obj_Item In $Obj_Services
-		$sInfos &= " Système d'exploitation : " & $Obj_Item.Caption & " " & @OSArch & " version " & $Obj_Item.Version & @CRLF
+		If(_FichierCacheExist("OS") = 0) Then
+			$sInfos &= " Système d'exploitation : " & $Obj_Item.Caption & " " & @OSArch & " " & $releaseid & " (v." & $Obj_Item.Version & ")" & @CRLF
+			_FichierCache("OS", $Obj_Item.Caption & " " & @OSArch & " " & $releaseid & " (v." & $Obj_Item.Version & ")")
+		Else
+			If(_FichierCache("OS") <> $Obj_Item.Caption & " " & @OSArch & " " & $releaseid & " (v." & $Obj_Item.Version & ")") Then
+				FileWriteLine($hFichierRapport, " Système d'exploitation mis à jour : " & $Obj_Item.Caption & " " & @OSArch & " " & $releaseid & " (v." & $Obj_Item.Version & ")")
+			EndIf
+		EndIf
 	Next
 
 	; BIOS
 	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_BIOS")
 	Local $Obj_Item
 	For $Obj_Item In $Obj_Services
-		$sInfos &= " Numéro de série : " & $Obj_Item.SerialNumber & @CRLF
-		$sInfos &= " Version du BIOS : " & $Obj_Item.SMBIOSBIOSVersion & @CRLF
+		; $sInfos &= " Numéro de série : " & $Obj_Item.SerialNumber & @CRLF
+		If(_FichierCacheExist("BIOS") = 0) Then
+			$sInfos &= " Version du BIOS : " & $Obj_Item.SMBIOSBIOSVersion & " (s/n : " & $Obj_Item.SerialNumber & ")" & @CRLF
+			_FichierCache("BIOS", $Obj_Item.SMBIOSBIOSVersion)
+		Else
+			If(_FichierCache("BIOS") <> $Obj_Item.SMBIOSBIOSVersion) Then
+				FileWriteLine($hFichierRapport, " BIOS mis à jour : " & $Obj_Item.SMBIOSBIOSVersion)
+			EndIf
+		EndIf
 	Next
 
 	; Ordinateur
 	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_ComputerSystem")
 	Local $Obj_Item
 	For $Obj_Item In $Obj_Services
-		$sInfos &= " Fabricant : " & $Obj_Item.Manufacturer & @CRLF
-		$sInfos &= " Modèle : " & $Obj_Item.Model & @CRLF
-		$sInfos &= " Mémoire vive : " & Round((($Obj_Item.TotalPhysicalMemory / 1024) / 1024), 0) & " Mo" & @CRLF
+		If(_FichierCacheExist("RAM") = 0) Then
+			$sInfos &= " Modèle de l'ordinateur : " & $Obj_Item.Manufacturer & " " & $Obj_Item.Model & @CRLF
+			$sInfos &= " Mémoire vive : " & Round((($Obj_Item.TotalPhysicalMemory / 1024) / 1024), 0) & " Mo" & @CRLF
+			_FichierCache("RAM", Round((($Obj_Item.TotalPhysicalMemory / 1024) / 1024), 0) & " Mo")
+		Else
+			If(_FichierCache("RAM") <> Round((($Obj_Item.TotalPhysicalMemory / 1024) / 1024), 0) & " Mo") Then
+				FileWriteLine($hFichierRapport, " Mémoire vive mise à jour : " & Round((($Obj_Item.TotalPhysicalMemory / 1024) / 1024), 0) & " Mo")
+			EndIf
+		EndIf
+
 	Next
 
 	; Processeur
 	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_Processor")
 	Local $Obj_Item
 	For $Obj_Item In $Obj_Services
-		$sInfos &= " Processeur : " & $Obj_Item.Name & @CRLF
-		$sInfos &= " Socket : " & $Obj_Item.SocketDesignation & @CRLF
+		If(_FichierCacheExist("CPU") = 0) Then
+			$sInfos &= " Processeur : " & $Obj_Item.Name & @CRLF
+			$sInfos &= " Socket : " & $Obj_Item.SocketDesignation & @CRLF
+			_FichierCache("CPU", $Obj_Item.Name)
+		Else
+			If(_FichierCache("CPU") <> $Obj_Item.Name) Then
+				FileWriteLine($hFichierRapport, " Processeur remplacé : " & $Obj_Item.Name)
+			EndIf
+		EndIf
+	Next
+
+	; Carte mère
+	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_BaseBoard")
+	Local $Obj_Item
+	For $Obj_Item In $Obj_Services
+		If(_FichierCacheExist("CM") = 0) Then
+			$sInfos &= " Carte mère : " & $Obj_Item.Manufacturer & " " & $Obj_Item.Product & " (s/n : " & $Obj_Item.SerialNumber & ")" & @CRLF
+			_FichierCache("CM", $Obj_Item.Manufacturer & " " & $Obj_Item.Product & " (s/n : " & $Obj_Item.SerialNumber & ")")
+		Else
+			If(_FichierCache("CM") <> $Obj_Item.Manufacturer & " " & $Obj_Item.Product & " (s/n : " & $Obj_Item.SerialNumber & ")") Then
+				FileWriteLine($hFichierRapport, " Carte mère remplacée : " & $Obj_Item.Manufacturer & " " & $Obj_Item.Product & " (s/n : " & $Obj_Item.SerialNumber & ")")
+			EndIf
+		EndIf
 	Next
 
 	; Carte graphique
 	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_VideoController")
 	Local $Obj_Item
 	For $Obj_Item In $Obj_Services
-		$sInfos &= " Carte Graphique : " &$Obj_Item.Name & @CRLF
+		If(_FichierCacheExist("CG") = 0) Then
+			$sInfos &= " Carte Graphique : " &$Obj_Item.Name & @CRLF
+			_FichierCache("CG", $Obj_Item.Name)
+		Else
+			If(_FichierCache("CG") <> $Obj_Item.Name) Then
+				FileWriteLine($hFichierRapport, " Carte graphique remplacée : " & $Obj_Item.Name)
+			EndIf
+		EndIf
 	Next
 
 	; Disque dur
@@ -468,9 +519,16 @@ Func _GetInfoSysteme()
 	Local $Obj_Item
 	For $Obj_Item In $Obj_Services
 		if $Obj_Item.MediaType = "Fixed hard disk media" Then
-			$sInfos &= " Disque dur " & $Obj_Item.Index & " : " & $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status & @CRLF
-			If $Obj_Item.Status <> "OK" Then
-				$sRetour = "L'Etat SMART du disque " & $Obj_Item.Index & " est : " & $Obj_Item.Status
+			If(_FichierCacheExist("DD" & $Obj_Item.Index) = 0) Then
+				$sInfos &= " Disque dur " & $Obj_Item.Index & " : " & $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status & @CRLF
+				If $Obj_Item.Status <> "OK" Then
+					$sRetour = "L'Etat SMART du disque " & $Obj_Item.Index & " est : " & $Obj_Item.Status
+				EndIf
+				_FichierCache("DD" & $Obj_Item.Index, $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status)
+			Else
+				If(_FichierCache("DD" & $Obj_Item.Index) <> $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status) Then
+					FileWriteLine($hFichierRapport, " Disque dur " & $Obj_Item.Index & " remplacé : " & $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status)
+				EndIf
 			EndIf
 		EndIf
 	Next
@@ -724,7 +782,7 @@ Func _APropos()
 		Local $aVersion = StringRegExp($SSource, 'Version (.*?)]', 3)
 
 		If IsArray($aVersion) Then
-			If(_ArraySearch($aVersion, FileGetVersion ( @ScriptDir & '\' & @ScriptName, $FV_FILEVERSION)) > 0) Then
+			If(_ArraySearch($aVersion, $sVersion) > 0) Then
 				$iVersion = 1;
 			EndIf
 		EndIf
@@ -734,7 +792,7 @@ Func _APropos()
 
     Local $iIdApropos = GUICtrlCreateLabel('A propos de "Boîte A Outils"', 80, 10, 300)
 	GUICtrlSetFont($iIdApropos, 12, 800)
-	GUICtrlCreateLabel("Version "& FileGetVersion ( @ScriptDir & '\' & @ScriptName, $FV_FILEVERSION),10, 45)
+	GUICtrlCreateLabel("Version "& $sVersion,10, 45)
 	If $iVersion = 1 Then
 		GUICtrlCreateLabel("Nouvelle version disponible !",220, 45)
 		GUICtrlSetColor(-1, $COLOR_RED)

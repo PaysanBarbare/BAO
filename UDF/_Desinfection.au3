@@ -125,7 +125,7 @@ Func _Nettoyage()
 		GUIDelete()
 
 		Local $iPIDclean, $iPIDdes
-		$iFreeSpace = DriveSpaceFree(@HomeDrive & "\") / 1024
+		$iFreeSpace = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
 
 		If $iIDFreesp = 0 And $iIDdldes = 0 And $iIDUninstall = 0 And $iIDPrivazer = 0 Then
 			$iPIDclean = Run(@ComSpec & ' /C cleanmgr.exe /LOWDISK /D ' & @HomeDrive, "", @SW_HIDE)
@@ -228,7 +228,7 @@ Func _NettoyageProg($aButtonDes)
 
 		EndIf
 	ElseIf(FileExists(@ScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & ".bat")) Then
-		RunWait(@ComSpec & ' /c "' & $aButtonDes[$iIDAction + 1] & '.bat uninstall"', @ScriptDir & "\Cache\Download\", @SW_HIDE)
+		RunWait(@ComSpec & ' /c ""' & @ScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & '.bat" uninstall"')
 		FileDelete(@ScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & ".bat")
 	Else
 		If FileExists(@ScriptDir & "\Outils\" & $aButtonDes[$iIDAction + 1] & "\" & $aButtonDes[$iIDAction + 1] & ".bat") = 0 Then

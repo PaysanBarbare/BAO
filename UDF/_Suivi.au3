@@ -25,10 +25,16 @@ Fonction : Suivi des interventions pour les clients
 
 Func _CreerIDSuivi()
 	Local $iPIN = Random(1000, 9999, 1)
+	Local $sQuestion
 
-	If(StringLeft($sNom, 4) = "Tech") Then
-		$iPIN = InputBox("Code de suivi", "Entrez un code de suivi à 4 chiffres", $iPIN, " 4")
+	If StringLeft($sNom, 4) <> "Tech" Then
+		$sQuestion = "Entrez un code de suivi à 4 chiffres pour " & $sNom
 	Else
+		$sQuestion = "Entrez un code de suivi à 4 chiffres (nouveau client)"
+	EndIf
+
+	$iPIN = InputBox("Code de suivi", $sQuestion, $iPIN, " 4")
+	If($iPIN <> "" And StringLeft($sNom, 4) <> "Tech") Then
 		If _FichierCache("Suivi") = 1 Then
 			_FichierCache("Suivi", $iPIN)
 		Else
@@ -64,8 +70,8 @@ Func _CompleterSuivi()
 		Local $iIDCombo
 
 		If $aSuivi <> "" And _FichierCacheExist("Suivi") = 1 Then
-			GUICtrlCreateLabel("Choisissez un code de suivi existant", 10, 10)
-			Local $iIDCombo = GUICtrlCreateCombo(StringTrimRight($aSuivi[1], 4),200, 5, 190)
+			GUICtrlCreateLabel("Choisissez un code de suivi ou saisissez-en un (4 chiffres)", 10, 10)
+			Local $iIDCombo = GUICtrlCreateCombo(StringTrimRight($aSuivi[1], 4),300, 5, 90)
 			For $i=2 To $aSuivi[0]
 				GUICtrlSetData($iIDCombo, StringTrimRight($aSuivi[$i], 4))
 			Next

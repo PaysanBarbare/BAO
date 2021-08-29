@@ -335,13 +335,13 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 				$sDocp = @ScriptDir & "\Cache\Download\"
 			EndIf
 
-			RunWait(@ComSpec & ' /c ""' & $sDocp & $sNom & '.bat" install"' ,$sDocp)
+			RunWait(@ComSpec & ' /c ""' & $sDocp & $sNom & '.bat" install"')
 			$sProgrun = @ComSpec & ' /c ""' & $sDocp & $sNom & '.bat" run ' & @OSArch & '"'
-			$iPid = Run($sProgrun, $sDocp)
+			$iPid = Run($sProgrun)
 
 			If $iPid = 0 And @error <> 0 Then
 				_Attention($sProgrun & " a échoué. Si votre antivirus l'a mis en quarantaine, restaurez le maintenant", 1)
-				$iPid = Run($sProgrun, $sDocp)
+				$iPid = Run($sProgrun)
 			EndIf
 
 		ElseIf($arg <> "") Then
@@ -430,12 +430,22 @@ Func _UpdateProg()
 
 	Local $sNomLogk
 	Local $aListeLiens = MapKeys($aMenu)
+	Local $bReturn
+
+	FileWriteLine($hFichierRapport, "Début des téléchargements")
+	_UpdEdit($iIDEditRapport, $hFichierRapport)
 	For $sNomLogk in $aListeLiens
-		If(StringLeft($sNomLogk, 1) <> "#" And StringLeft(($aMenu[$sNomLogk])[2], 4) = "http") Then
-			_Telecharger($sNomLogk, ($aMenu[$sNomLogk])[2])
+		If(StringLeft($sNomLogk, 1) <> "#" And StringLeft($sNomLogk, 1) <> "&" And StringLeft(($aMenu[$sNomLogk])[2], 4) = "http") Then
+			$bReturn = _Telecharger($sNomLogk, ($aMenu[$sNomLogk])[2])
+			If ($bReturn = False) Then
+				FileWriteLine($hFichierRapport, "  Echec du téléchargement de " & $sNomLogk)
+				_UpdEdit($iIDEditRapport, $hFichierRapport)
+			EndIf
 		EndIf
 	Next
-
+	FileWriteLine($hFichierRapport, "Fin des téléchargements")
+	FileWriteLine($hFichierRapport, "")
+	_UpdEdit($iIDEditRapport, $hFichierRapport)
 EndFunc
 
 
