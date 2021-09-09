@@ -59,7 +59,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "0.6.4" ; 29/08/21
+Global $sVersion = "0.6.5" ; 09/21
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -91,7 +91,7 @@ Global $sVersion = "0.6.4" ; 29/08/21
 ; BAO ne peut être lancé qu'une fois.
 _Singleton(@ScriptName, 0)
 
-Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv
+Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $bActiv = 0, $hSplash
 Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid
 
 If @OSArch = "X64" Then
@@ -109,6 +109,8 @@ EndIf
 ;$sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
 
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
+	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+	Sleep(2000)
 	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", "", "", "Boîte à Outils",@ScriptDir & "\Outils\bao.ico")
 	;FileCreateShortcut(@ScriptFullPath, @DesktopDir & "\BAO.lnk", @ScriptDir)
 EndIf
@@ -135,6 +137,9 @@ Const $sConfig = @ScriptDir & "\config.ini"
 
 
 ; Désactivation de la mise en veille https://www.autoitscript.com/forum/topic/152381-screensaver-sleep-lock-and-power-save-disabling/
+If($hSplash <> "") Then
+	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+EndIf
 _PowerKeepAlive()
 
 ; Lancement des fonctions à la fermeture
@@ -143,9 +148,15 @@ OnAutoItExitRegister("_ProcessExit")
 ;OnAutoItExitRegister("_DriveMapDel")
 ;OnAutoItExitRegister("_StartWU")
 
+If($hSplash <> "") Then
+	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+EndIf
 _InitialisationBAO($sConfig)
 
 ; Création du dossier rapport et du fichier rapport d'intervention
+If($hSplash <> "") Then
+	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration" & @LF & "Création du dossier rapport", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+EndIf
 $sDossierRapport = @DesktopDir & "\" & IniRead($sConfig, "Parametrages", "Dossier", "Rapports")
 If DirCreate($sDossierRapport) = 0 Then	_Erreur("Impossible de créer le dossier '" & $sDossierRapport & "' sur le bureau")
 $hFichierRapport = FileOpen($sDossierRapport & "\Rapport intervention.txt", 1)
@@ -158,6 +169,10 @@ Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 
 $iFreeSpace = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
 
+If($hSplash <> "") Then
+	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration" & @LF & "Création du dossier rapport" & @LF & "Vérification de la licence de Windows", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+EndIf
+
 If(@OSVersion = "WIN_7") Then
 	$releaseid = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "CSDVersion")
 ElseIf(@OSVersion = "WIN_10") Then
@@ -168,6 +183,20 @@ ElseIf(@OSVersion = "WIN_10") Then
 EndIf
 
 $sOSv = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "ProductName") & " " & @OSArch & " " & $releaseid
+
+Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
+Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from SoftwareLicensingProduct where PartialProductKey <> null")
+Local $Obj_Item
+For $Obj_Item In $Obj_Services
+	if $Obj_Item.LicenseStatus = 1 And $Obj_Item.ApplicationId = "55c92734-d682-4d71-983e-d6ec3f16059f" And $Obj_Item.LicenseIsAddon = False Then
+		$sOSv = $sOSv & " (activé)";
+		$bActiv = 1
+	EndIf
+Next
+
+If $bActiv = 0 Then
+	$sOSv = $sOSv & " (non activé)";
+EndIf
 
 if(_FichierCacheExist("Client") = 0) Then
 
@@ -182,6 +211,8 @@ Else
 		_RapportInfos()
 	EndIf
 EndIf
+
+
 
 If(FileExists(@ScriptDir & "\Liens\") = 0) Then _Erreur('Dossier "Liens" manquant')
 
@@ -209,12 +240,16 @@ Local $iIDButtonScripts
 ; Soit :
 Local $iFonctions = 7
 
-GUICreate("Boîte A Outils (bêta)", 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+If($hSplash <> "") Then
+	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration" & @LF & "Création du dossier rapport" & @LF & "Vérification de la licence de Windows" & @LF & "Génération des informations système" & @LF & "Ouverture de BAO", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+EndIf
+
+GUICreate("Boîte A Outils (bêta) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 GUISetBkColor($COLOR_WHITE)
 
 $statusbar = GUICtrlCreateLabel("", 10, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 410, 20, $SS_CENTERIMAGE)
 $statusbarprogress = GUICtrlCreateProgress(440, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 250, 20)
-$iIDCancelDL = GUICtrlCreateButton("Annuler le téléchargement", 700, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 150, 20)
+$iIDCancelDL = GUICtrlCreateButton("Passer / Annuler", 700, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 150, 20)
 GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
 GUICtrlSetFont($statusbar, 11)
 
@@ -397,9 +432,15 @@ Local $iIDRAMlibre = GUICtrlCreateLabel("RAM : " & $aMemStats[$MEM_LOAD] & '% ut
 GUICtrlSetFont($iLabelPC, 18)
 
 Local $sDate = _FichierCache("PremierLancement")
-GUICtrlCreateLabel("PC : " & @ComputerName, 500, 2)
-GUICtrlCreateLabel("OS : " & $sOSv, 500, 20)
-GUICtrlCreateLabel("Début : " & $sDate, 500, 38, 200)
+GUICtrlCreateLabel("Nom du PC : " & @ComputerName, 450, 2)
+GUICtrlCreateLabel("OS : " & $sOSv, 450, 20, 300)
+If($bActiv = 0) Then
+	GUICtrlSetColor(-1, $COLOR_RED)
+Else
+	GUICtrlSetColor(-1, $COLOR_GREEN)
+EndIf
+GUICtrlSetFont(-1, Default, 600)
+GUICtrlCreateLabel("Début : " & $sDate, 450, 38, 200)
 GUICtrlSetFont(-1, Default, 600)
 
 
@@ -477,8 +518,12 @@ _UpdEdit($iIDEditRapport, $hFichierRapport)
 GUISetState(@SW_SHOW)
 
 If _FichierCacheExist("Restauration") = 0 Then
+
 	$sRestauration = IniRead($sConfig, "Parametrages", "Restauration", 0)
 	If $sRestauration = 1 Then
+		If($hSplash <> "") Then
+			$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration" & @LF & "Création du dossier rapport" & @LF & "Vérification de la licence de Windows" & @LF & "Génération des informations système" & @LF & "Ouverture de BAO" & @LF & "Création d'un point de restauration", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+		EndIf
 		_Restauration("Démarrage de BAO")
 		_FichierCache("Restauration", 1)
 	EndIf
@@ -486,9 +531,12 @@ EndIf
 
 Local $stdoutwu, $datawu, $iFreeSpacech
 
+SplashOff()
+
 While 1
 	$iIDAction = GUIGetMsg()
 	If @MIN > $iMin Then
+
 		GUICtrlSetData ($sHeure, @MDAY &"/"& @MON &"/"& @YEAR &" - "& @HOUR &":"& @MIN)
 		$iMin = @MIN
 

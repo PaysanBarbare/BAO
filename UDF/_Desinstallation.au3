@@ -26,16 +26,21 @@ Func _DesinstallerBAO()
 	EndIf
 
 	If ($sRepsup = 6 Or $sRepsup = 7) Then
+		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
 		FileWriteLine($hFichierRapport, "")
-		FileWriteLine($hFichierRapport, "Fin de l'intervention : " & _Now())
+		FileWriteLine($hFichierRapport, "Changements apportés :")
 		_GetInfoSysteme()
 		FileWriteLine($hFichierRapport, " Espace libre sur " & @HomeDrive & " : " & $iFreeSpace & " Go")
+		FileWriteLine($hFichierRapport, "")
+		FileWriteLine($hFichierRapport, "Fin de l'intervention : " & _Now())
+
 		FileClose($hFichierRapport)
 		Local $sNomFichier = $sDossierRapport & "\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt"
 		FileMove($sDossierRapport & "\Rapport intervention.txt", $sNomFichier, 1)
 		FileCopy($sNomFichier, @ScriptDir & "\Rapports\", 9)
 		Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
 		Local $iRetour
+		$hSplash = SplashTextOn("Désinstallation de BAO", "Sauvegarde du rapport", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
 		Do
 			$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierRapports & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt")
 			if($iRetour = 1) Then
@@ -45,9 +50,11 @@ Func _DesinstallerBAO()
 				EndIf
 			EndIf
 		Until $iRetour <> -1
-
+		$hSplash = SplashTextOn("Désinstallation de BAO", "Suppression des dépendances de BAO", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
 		_ReiniBAO()
+		$hSplash = SplashTextOn("Désinstallation de BAO", "Suppression de BAO", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
 		_Uninstall($sRepsup)
+		SplashOff()
 		Exit
 	EndIf
 EndFunc

@@ -133,7 +133,8 @@ Func _Nettoyage()
 			If $iIDPrivazer = 1 Then
 				If MapExists($aMenu, "Privazer") Then
 					If(_Telecharger("Privazer", ($aMenu["Privazer"])[2])) Then
-						$iPIDclean = _Executer("Privazer")
+						;$iPIDclean = _Executer("Privazer")
+						$iPIDclean = _Executer("Privazer", "CLEAN PrivaZer.ini")
 					EndIf
 				Else
 					_Attention("Privazer n'existe pas dans les liens")

@@ -219,7 +219,7 @@ Func _InstallationAutomatique()
 
 			If FileExists( @AppDataCommonDir & "\chocolatey\choco.exe") = 0 Then
 				ClipPut(@ComSpec & ' /c ' & '@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command " [System.Net.ServicePointManager]::SecurityProtocol = 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://chocolatey.org/install.ps1''))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"')
-				_Attention("PowerShell n'est pas installé ou Chocolatey n'a pu s'installer. Fin de l'éxécution")
+				_Attention("PowerShell n'est pas installé ou Chocolatey n'a pu s'installer. Fin de l'éxécution (cmd dans le presse papier)")
 				GUICtrlSetData($statusbar, "")
 				GUICtrlSetData($statusbarprogress, 0)
 				_ChangerEtatBouton($iIDAction, "Desactiver")
@@ -258,6 +258,9 @@ EndFunc
 
 Func _InstallationEnCours($aSofts)
 
+	Local $iPidChoco, $sOutput, $aArray, $iPerc, $sProgErr = ""
+	GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
+
 	For $po = 0 To (UBound($aSofts) - 1)
 
 		Local $hID, $sPC = "Indéterminé", $sNomFichier = @ScriptDir & "\Cache\InstallationEnCours\" & $aSofts[$po] & ".txt"
@@ -287,20 +290,27 @@ Func _InstallationEnCours($aSofts)
 		EndIf
 
 		; Local $envChoco = RegRead("HKEY_CURRENT_USER\Environment\", "ChocolateyInstall")
-		Local $iPidChoco, $sOutput, $aArray, $iPerc, $sProgErr = ""
 
 		GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po])
 
 		$iPerc = (($po * 90) / UBound($aSofts)) + 10
 		GUICtrlSetData($statusbarprogress, $iPerc)
 		$iPidChoco = Run( @ComSpec & ' /c ' & 'choco install -y --limitoutput ' & $aSofts[$po], "",@SW_HIDE, $STDOUT_CHILD)
-		ProcessWaitClose($iPidChoco)
+		While ProcessExists($iPidChoco)
+			If GUIGetMsg() = $iIDCancelDL Then
+				ProcessClose($iPidChoco)
+			EndIf
+		WEnd
+
+		;ProcessWaitClose($iPidChoco)
 		$sOutput = StdoutRead($iPidChoco)
 
 		; Utilise StringSplit pour partager la sortie de StdoutRead en un tableau. Tous les retours chariot (@CRLF) sont supprimés et @CRLF (saut de ligne) est utilisé comme séparateur.
 		$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)
 		If _ArraySearch($aArray, " The install of " & $aSofts[$po] & " was successful.") = -1 Then
 			$sProgErr &= " - " & $aSofts[$po] & @LF
+			ProcessClose("choco.exe")
+			Run( @ComSpec & ' /c ' & 'choco uninstall -y ' & $aSofts[$po], "", @SW_HIDE, $STDOUT_CHILD)
 		Else
 			FileWriteLine($hFichierRapport, " " & $aSofts[$po] & " installé")
 		EndIf
@@ -309,6 +319,7 @@ Func _InstallationEnCours($aSofts)
 	Next
 
 	GUICtrlSetData($statusbarprogress, 100)
+	GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
 
 	If($sProgErr <> "") Then
 		_Attention("Les programmes suivants n'ont pas été installé : " & @lf & $sProgErr & "Réessayez ou installez-les manuellement", 1)
