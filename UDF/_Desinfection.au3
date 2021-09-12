@@ -62,7 +62,7 @@ EndFunc
 Func _Nettoyage()
 
 	_ChangerEtatBouton($iIDAction, "Patienter")
-	Local $eGet, $t = 0, $sProgDes
+	Local $eGet
 	Local $hGUImaj = GUICreate("Réglages des paramètres de nettoyage", 400, 130)
 
 	Local $iIDPrivazer = GUICtrlCreateCheckbox("Nettoyer avec Privazer", 10, 10)
@@ -172,28 +172,7 @@ Func _Nettoyage()
 			EndIf
 
 			ProcessWaitClose($iPIDdes)
-			Local $aListeApSupp = _ListeProgrammes()
-
-			For $sProgAvSupp in $aListeAvSupp
-				If _ArraySearch($aListeApSupp, $sProgAvSupp) = -1 Then
-					$t = $t + 1
-					$sProgDes &= " - " & $sProgAvSupp & @CRLF
-				EndIf
-			Next
-			If $t > 0 Then
-				FileWriteLine($hFichierRapport, " " & $t & " programme(s) désinstallé(s) : ")
-				FileWrite($hFichierRapport, $sProgDes)
-				FileWriteLine($hFichierRapport, "")
-			EndIf
-
 			ProcessWaitClose($iPIDclean)
-
-			$iFreeSpace = Round((DriveSpaceFree(@HomeDrive & "\") / 1024) - $iFreeSpace, 2)
-
-			If($iFreeSpace > 1) Then
-				FileWriteLine($hFichierRapport, " Espace libéré : " & $iFreeSpace & " Go")
-				FileWriteLine($hFichierRapport, "")
-			EndIf
 
 			_UpdEdit($iIDEditRapport, $hFichierRapport)
 

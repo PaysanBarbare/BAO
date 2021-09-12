@@ -649,7 +649,7 @@ Func _GetSmart2()
 
 		FileWriteLine($hFichierRapport, "Disque(s) dur(s) installé(s) :")
 		While 1
-			$iPidSmart = Run( @ComSpec & ' /c ' & $smartctl & " -a /dev/sd" & Chr($i + 97), "",@SW_HIDE, $STDOUT_CHILD)
+			$iPidSmart = Run( @ComSpec & ' /c "' & $smartctl & '" -a /dev/sd' & Chr($i + 97), "",@SW_HIDE, $STDOUT_CHILD)
 			ProcessWaitClose($iPidSmart)
 			$sOutput = StdoutRead($iPidSmart)
 			$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)

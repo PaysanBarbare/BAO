@@ -46,18 +46,20 @@ Func _SauvegardeAutomatique()
 	GUICtrlSetData($statusbarprogress, 0)
 
 	GUICtrlCreateLabel("Choisissez la destination", 10, 50)
-	Local $iIDCombo = GUICtrlCreateCombo($sDossierRapport,10, 65, 380)
+	Local $sFolderD = $sDossierRapport
+	Local $iIDInput = GUICtrlCreateInput($sFolderD,10, 65, 280)
+	Local $iIDBrowse = GUICtrlCreateButton("Parcourir",300, 63, 90, 25)
 
 	Local $aDrive = DriveGetDrive ($DT_ALL)
 	Local $sDossierDesti, $sLetter
 
-	For $i = 1 To $aDrive[0]
-		If (DriveGetType($aDrive[$i]) = "Removable" Or DriveGetType($aDrive[$i]) = "Fixed") Then
-			If(DriveSpaceFree($aDrive[$i]) > 1000) Then
-				GUICtrlSetData($iIDCombo, StringUpper($aDrive[$i]) & " [" & DriveGetLabel($aDrive[$i]) & "] - Espace libre : " & Round((DriveSpaceFree($aDrive[$i]) / 1024), 2) & " Go")
-			EndIf
-		EndIf
-	Next
+;~ 	For $i = 1 To $aDrive[0]
+;~ 		If (DriveGetType($aDrive[$i]) = "Removable" Or DriveGetType($aDrive[$i]) = "Fixed") Then
+;~ 			If(DriveSpaceFree($aDrive[$i]) > 1000) Then
+;~ 				GUICtrlSetData($iIDInput, StringUpper($aDrive[$i]) & " [" & DriveGetLabel($aDrive[$i]) & "] - Espace libre : " & Round((DriveSpaceFree($aDrive[$i]) / 1024), 2) & " Go")
+;~ 			EndIf
+;~ 		EndIf
+;~ 	Next
 
 	Local $iIDCheckBrowser = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de navigateurs", 10, 90)
 	Local $iIDCheckMail = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de messagerie", 10, 110)
@@ -79,6 +81,9 @@ Func _SauvegardeAutomatique()
 				GUICtrlSetState ($iIDCheckBrowser, $GUI_DISABLE)
 				GUICtrlSetState ($iIDCheckMail, $GUI_DISABLE)
 			EndIf
+		ElseIf $eGet = $iIDBrowse Then
+			$sFolderD = FileSelectFolder("Dossier de destination", "")
+			GUICtrlSetData($iIDInput, $sFolderD)
 		EndIf
 		$eGet = GUIGetMsg()
 	WEnd
@@ -88,10 +93,10 @@ Func _SauvegardeAutomatique()
 		; Sauvegarde session actuelle
 		If(GUICtrlRead($iIDComboSource) = _WinAPI_ShellGetKnownFolderPath("{5E6C858F-0E22-4760-9AFE-EA3317B67173}")) Then
 
-			$sLetter = StringLeft(GUICtrlRead($iIDCombo), 2)
+			$sLetter = StringLeft(GUICtrlRead($iIDInput), 2)
 			Local $iBrowser = 0, $iMail = 0
 
-			If(GUICtrlRead($iIDCombo) = $sDossierRapport) Then
+			If(GUICtrlRead($iIDInput) = $sDossierRapport) Then
 				TrayTip("Attention", 'Les fichiers seront sauvegardés dans le dossier "' & $sLetter & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(),"/","") & '"', 10, 2)
 			EndIf
 
@@ -110,6 +115,7 @@ Func _SauvegardeAutomatique()
 			If($sLetter <> "" And DirCreate($sDossierDesti & '\Autres données\') = 1) Then
 
 				FileWriteLine($hFichierRapport, "Démarrage de la sauvegarde")
+				FileWriteLine($hFichierRapport, '  Destination : "' & $sDossierDesti & '"')
 
 				If MapExists($aMenu, "ProduKey") Then
 					_Telecharger("ProduKey", ($aMenu["ProduKey"])[2])
@@ -291,12 +297,12 @@ Func _SauvegardeAutomatique()
 				_ChangerEtatBouton($iIDAction, "Desactiver")
 			EndIf
 		Else
-			$sLetter = StringLeft(GUICtrlRead($iIDCombo), 2)
+			$sLetter = StringLeft(GUICtrlRead($iIDInput), 2)
 			Local $sSource = GUICtrlRead($iIDComboSource)
 			Local $sPos = StringInStr($sSource, "\", 0, -1)
 			Local $sUserSlave = StringTrimLeft($sSource, $sPos)
 
-			If(GUICtrlRead($iIDCombo) = $sDossierRapport) Then
+			If(GUICtrlRead($iIDInput) = $sDossierRapport) Then
 				$sDossierDesti = $sDossierRapport & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(),"/","")
 			Else
 				$sDossierDesti =  $sLetter & "\Sauvegarde " & $sUserSlave & " du " & StringReplace(_NowDate(),"/","")
@@ -308,6 +314,8 @@ Func _SauvegardeAutomatique()
 			If($sLetter <> "" And DirCreate($sDossierDesti & '\Autres données\') = 1) Then
 
 				FileWriteLine($hFichierRapport, "Démarrage de la sauvegarde")
+				FileWriteLine($hFichierRapport, '  Destination : "' & $sDossierDesti & '"')
+
 				If MapExists($aMenu, "ProduKey") Then
 					_Telecharger("ProduKey", ($aMenu["ProduKey"])[2])
 					Local $iPidPK = _Executer("ProduKey", '/external /shtml "' & $sDossierDesti & '\Autres données\ProduKeys.html')

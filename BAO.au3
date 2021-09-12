@@ -59,7 +59,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "0.6.5" ; 09/21
+Global $sVersion = "0.6.6" ; 12/09/21
 
 #include-once
 #include <APIDiagConstants.au3>

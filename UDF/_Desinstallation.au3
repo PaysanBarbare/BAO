@@ -20,16 +20,29 @@ This file is part of "Boîte A Outils"
 
 Func _DesinstallerBAO()
 
-	Local $sRepsup = 7
+	Local $sRepsup = 7, $sProgDes, $t = 0
 	if $sNom <> "" Then
 		$sRepsup = MsgBox($MB_YESNOCANCEL, "Suppression", "Voulez vous éteindre l'ordinateur après la désinstallation ?")
 	EndIf
 
 	If ($sRepsup = 6 Or $sRepsup = 7) Then
-		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés", 300, 100, @DesktopWidth - 400, @DesktopHeight - 200, 21, "", 10)
 		FileWriteLine($hFichierRapport, "")
 		FileWriteLine($hFichierRapport, "Changements apportés :")
 		_GetInfoSysteme()
+		Local $aListeApSupp = _ListeProgrammes()
+
+		For $sProgAvSupp in $aListeAvSupp
+			If _ArraySearch($aListeApSupp, $sProgAvSupp) = -1 Then
+				$t = $t + 1
+				$sProgDes &= " - " & $sProgAvSupp & @CRLF
+			EndIf
+		Next
+		If $t > 0 Then
+			FileWriteLine($hFichierRapport, " " & $t & " Programme(s) désinstallé(s) : ")
+			FileWrite($hFichierRapport, $sProgDes)
+			FileWriteLine($hFichierRapport, "")
+		EndIf
 		FileWriteLine($hFichierRapport, " Espace libre sur " & @HomeDrive & " : " & $iFreeSpace & " Go")
 		FileWriteLine($hFichierRapport, "")
 		FileWriteLine($hFichierRapport, "Fin de l'intervention : " & _Now())
@@ -37,10 +50,10 @@ Func _DesinstallerBAO()
 		FileClose($hFichierRapport)
 		Local $sNomFichier = $sDossierRapport & "\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt"
 		FileMove($sDossierRapport & "\Rapport intervention.txt", $sNomFichier, 1)
-		FileCopy($sNomFichier, @ScriptDir & "\Rapports\", 9)
+		FileCopy($sNomFichier, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
 		Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
 		Local $iRetour
-		$hSplash = SplashTextOn("Désinstallation de BAO", "Sauvegarde du rapport", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés" & @LF & "Sauvegarde du rapport", 300, 100, @DesktopWidth - 400, @DesktopHeight - 200, 21, "", 10)
 		Do
 			$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierRapports & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt")
 			if($iRetour = 1) Then
@@ -50,9 +63,9 @@ Func _DesinstallerBAO()
 				EndIf
 			EndIf
 		Until $iRetour <> -1
-		$hSplash = SplashTextOn("Désinstallation de BAO", "Suppression des dépendances de BAO", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés" & @LF & "Sauvegarde du rapport" & @LF & "Suppression des dépendances de BAO", 300, 100, @DesktopWidth - 400, @DesktopHeight - 200, 21, "", 10)
 		_ReiniBAO()
-		$hSplash = SplashTextOn("Désinstallation de BAO", "Suppression de BAO", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés" & @LF & "Sauvegarde du rapport" & @LF & "Suppression des dépendances de BAO" & @LF & "Suppression de BAO", 300, 100, @DesktopWidth - 400, @DesktopHeight - 200, 21, "", 10)
 		_Uninstall($sRepsup)
 		SplashOff()
 		Exit
