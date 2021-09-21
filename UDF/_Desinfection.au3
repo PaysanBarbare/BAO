@@ -20,8 +20,8 @@ This file is part of "Boîte A Outils"
 
 Func _ListeProgrammes()
 
-	Local $act_key, $act_name, $system_component
-	Local $count, $tab = 1, $all_keys[0]
+	Local $act_key, $act_name, $sIcon, $iIDIcon = 0,$sUninstallString, $sQuietUninstallString, $sInstallDate, $system_component, $aVirg
+	Local $count, $tab = 1, $all_keys[0][7]
 
 	Local $keys[2]
 	$keys[0] = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
@@ -43,146 +43,330 @@ Func _ListeProgrammes()
 			$act_name = RegRead ($key & "\" & $act_key, "DisplayName")
 			$system_component = RegRead ($key & "\" & $act_key, "SystemComponent")
 			$act_name = StringReplace ($act_name, " (remove only)", "")
+			$sIcon = RegRead ($key & "\" & $act_key, "DisplayIcon")
+			$iIDIcon = 0
+			if($sIcon = "") Then
+				$sIcon = "shell32.dll"
+			EndIf
+			$sUninstallString = RegRead ($key & "\" & $act_key, "UninstallString")
+			$sQuietUninstallString = RegRead ($key & "\" & $act_key, "QuietUninstallString")
+			$sInstallDate = RegRead ($key & "\" & $act_key, "InstallDate")
 			;MsgBox(0,"",$act_name)
-			If $act_name <> "" And $system_component <> "1" Then
-				ReDim $all_keys[$tab]
-				$all_keys[$tab-1] = $act_name
+
+			If $act_name <> "" And $system_component <> "1" And _ArraySearch($all_keys, $act_name,0,0,0,0,0,0) = -1 Then
+				ReDim $all_keys[$tab][7]
+
+				If($sIcon = "shell32.dll") Then
+					Local $hSearch = FileFindFirstFile(@WindowsDir & "\Installer\" & $act_key & "\" & "*.ico")
+
+					 If $hSearch <> -1 Then
+						$sIcon = @WindowsDir & "\Installer\" & $act_key & "\" & FileFindNextFile($hSearch)
+					 Else
+						$hSearch = FileFindFirstFile(@WindowsDir & "\Installer\" & $act_key & "\" & "*.exe")
+						 If $hSearch <> -1 Then
+							$sIcon = @WindowsDir & "\Installer\" & $act_key & "\" & FileFindNextFile($hSearch)
+						Else
+							$iIDIcon = 23
+						EndIf
+					 EndIf
+					 FileClose($hSearch)
+				Else
+					$aVirg = StringSplit($sIcon, ",")
+					if(@error = 0 And $aVirg[0] > 1) Then
+						$sIcon = $aVirg[1]
+						$iIDIcon = $aVirg[2]
+					EndIf
+				EndIf
+
+				$all_keys[$tab-1][0] = $act_name
+				$all_keys[$tab-1][1] = $sIcon
+				$all_keys[$tab-1][2] = $iIDIcon
+				$all_keys[$tab-1][3] = $sUninstallString
+				$all_keys[$tab-1][4] = $sQuietUninstallString
+				$all_keys[$tab-1][5] = $sInstallDate
+				$all_keys[$tab-1][6] = $key & "\" & $act_key
+
 				$tab = $tab + 1
 			EndIf
 			$count = $count + 1
 		WEnd
 
 	Next
-	$all_keys = _ArrayUnique($all_keys, 0, 0, 0, 0)
-	_ArraySort($all_keys)
+	_ArraySort($all_keys,0,0,0,0)
 	Return $all_keys
 
 EndFunc
 
 Func _Nettoyage()
 
+	Local $iRet = 0
 	_ChangerEtatBouton($iIDAction, "Patienter")
-	Local $eGet
-	Local $hGUImaj = GUICreate("Réglages des paramètres de nettoyage", 400, 130)
 
-	Local $iIDPrivazer = GUICtrlCreateCheckbox("Nettoyer avec Privazer", 10, 10)
-	Local $iIDUninstall = GUICtrlCreateCheckbox("Désinstaller les logiciels manuellement", 10, 30)
-	Local $iIDdldes = GUICtrlCreateCheckbox("Télécharger les logiciels pour la désinfection", 10, 50)
-	Local $iIDFreesp = GUICtrlCreateCheckbox("Compresser WinSXS (si espace disque faible)", 10, 70)
-
-	GUICtrlSetState($iIDPrivazer, $GUI_CHECKED)
-	GUICtrlSetState($iIDUninstall, $GUI_CHECKED)
-	GUICtrlSetState($iIDdldes, $GUI_CHECKED)
-
-
-	If @OSVersion = "WIN_7" Or @OSVersion = "WIN_VISTA" Or @OSVersion = "WIN_XP" Then
-		GUICtrlSetState($iIDFreesp, $GUI_DISABLE)
+	If _FichierCacheExist("Desinfection") = 0 Then
+		_FichierCache("Desinfection", $iIDAction)
+		FileWriteLine($hFichierRapport, "Nettoyage de l'ordinateur")
 	EndIf
 
-	Local $iIDButtonDemarrer = GUICtrlCreateButton("Démarrer", 100, 100, 90, 25, $BS_DEFPUSHBUTTON)
-	Local $iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 100, 90, 25)
-
-
-	GUISetState(@SW_SHOW)
-	$eGet = GUIGetMsg()
-
-
-	While $eGet <> $GUI_EVENT_CLOSE And $eGet <> $iIDButtonAnnuler And $eGet <> $iIDButtonDemarrer
-		$eGet = GUIGetMsg()
+	While 1
+		$iRet = _Desinstalleur()
+		If $iRet = 0 Then
+			ExitLoop
+		EndIf
 	WEnd
 
-	If($eGet = $iIDButtonDemarrer) Then
-
-		If _FichierCacheExist("Desinfection") = 0 Then
-			_FichierCache("Desinfection", $iIDAction)
-			FileWriteLine($hFichierRapport, "Nettoyage de l'ordinateur")
-		EndIf
-
-		If GUICtrlRead($iIDPrivazer) = $GUI_CHECKED Then
-			$iIDPrivazer = 1
-		Else
-			$iIDPrivazer = 0
-		EndIf
-
-		If GUICtrlRead($iIDUninstall) = $GUI_CHECKED Then
-			$iIDUninstall = 1
-		Else
-			$iIDUninstall = 0
-		EndIf
-
-		If GUICtrlRead($iIDdldes) = $GUI_CHECKED Then
-			$iIDdldes = 1
-		Else
-			$iIDdldes = 0
-		EndIf
-
-		If GUICtrlRead($iIDFreesp) = $GUI_CHECKED Then
-			$iIDFreesp = 1
-		Else
-			$iIDFreesp = 0
-		EndIf
-
-		GUIDelete()
-
-		Local $iPIDclean, $iPIDdes
-		$iFreeSpace = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
-
-		If $iIDFreesp = 0 And $iIDdldes = 0 And $iIDUninstall = 0 And $iIDPrivazer = 0 Then
-			$iPIDclean = Run(@ComSpec & ' /C cleanmgr.exe /LOWDISK /D ' & @HomeDrive, "", @SW_HIDE)
-		Else
-			If $iIDPrivazer = 1 Then
-				If MapExists($aMenu, "Privazer") Then
-					If(_Telecharger("Privazer", ($aMenu["Privazer"])[2])) Then
-						;$iPIDclean = _Executer("Privazer")
-						$iPIDclean = _Executer("Privazer", "CLEAN PrivaZer.ini")
-					EndIf
-				Else
-					_Attention("Privazer n'existe pas dans les liens")
-				EndIf
-			EndIf
-
-			If $iIDUninstall = 1 Then
-
-				If($sNomDesinstalleur <> "") Then
-					If MapExists($aMenu, $sNomDesinstalleur) Then
-						If(_Telecharger($sNomDesinstalleur, ($aMenu[$sNomDesinstalleur])[2])) Then
-							$iPIDdes = _Executer($sNomDesinstalleur)
-						EndIf
-					Else
-						_Attention($sNomDesinstalleur & " n'existe pas dans les liens")
-					EndIf
-				Else
-					$iPIDdes = ShellExecute("appwiz.cpl")
-				EndIf
-			EndIf
-
-			if $iIDFreesp = 1 Then
-				RunWait(@ComSpec & ' /C Dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase')
-				RunWait(@ComSpec & ' /C sc stop msiserver & sc stop TrustedInstaller & sc config msiserver start= disabled & sc config TrustedInstaller start= disabled & icacls "%WINDIR%\WinSxS" /save "%WINDIR%\WinSxS_NTFS.acl" /t & takeown /f "%WINDIR%\WinSxS" /r & icacls "%WINDIR%\WinSxS" /grant "%USERDOMAIN%\%USERNAME%":(F) /t & compact /s:"%WINDIR%\WinSxS" /c /a /i * & icacls "%WINDIR%\WinSxS" /setowner "NT SERVICE\TrustedInstaller" /t & icacls "%WINDIR%" /restore "%WINDIR%\WinSxS_NTFS.acl" & sc config msiserver start= demand & sc config TrustedInstaller start= demand')
-			EndIf
-
-			If $iIDdldes = 1 Then
-				; Téléchargement des programmes de désinfection en arrière plan
-				Local $sPd
-				For $sPd In $aButtonDes
-					If MapExists($aMenu, $sPd) Then
-						_Telecharger($sPd, ($aMenu[$sPd])[2])
-					EndIf
-				Next
-			EndIf
-
-			ProcessWaitClose($iPIDdes)
-			ProcessWaitClose($iPIDclean)
-
-			_UpdEdit($iIDEditRapport, $hFichierRapport)
-
-			_ChangerEtatBouton($iIDAction, "Activer")
+	If MapExists($aMenu, "Privazer") Then
+		If(_Telecharger("Privazer", ($aMenu["Privazer"])[2])) Then
+			_Executer("Privazer")
 		EndIf
 	Else
-		GUIDelete()
-		_ChangerEtatBouton($iIDAction, "Desactiver")
-
+		_Attention("Privazer n'existe pas dans les liens")
 	EndIf
+
+	Local $sPd
+	For $sPd In $aButtonDes
+		If MapExists($aMenu, $sPd) Then
+			_Telecharger($sPd, ($aMenu[$sPd])[2])
+		EndIf
+	Next
+
+	_UpdEdit($iIDEditRapport, $hFichierRapport)
+
+	_ChangerEtatBouton($iIDAction, "Activer")
+
+EndFunc
+
+Func _Desinstalleur()
+
+	Local $retour = 0, $ipid, $sNameProcess, $iLabelProg, $iPerc, $sOutput, $iErreur = 0, $sEchecs, $sRepReg
+	Local $aListeProgInst = _ListeProgrammes()
+	Local $sBlacklist = @ScriptDir & "\Outils\Blacklist.txt", $aBList, $hBlack
+	Local $aItems[0][5], $iIDBDes, $iIDBSupp, $iIDBAdd, $iIDBMod, $iIDBAct, $iIDBQuit
+
+	If(FileExists($sBlacklist)) Then
+		$aBList = FileReadToArray($sBlacklist)
+	Else
+		$hBlack = FileOpen($sBlacklist, 1)
+		FileClose($hBlack)
+	EndIf
+
+	Local $hGUIDesintalleur = GUICreate("Sélection des programmes à désinstaller", 800, 600)
+	Local $idTreeView = GUICtrlCreateTreeView(10, 10, 585, 580, BitOR($TVS_CHECKBOXES, $TVS_FULLROWSELECT))
+	_GUICtrlTreeView_BeginUpdate($idTreeView)
+	Local $iNBProginst = UBound($aListeProgInst)
+	ReDim $aItems[$iNBProginst][5]
+	For $a = 1 To $iNBProginst
+		$aItems[$a-1][0] = GUICtrlCreateTreeViewItem($a - 1 & " - " & $aListeProgInst[$a-1][0], $idTreeView)
+		_GUICtrlTreeView_SetIcon($idTreeView, -1, $aListeProgInst[$a-1][1], $aListeProgInst[$a-1][2])
+		If _ArraySearch($aBList, $aListeProgInst[$a-1][0]) <> -1 Then
+			GUICtrlSetState($aItems[$a-1][0], $GUI_CHECKED)
+		EndIf
+		$aItems[$a-1][1] = GUICtrlCreateContextMenu($aItems[$a-1][0])
+		$aItems[$a-1][2] = GUICtrlCreateMenuItem("Désinstaller", $aItems[$a-1][1])
+		$aItems[$a-1][3] = GUICtrlCreateMenuItem("Supprimer l'entrée du registre", $aItems[$a-1][1])
+		$aItems[$a-1][4] = GUICtrlCreateMenuItem("Ajouter à la blacklist", $aItems[$a-1][1])
+	Next
+	_GUICtrlTreeView_EndUpdate($idTreeView)
+
+	$iIDBDes = GUICtrlCreateButton("Désinstaller (silencieux)", 605, 10, 185, 25)
+	$iIDBAdd = GUICtrlCreateButton("Ajouter à la blacklist", 605, 40, 185, 25)
+	$iIDBMod = GUICtrlCreateButton("Modifier la blacklist", 605, 70, 185, 25)
+	$iIDBAct = GUICtrlCreateButton("Actualiser la liste", 605, 100, 185, 25)
+	$iIDBQuit = GUICtrlCreateButton("Quitter", 605, 130, 185, 25)
+
+	GUISetState(@SW_SHOW)
+
+	Local $idMsgDes = GUIGetMsg()
+
+	While $idMsgDes <> $GUI_EVENT_CLOSE And $idMsgDes <> $iIDBQuit
+
+		Switch $idMsgDes
+
+			Case $iIDBDes
+
+				Local $sRange, $iContinue = 0
+				For $b = 1 To UBound($aItems)
+
+					;GUICtrlSetData($iProgress, $iPerc)
+					If(BitAND(GUICtrlRead($aItems[$b-1][0]), $GUI_UNCHECKED)) Then
+						;_Attention($aListeProgInst[$b-1][0] & " " & GUICtrlRead($aItems[$b-1][0], 1))
+						$sRange = $sRange & $b - 1 & ";"
+						;_Attention($aListeProgInst[$b-1][0] & " " & ($b-1))
+					Else
+						$iContinue = 1
+					EndIf
+				Next
+
+				if $iContinue = 1 Then
+
+					Local $hUninstProg = GUICreate("Désinstallation en cours ...", 300, 100, @DesktopWidth - 400, @DesktopHeight - 250)
+					$iLabelProg = GUICtrlCreateLabel("", 10, 10, 280, 25)
+					Local $iProgress = GUICtrlCreateProgress(10, 40, 280, 20)
+					Local $iButtonSuivant = GUICtrlCreateButton("Passer au suivant", 100, 70, 100)
+					GUICtrlSetState($iButtonSuivant, $GUI_DISABLE)
+
+					GUISetState(@SW_SHOW, $hUninstProg)
+
+					_ArrayDelete($aListeProgInst, StringTrimRight($sRange, 1))
+
+					$iPerc = 0
+					Local $iNBItems = UBound($aListeProgInst)
+
+					For $b = 1 To $iNBItems
+						$iPerc = Round((100 / $iNBItems) * ($b - 1))
+						GUICtrlSetData($iProgress, $iPerc)
+						GUICtrlSetData($iLabelProg, "Désinstallation en cours de " & $aListeProgInst[$b-1][0])
+						if $aListeProgInst[$b-1][4] <> "" Then
+							$sNameProcess = StringMid($aListeProgInst[$b-1][4], StringInStr($aListeProgInst[$b-1][4], "\", 0, -1))
+							$ipid = Run(@ComSpec & ' /c "' & $aListeProgInst[$b-1][4] & '"',"", @SW_HIDE, $STDERR_CHILD + $STDOUT_CHILD)
+						Else
+							$sNameProcess = StringMid($aListeProgInst[$b-1][3], StringInStr($aListeProgInst[$b-1][3], "\", 0, -1))
+							if(StringLeft($aListeProgInst[$b-1][3], 7) = "MsiExec") Then
+								$aListeProgInst[$b-1][3] = StringReplace($aListeProgInst[$b-1][3], "/i", "/x")
+								$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /passive'
+							ElseIf(StringRight($aListeProgInst[$b-1][3], 4)=".exe" Or StringRight($aListeProgInst[$b-1][3], 5)='.exe"') Then
+								$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /S'
+							EndIf
+							$ipid = Run(@ComSpec & ' /c ' & $aListeProgInst[$b-1][3],"", @SW_HIDE, $STDERR_CHILD + $STDOUT_CHILD)
+						EndIf
+						Sleep(500)
+
+						$sOutput = StderrRead($ipid)
+						While @error = 0
+							; Sort de la boucle si le processus ferme ou si StderrRead retourne une erreur.
+							$sEchecs = $sEchecs & $aListeProgInst[$b-1][0] & " : " &  _OEMToAnsi($sOutput) & @LF
+
+							$iErreur = 1
+							$sOutput = StderrRead($ipid)
+						WEnd
+						If $iErreur = 0 Then
+							GUICtrlSetState($iButtonSuivant, $GUI_ENABLE)
+							Local $idMsgDes2 = GUIGetMsg()
+							While($idMsgDes2 <> $iButtonSuivant)
+								RegEnumVal($aListeProgInst[$b-1][6],1)
+								If @error Then
+									ExitLoop
+								EndIf
+								$idMsgDes2 = GUIGetMsg()
+							WEnd
+							GUICtrlSetState($iButtonSuivant, $GUI_DISABLE)
+						EndIf
+
+					Next
+					$retour = 1
+					GUICtrlSetData($iProgress, 100)
+					Sleep(1000)
+					GUIDelete($hUninstProg)
+					ExitLoop
+				Else
+					_Attention("Merci de sélectionner au moins 1 élément")
+				EndIf
+
+			Case $iIDBAdd
+				Local $sRange, $iContinue = 0
+				For $b = 1 To UBound($aItems)
+
+					;GUICtrlSetData($iProgress, $iPerc)
+					If(BitAND(GUICtrlRead($aItems[$b-1][0]), $GUI_UNCHECKED)) Then
+						;_Attention($aListeProgInst[$b-1][0] & " " & GUICtrlRead($aItems[$b-1][0], 1))
+						$sRange = $sRange & $b - 1 & ";"
+						;_Attention($aListeProgInst[$b-1][0] & " " & ($b-1))
+					Else
+						$iContinue = 1
+					EndIf
+				Next
+
+				if $iContinue = 1 Then
+
+					_ArrayDelete($aListeProgInst, StringTrimRight($sRange, 1))
+
+					Local $iNBItems = UBound($aListeProgInst)
+
+					For $b = 1 To $iNBItems
+						If _ArraySearch($aBList, $aListeProgInst[$b-1][0]) = -1 Then
+							FileWriteLine($sBlacklist, $aListeProgInst[$b-1][0])
+							_ArrayAdd($aBList, $aListeProgInst[$b-1][0])
+						EndIf
+					Next
+					_Attention($iNBItems & " element(s) ajouté(s) à la liste noire")
+					$retour = 1
+					ExitLoop
+				Else
+					_Attention("Merci de sélectionner au moins 1 élément")
+				EndIf
+
+			Case $iIDBMod
+				ShellExecuteWait($sBlacklist)
+				$aBList = FileReadToArray($sBlacklist)
+
+			Case $iIDBAct
+				$retour = 1
+				ExitLoop
+
+			Case Else
+
+				For $i = 0 To $iNBProginst - 1
+					If $idMsgDes = $aItems[$i][2] Then
+						$sRepReg = MsgBox($MB_YESNO, "Suppression de " & $aListeProgInst[$i][0], "Etes vous sûr de vouloir désinstaller " & $aListeProgInst[$i][0] & " ?")
+						If ($sRepReg = 6) Then
+							$ipid = Run(@ComSpec & ' /c "' & $aListeProgInst[$i][3] & '"',"", @SW_HIDE, $STDERR_CHILD + $STDOUT_CHILD)
+							$sNameProcess = StringMid($aListeProgInst[$i][3], StringInStr($aListeProgInst[$i][3], "\", 0, -1))
+
+							Sleep(500)
+							If ProcessExists($ipid) Then
+								ProcessWaitClose($ipid)
+								$retour = 1
+							ElseIf ProcessExists($sNameProcess) Then
+								ProcessWaitClose($sNameProcess)
+								$retour = 1
+							Else
+								$sOutput = StderrRead($ipid)
+								While @error = 0
+									; Sort de la boucle si le processus ferme ou si StderrRead retourne une erreur.
+									_Attention($aListeProgInst[$i][0] & " : " &  _OEMToAnsi($sOutput), 1)
+
+									$iErreur = 1
+									$sOutput = StderrRead($ipid)
+								WEnd
+								If $iErreur = 0 Then
+									WinWaitActive($hGUIDesintalleur)
+									$retour = 1
+								EndIf
+							EndIf
+						EndIf
+					ElseIf $idMsgDes = $aItems[$i][3] Then
+						$sRepReg = MsgBox($MB_YESNO, "Suppression de " & $aListeProgInst[$i][0], "Voulez supprimer la clé de registre : " & @LF & $aListeProgInst[$i][6])
+						If ($sRepReg = 6) Then
+							RegDelete($aListeProgInst[$i][6])
+							$retour = 1
+							Sleep(1000)
+						EndIf
+					ElseIf $idMsgDes = $aItems[$i][4] Then
+						If _ArraySearch($aBList, $aListeProgInst[$i][0]) <> -1 Then
+							_Attention($aListeProgInst[$i][0] & " est déjà dans la liste noire")
+						Else
+							$sRepReg = MsgBox($MB_YESNO, "Ajout de " & $aListeProgInst[$i][0] & " à la blacklist", "Voulez vous ajouter " & $aListeProgInst[$i][0] & " à la liste noire ?")
+							If ($sRepReg = 6) Then
+								FileWriteLine($sBlacklist, $aListeProgInst[$i][0])
+								_ArrayAdd($aBList, $aListeProgInst[$i][0])
+							EndIf
+						EndIf
+					EndIf
+				Next
+				If $retour = 1 Then
+					ExitLoop
+				EndIf
+
+		EndSwitch
+
+		$idMsgDes = GUIGetMsg()
+	WEnd
+
+	GUIDelete($hGUIDesintalleur)
+
+	If $sEchecs <> "" Then
+		_Attention("Les programmes suivants n'ont pas été désinstallé : " & @lf & $sEchecs & "Réessayez ou désinstallez-les manuellement", 1)
+	EndIf
+	Return $retour
 
 EndFunc
 

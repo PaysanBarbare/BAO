@@ -244,7 +244,6 @@ Func _InstallationAutomatique()
 			GUICtrlSetData($statusbar, "")
 			GUICtrlSetData($statusbarprogress, 0)
 			_ChangerEtatBouton($iIDAction, "Activer")
-			FileWriteLine($hFichierRapport, "")
 			_UpdEdit($iIDEditRapport, $hFichierRapport)
 		EndIf
 	Else
@@ -258,7 +257,7 @@ EndFunc
 
 Func _InstallationEnCours($aSofts)
 
-	Local $iPidChoco, $sOutput, $aArray, $iPerc, $sProgErr = ""
+	Local $iPidChoco, $sOutput, $aArray, $iPerc, $sProgErr = "", $iSautligne = 0
 	GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
 
 	For $po = 0 To (UBound($aSofts) - 1)
@@ -311,7 +310,9 @@ Func _InstallationEnCours($aSofts)
 			$sProgErr &= " - " & $aSofts[$po] & @LF
 			ProcessClose("choco.exe")
 			Run( @ComSpec & ' /c ' & 'choco uninstall -y ' & $aSofts[$po], "", @SW_HIDE, $STDOUT_CHILD)
+			$iSautligne = 0
 		Else
+			$iSautligne = 1
 			FileWriteLine($hFichierRapport, " " & $aSofts[$po] & " installé")
 		EndIf
 
@@ -323,6 +324,11 @@ Func _InstallationEnCours($aSofts)
 
 	If($sProgErr <> "") Then
 		_Attention("Les programmes suivants n'ont pas été installé : " & @lf & $sProgErr & "Réessayez ou installez-les manuellement", 1)
+		If $iSautligne = 1 Then
+			FileWriteLine($hFichierRapport, "")
+		EndIf
+	Else
+		FileWriteLine($hFichierRapport, "")
 	EndIf
 
 EndFunc

@@ -60,7 +60,7 @@ Func _InitialisationBAO($sConfig)
 
 		IniWriteSection($sConfig,"BureauDistant", "Agent=https://www.dwservice.net/download/dwagent_x86.exe"&@LF&"Mail=votreadressemail@domaine.fr"&@CRLF)
 
-		IniWriteSection($sConfig,"Desinfection", "Desinstalleur=UninstallView"&@LF&"Programmes de desinfection=RogueKiller AdwCleaner MalwareByte ZHPCleaner"&@CRLF)
+		IniWriteSection($sConfig,"Desinfection", "Programmes de desinfection=RogueKiller AdwCleaner MalwareByte ZHPCleaner"&@CRLF)
 
 		IniWriteSection($sConfig, "FTP", "Adresse="&@LF&"Utilisateur="&@LF&"Port=21"&@LF&"DossierRapports=/www/rapports/"&@LF&"DossierSFX=/www/dl/"&@LF&"DossierSuivi=/www/suivi/"&@CRLF)
 
@@ -72,7 +72,7 @@ Func _InitialisationBAO($sConfig)
 
 EndFunc
 
-Func _PremierLancement()
+Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 
 	Local $hGUINom = GUICreate("Client", 400, 200)
 	GUICtrlCreateLabel('Entrez le nom du client :',10, 15)
@@ -101,13 +101,14 @@ Func _PremierLancement()
 
 			Case $GUI_EVENT_CLOSE
 				$bClose = 1
+				_FichierCache("PremierLancement", _Now())
 				ExitLoop
 
 			Case $iIDValider
 				_FichierCache("PremierLancement", _Now())
 				If(GUICtrlRead($iIDCombo) <> "Aucun") Then
 					_FichierCache("Suivi", GUICtrlRead($iIDCombo))
-					_DebutIntervention(GUICtrlRead($iIDCombo))
+					_DebutIntervention(GUICtrlRead($iIDCombo), $sFTPAdresse, $sFTPUser, $sFTPPort)
 				EndIf
 				ExitLoop
 
@@ -121,15 +122,14 @@ Func _PremierLancement()
 
 	_FichierCache("Client", $sNom)
 
-	If($hSplash <> "") Then
-		$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration" & @LF & "Création du dossier rapport" & @LF & "Vérification de la licence de Windows" & @LF & "Génération des informations système", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
-	EndIf
+	$sSplashTxt = $sSplashTxt & @LF & "Génération des informations système"
+	SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 	 _RapportInfos()
 
 	If $bClose = 1 Then
 		$sNom = ""
-		_DesinstallerBAO()
+		_DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	EndIf
 
 	FileWriteLine($hFichierRapport, "Espace disque libre sur " & @HomeDrive & " : " & $iFreeSpace & " Go")
@@ -179,127 +179,7 @@ Func _RapportInfos()
 
 	FileWriteLine($hFichierRapport, "")
 
-;~ 	If($sRetourInfo <> "OK") Then
-;~ 		Local $sRep = MsgBox(52, "Etat SMART du disque dur", $sRetourInfo & ". Voulez vous continuer ?")
-;~ 		if($sRep = 7) Then
-;~ 			FileWriteLine($hFichierRapport, $sRetourInfo)
-;~ 			Exit(1)
-;~ 		EndIf
-;~ 	EndIf
-
 	_GetSmart2()
-
-;~ 	if _GetSmart() Then
-
-;~ 		Local $sDisque, $sAttrib
-;~ 		Local $aAttrib
-;~ 		Local $aDisque = MapKeys($aResults)
-;~ 		Local $aResultsToTxt[]
-;~ 		Local $aTempr[7]
-
-;~ 		For $sDisque In $aDisque
-
-;~ 			$aAttrib = MapKeys($aResults[$sDisque])
-
-;~ 			For $sAttrib in $aAttrib
-
-;~ 				Switch ($sAttrib)
-
-;~  					Case 1 ; plus pris en compte
-;~ 						$aTempr[3] = " Taux d'erreur en lecture : " & ($aResults[$sDisque])[$sAttrib]
-;~ 						If ($aResults[$sDisque])[$sAttrib] > 0 Then
-;~ 							Local $sRep = MsgBox(52, "Etat SMART du disque dur", "Disque " & $sDisque & " - Taux d'erreur en lecture : " & ($aResults[$sDisque])[$sAttrib])
-;~ 							if($sRep = 7) Then
-;~ 								FileWriteLine($hFichierRapport, "Disque " & $sDisque & " - Taux d'erreur en lecture : " & ($aResults[$sDisque])[$sAttrib])
-;~ 								Exit(1)
-;~ 							EndIf
-;~ 						EndIf
-
-;~ 					Case 5
-;~ 						$aTempr[4] = " Nombre de secteurs réalloués : " & ($aResults[$sDisque])[$sAttrib]
-;~ 						If ($aResults[$sDisque])[$sAttrib] > 0 Then
-;~ 							Local $sRep = MsgBox(52, "Etat SMART du disque dur", "Disque " & $sDisque & " - Nombre de secteurs réalloués : " & ($aResults[$sDisque])[$sAttrib])
-;~ 							if($sRep = 7) Then
-;~ 								FileWriteLine($hFichierRapport, "Alerte SMART du disque " & $sDisque & " - Nombre de secteurs réalloués : " & ($aResults[$sDisque])[$sAttrib])
-;~ 								Exit(1)
-;~ 							EndIf
-;~ 						EndIf
-
-;~ 					Case 9
-;~ 						$aTempr[0] = " Heures de fonctionnement : " & ($aResults[$sDisque])[$sAttrib] & " heures"
-;~ 						If ($aResults[$sDisque])[$sAttrib] > 10000 Then
-;~ 							Local $sRep = MsgBox(52, "Etat SMART du disque dur", "Disque " & $sDisque & " - Nombre d'heures de fonctionnement : " & ($aResults[$sDisque])[$sAttrib])
-;~ 							if($sRep = 7) Then
-;~ 								FileWriteLine($hFichierRapport, "Alerte SMART du disque " & $sDisque & " - Nombre d'heures de fonctionnement : " & ($aResults[$sDisque])[$sAttrib])
-;~ 								Exit(1)
-;~ 							EndIf
-;~ 						EndIf
-
-;~ 					Case 12
-;~ 						$aTempr[1] = " Nombre de démarrage : " &($aResults[$sDisque])[$sAttrib] & "x"
-;~ 						If ($aResults[$sDisque])[$sAttrib] > 10000 Then
-;~ 							Local $sRep = MsgBox(52, "Etat SMART du disque dur", "Disque " & $sDisque & " - Nombre de démarrage : " & ($aResults[$sDisque])[$sAttrib])
-;~ 							if($sRep = 7) Then
-;~ 								FileWriteLine($hFichierRapport, "Alerte SMART du disque " & $sDisque & " - Nombre de démarrage : " & ($aResults[$sDisque])[$sAttrib])
-;~ 								Exit(1)
-;~ 							EndIf
-;~ 						EndIf
-
-;~ 					Case 194
-;~ 						$aTempr[2] = " Température du disque : " & ($aResults[$sDisque])[$sAttrib] & "°"
-;~ 						If ($aResults[$sDisque])[$sAttrib] > 70 Then
-;~ 							Local $sRep = MsgBox(52, "Etat SMART du disque dur", "Disque " & $sDisque & " - Température : " & ($aResults[$sDisque])[$sAttrib] & "°")
-;~ 							if($sRep = 7) Then
-;~ 								FileWriteLine($hFichierRapport, "Alerte SMART du disque " & $sDisque & " - Température : " & ($aResults[$sDisque])[$sAttrib] & "°")
-;~ 								Exit(1)
-;~ 							EndIf
-;~ 						EndIf
-
-;~ 					Case 197
-;~ 						$aTempr[5] = " Nombre de secteurs instables : " & ($aResults[$sDisque])[$sAttrib]
-;~ 						If ($aResults[$sDisque])[$sAttrib] > 0 Then
-;~ 							Local $sRep = MsgBox(52, "Etat SMART du disque dur", "Disque " & $sDisque & " - Nombre de secteurs instables : " & ($aResults[$sDisque])[$sAttrib])
-;~ 							if($sRep = 7) Then
-;~ 								FileWriteLine($hFichierRapport, "Alerte SMART du disque " & $sDisque & " - Nombre de secteurs instables : " & ($aResults[$sDisque])[$sAttrib])
-;~ 								Exit(1)
-;~ 							EndIf
-;~ 						EndIf
-
-;~ 					Case 198
-;~ 						$aTempr[6] = " Nombre de secteurs incorrigibles : " & ($aResults[$sDisque])[$sAttrib]
-;~ 						If ($aResults[$sDisque])[$sAttrib] > 0 Then
-;~ 							Local $sRep = MsgBox(52, "Etat SMART du disque dur", "Disque " & $sDisque & " - Nombre de secteurs incorrigibles : " & ($aResults[$sDisque])[$sAttrib])
-;~ 							if($sRep = 7) Then
-;~ 								FileWriteLine($hFichierRapport, "Alerte SMART du disque " & $sDisque & " - Taux d'erreur en lecture : " & ($aResults[$sDisque])[$sAttrib])
-;~ 								Exit(1)
-;~ 							EndIf
-;~ 						EndIf
-
-;~ 				EndSwitch
-
-;~ 			Next
-;~ 			$aResultsToTxt[$sDisque] = $aTempr
-
-;~ 		Next
-;~ 		;_debug($aResultsToTxt)
-;~ 		Local $sResults, $sDisqueS
-
-;~ 		Local $aDisqueS = MapKeys($aResultsToTxt)
-
-
-;~ 		For $sDisqueS In $aDisqueS
-
-;~ 			FileWriteLine($hFichierRapport, "")
-;~ 			FileWriteLine($hFichierRapport, "Etat Smart du disque " & $sDisqueS)
-
-;~ 			For $j = 0 To 6
-;~ 				if(($aResultsToTxt[$sDisqueS])[$j] <> "") Then
-;~ 					FileWriteLine($hFichierRapport, ($aResultsToTxt[$sDisqueS])[$j])
-;~ 				EndIf
-;~ 			Next
-;~ 		Next
-
-;~ 	EndIf
 
 EndFunc
 
@@ -521,29 +401,10 @@ Func _GetInfoSysteme()
 		$dNum = $dNum + 1
 	Next
 
-	; Disque dur
-;~ 	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_DiskDrive")
-;~ 	Local $Obj_Item
-;~ 	For $Obj_Item In $Obj_Services
-;~ 		if $Obj_Item.MediaType = "Fixed hard disk media" Then
-;~ 			If(_FichierCacheExist("DD" & $Obj_Item.Index) = 0) Then
-;~ 				$sInfos &= " Disque dur " & $Obj_Item.Index & " : " & $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status & @CRLF
-;~ 				If $Obj_Item.Status <> "OK" Then
-;~ 					$sRetour = "L'Etat SMART du disque " & $Obj_Item.Index & " est : " & $Obj_Item.Status
-;~ 				EndIf
-;~ 				_FichierCache("DD" & $Obj_Item.Index, $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status)
-;~ 			Else
-;~ 				If(_FichierCache("DD" & $Obj_Item.Index) <> $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status) Then
-;~ 					FileWriteLine($hFichierRapport, " Disque dur " & $Obj_Item.Index & " remplacé : " & $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status)
-;~ 				EndIf
-;~ 			EndIf
-;~ 		EndIf
-;~ 	Next
-
 EndFunc
 
 ; #FUNCTION# ====================================================================================================================
-; Name ..........: _GetSmart()
+; Name ..........: _GetSmart2()
 ; Description ...:
 ; Syntax ........:
 ; Parameters ....:
@@ -551,75 +412,8 @@ EndFunc
 ; Author.........: Bastien
 ; Modified ......:
 ; ===============================================================================================================================
-Func _GetSmart()
 
-
-	Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\wmi")
-		Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from MSStorageDriver_FailurePredictData")
-		Local $Obj_Item
-		Local $aSmart
-		Local $aSmartAttribut[]
-		Local $i
-		Local $bReturn = False
-		Local $aNomDisque[2]
-		Local $sNomDisque
-
-		; Liste des valeurs SMART pertinentes :
-		; ID = 1 Taux d'erreur en lecture annulé car souvent incorrect
-		; ID = 5 Nombre de secteur réalloués
-		; ID = 9 Heures de fonctionnement
-		; ID = 12 Nombre de démarrage
-		; ID = 194 Température du disque
-		; ID = 197 Nombre de secteurs instables
-		; ID = 198 Nombre de secteurs incorrigibles
-
-
-		For $Obj_Item In $Obj_Services
-
-			Local $aSmartFound = [5,9,12,194,197,198]
-			Local $sMax
-			Local $sPos
-			Local $sMax
-
-			if IsArray($Obj_Item.VendorSpecific) Then
-				$bReturn = True
-				$aNomDisque = StringRegExp($Obj_Item.InstanceName, 'Ven_(.*)&Prod_(.*)\\',3)
-				If(IsArray($aNomDisque) And UBound($aNomDisque) = 2) Then
-					$sNomDisque = $aNomDisque[0] & " " & $aNomDisque[1]
-				Else
-					$aNomDisque = StringRegExp($Obj_Item.InstanceName, 'Disk([A-Za-z0-9]*)',3)
-					If(IsArray($aNomDisque)) Then
-						$sNomDisque = $aNomDisque[0]
-					Else
-						$sNomDisque = "non défini"
-					EndIf
-				EndIf
-
-				$aSmart = $Obj_Item.VendorSpecific
-
-				$sMax = UBound($aSmart) - 1
-				For $i=2 To $sMax Step 12
-					If _ArrayBinarySearch($aSmartFound, $aSmart[$i]) <> -1 Then
-						_ArrayDelete($aSmartFound, "0;" & $aSmart[$i])
-						if($aSmart[$i]=9 Or $aSmart[$i]=12) Then
-							; calcul POH
-							$aSmartAttribut[$aSmart[$i]]=$aSmart[$i+6] * 256 + $aSmart[$i+5]
-						Else
-							$aSmartAttribut[$aSmart[$i]]=$aSmart[$i+5]
-						EndIf
-
-					EndIf
-				Next
-			EndIf
-
-			$aResults[$sNomDisque]=$aSmartAttribut
-		Next
-
-	Return $bReturn
-
-EndFunc
-
-Func _GetSmart2()
+Func _GetSmart2($iRapport=1)
 
 	Local $smartctl = @ScriptDir & "\Outils\smartctl.exe", $iPidSmart, $i = 0, $sOutput, $aArray, $aSearch, $aSearch2, $aSearch3, $aSearch4, $sDisque, $aCapa, $aSearchSMART[], $aKeysSMART, $iValueSMART, $iFind, $aSmartCritique[]
 	$aSearchSMART["Reallocated_Sector_Ct"] = "Nombre de secteurs réalloués"
@@ -647,23 +441,33 @@ Func _GetSmart2()
 
 	If(FileExists($smartctl)) Then
 
-		FileWriteLine($hFichierRapport, "Disque(s) dur(s) installé(s) :")
+		If $iRapport Then
+			FileWriteLine($hFichierRapport, "Disque(s) dur(s) installé(s) :")
+		EndIf
 		While 1
 			$iPidSmart = Run( @ComSpec & ' /c "' & $smartctl & '" -a /dev/sd' & Chr($i + 97), "",@SW_HIDE, $STDOUT_CHILD)
+
 			ProcessWaitClose($iPidSmart)
+			Sleep(100)
 			$sOutput = StdoutRead($iPidSmart)
 			$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)
+
 			If StringInStr($aArray[4], "Unable to detect device type") Then
 				ExitLoop
 			Else
 				$aSearch = _ArrayFindAll($aArray, "Model", 0, 0, 0, 1)
 				If(@error = 0) Then
-					$sDisque = " Disque " & $i & " :"
+					If($iRapport) Then
+						$sDisque = " Disque " & $i & " :"
+					Else
+						$sDisque = $sDisque & " Disque " & $i & " :"
+					EndIf
+
 					For $iSearch in $aSearch
 						$sDisque = $sDisque & " " & StringStripWS(StringTrimLeft($aArray[$iSearch], StringInStr($aArray[$iSearch], ":")), 1)
 					Next
 
-					If(_FichierCacheExist("DD" & $i) = 0) Then
+					If($iRapport = 0 Or _FichierCacheExist("DD" & $i) = 0) Then
 
 						_FichierCache("DD" & $i, $sDisque)
 
@@ -690,16 +494,19 @@ Func _GetSmart2()
 								$iValueSMART = StringStripWS(StringTrimLeft($aArray[$aSearch4], $iFind), 1)
 								$sDisque = $sDisque & @CRLF & "          - " & $aSearchSMART[$sSMART] & " : " & $iValueSMART
 
-								If (MapExists($aSmartCritique, $sSMART) And Int($iValueSMART) > $aSmartCritique[$sSMART]) Then
+								If ($iRapport And MapExists($aSmartCritique, $sSMART) And Int($iValueSMART) > $aSmartCritique[$sSMART]) Then
 									_Attention($aSearchSMART[$sSMART] & " du disque " & $i & " : " & $iValueSMART)
 								EndIf
 							EndIf
 						Next
-
-						FileWriteLine($hFichierRapport, $sDisque)
-						FileWriteLine($hFichierRapport, "")
+						If $iRapport Then
+							FileWriteLine($hFichierRapport, $sDisque)
+							FileWriteLine($hFichierRapport, "")
+						Else
+							$sDisque = $sDisque & @CRLF & @CRLF
+						EndIf
 					Else
-						If(_FichierCache("DD" & $i) <> $sDisque) Then
+						If($iRapport And _FichierCache("DD" & $i) <> $sDisque) Then
 							FileWriteLine($hFichierRapport, " Disque dur " & $i & " remplacé : " & $sDisque)
 						EndIf
 					EndIf
@@ -712,6 +519,7 @@ Func _GetSmart2()
 		_Attention("smartctl.exe n'est pas présent dans le dossier Outils de BAO")
 	EndIf
 
+	Return $sDisque
 EndFunc
 
 ; #FUNCTION# ====================================================================================================================
@@ -837,6 +645,12 @@ Func _ChaineSansAccents($sString)
     Next
     Return $sString
 EndFunc   ;==>_SansAccents
+
+Func _OEMToAnsi($sOEM)
+    Local $a_AnsiFName = DllCall('user32.dll', 'Int', 'OemToChar', 'str', $sOEM, 'str', ''), $sAnsi
+    If @error = 0 Then $sAnsi = $a_AnsiFName[2]
+    Return $sAnsi
+EndFunc   ;==>_OEMToAnsi
 
 Func _UACDisable()
 	; Désactivation de l'UAC

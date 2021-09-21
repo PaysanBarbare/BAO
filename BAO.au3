@@ -2,7 +2,6 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Version=Beta
 #AutoIt3Wrapper_Outfile_type=a3x
-#AutoIt3Wrapper_Icon=bao.ico
 #AutoIt3Wrapper_UseUpx=y
 #AutoIt3Wrapper_Compile_Both=y
 #AutoIt3Wrapper_UseX64=y
@@ -59,7 +58,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "0.6.6" ; 12/09/21
+Global $sVersion = "0.7.0" ; 21/09/21
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -75,6 +74,7 @@ Global $sVersion = "0.6.6" ; 12/09/21
 #include <FTPEx.au3>
 #include <GUIConstantsEx.au3>
 #include <GuiMenu.au3>
+#include <GuiTreeView.au3>
 #include <IE.au3>
 #include <Inet.au3>
 #include <MemoryConstants.au3>
@@ -84,6 +84,7 @@ Global $sVersion = "0.6.6" ; 12/09/21
 #include <StaticConstants.au3>
 #include <String.au3>
 #include <StringConstants.au3>
+#include <TreeViewConstants.au3>
 #include <WinAPIConv.au3>
 #include <WinAPIShellEx.au3>
 #include <WindowsConstants.au3>
@@ -91,8 +92,8 @@ Global $sVersion = "0.6.6" ; 12/09/21
 ; BAO ne peut être lancé qu'une fois.
 _Singleton(@ScriptName, 0)
 
-Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $bActiv = 0, $hSplash
-Global $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid
+Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $bActiv = 0
+Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid
 
 If @OSArch = "X64" Then
     $HKLM = "HKLM64"
@@ -107,19 +108,33 @@ EndIf
 
 ; Création du raccourci sur le bureau
 ;$sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
+Local $sSplashTxt = "Patientez pendant l'initialisation de BAO"
+Local $iSplashWidth = 300
+Local $iSplashHeigh = 160
+Local $iSplashX = @DesktopWidth - 400
+Local $iSplashY = @DesktopHeight - 250
+Local $iSplashOpt = 21
+Local $iSplashFontSize = 10
+
+SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
-	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
+	$sSplashTxt = $sSplashTxt & @LF & "Création du raccourci sur le bureau"
+	SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 	Sleep(2000)
-	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", "", "", "Boîte à Outils",@ScriptDir & "\Outils\bao.ico")
+	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", "", "", "Boîte à Outils", @ScriptDir & "\Outils\bao.ico")
 	;FileCreateShortcut(@ScriptFullPath, @DesktopDir & "\BAO.lnk", @ScriptDir)
 EndIf
+
+$sSplashTxt = $sSplashTxt & @LF & "Chargement des dépendances"
+SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 Const $sConfig = @ScriptDir & "\config.ini"
 
 #include "UDF\_BureauDistant.au3"
 #include "UDF\_Desinfection.au3"
 #include "UDF\_Desinstallation.au3"
+#include "UDF\_FTP.au3"
 #include "UDF\_Installation.au3"
 #include "UDF\_Mdp.au3"
 #include "UDF\_MiseAJour.au3"
@@ -137,9 +152,10 @@ Const $sConfig = @ScriptDir & "\config.ini"
 
 
 ; Désactivation de la mise en veille https://www.autoitscript.com/forum/topic/152381-screensaver-sleep-lock-and-power-save-disabling/
-If($hSplash <> "") Then
-	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
-EndIf
+
+$sSplashTxt = $sSplashTxt & @LF & "Désactivation de la mise en veille"
+SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+
 _PowerKeepAlive()
 
 ; Lancement des fonctions à la fermeture
@@ -148,30 +164,30 @@ OnAutoItExitRegister("_ProcessExit")
 ;OnAutoItExitRegister("_DriveMapDel")
 ;OnAutoItExitRegister("_StartWU")
 
-If($hSplash <> "") Then
-	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
-EndIf
+$sSplashTxt = $sSplashTxt & @LF & "Lecture du fichier de configuration"
+SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+
 _InitialisationBAO($sConfig)
 
 ; Création du dossier rapport et du fichier rapport d'intervention
-If($hSplash <> "") Then
-	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration" & @LF & "Création du dossier rapport", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
-EndIf
+
 $sDossierRapport = @DesktopDir & "\" & IniRead($sConfig, "Parametrages", "Dossier", "Rapports")
 If DirCreate($sDossierRapport) = 0 Then	_Erreur("Impossible de créer le dossier '" & $sDossierRapport & "' sur le bureau")
 $hFichierRapport = FileOpen($sDossierRapport & "\Rapport intervention.txt", 1)
 
-; Sauvegarde du nom du client dans un fichier unique associé à l'ordinateur
-
+; intialisation des variables FTP
 Local $sFTPAdresse = IniRead($sConfig, "FTP", "Adresse", "")
 Local $sFTPUser = IniRead($sConfig, "FTP", "Utilisateur", "")
+Local $sFTPPort = IniRead($sConfig, "FTP", "Port", "")
 Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
+Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
+
+; Sauvegarde du nom du client dans un fichier unique associé à l'ordinateur
 
 $iFreeSpace = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
 
-If($hSplash <> "") Then
-	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration" & @LF & "Création du dossier rapport" & @LF & "Vérification de la licence de Windows", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
-EndIf
+$sSplashTxt = $sSplashTxt & @LF & "Vérification version et licence Windows"
+SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 If(@OSVersion = "WIN_7") Then
 	$releaseid = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "CSDVersion")
@@ -182,7 +198,15 @@ ElseIf(@OSVersion = "WIN_10") Then
 	EndIf
 EndIf
 
-$sOSv = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "ProductName") & " " & @OSArch & " " & $releaseid
+; Système d'exploitation
+Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
+Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_OperatingSystem")
+Local $Obj_Item
+For $Obj_Item In $Obj_Services
+	$sOSv = $Obj_Item.Caption & " " & @OSArch & " " & $releaseid
+Next
+
+;$sOSv = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "ProductName") & " " & @OSArch & " " & $releaseid
 
 Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
 Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from SoftwareLicensingProduct where PartialProductKey <> null")
@@ -204,7 +228,7 @@ if(_FichierCacheExist("Client") = 0) Then
 		_FichierCache("Suivi", 1)
 	EndIf
 
-	$sNom = _PremierLancement()
+	$sNom = _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 Else
 	$sNom = _FichierCache("Client")
 	If FileGetPos($hFichierRapport) = 0 Then
@@ -240,11 +264,7 @@ Local $iIDButtonScripts
 ; Soit :
 Local $iFonctions = 7
 
-If($hSplash <> "") Then
-	$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration" & @LF & "Création du dossier rapport" & @LF & "Vérification de la licence de Windows" & @LF & "Génération des informations système" & @LF & "Ouverture de BAO", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
-EndIf
-
-GUICreate("Boîte A Outils (bêta) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+$hGUIBAO = GUICreate("Boîte A Outils (bêta) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 GUISetBkColor($COLOR_WHITE)
 
 $statusbar = GUICtrlCreateLabel("", 10, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 410, 20, $SS_CENTERIMAGE)
@@ -277,9 +297,6 @@ Else
 EndIf
 
 Local $iIDMenu2index = GUICtrlCreateMenuItem("Créer index.php sur le serveur FTP (Tech)", $iIDMenu2)
-
-Local $sFTPAdresse = IniRead($sConfig, "FTP", "Adresse", "")
-Local $sFTPUser = IniRead($sConfig, "FTP", "Utilisateur", "")
 
 If(_FichierCacheExist("Suivi") = 0) Then
 	GUICtrlSetState($iIDMenu2, $GUI_DISABLE)
@@ -422,7 +439,11 @@ If(StringLeft($sNom, 4) <> "Tech") Then
 
 Else
 	$iLabelPC = GUICtrlCreateLabel($sNom, 10, 10, 540)
+	_RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 EndIf
+
+$sSplashTxt = $sSplashTxt & @LF & "Ouverture de BAO"
+SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 Local $iIDespacelibre = GUICtrlCreateLabel(@HomeDrive & " " & $iFreeSpace & " Go libre", 620, 164 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 Local $aMemStats = MemGetStats()
@@ -433,7 +454,7 @@ GUICtrlSetFont($iLabelPC, 18)
 
 Local $sDate = _FichierCache("PremierLancement")
 GUICtrlCreateLabel("Nom du PC : " & @ComputerName, 450, 2)
-GUICtrlCreateLabel("OS : " & $sOSv, 450, 20, 300)
+GUICtrlCreateLabel("OS : " & $sOSv, 450, 20, 400)
 If($bActiv = 0) Then
 	GUICtrlSetColor(-1, $COLOR_RED)
 Else
@@ -449,7 +470,7 @@ $iIDButtonInstallation = GUICtrlCreateButton("Installation", 10, 80, 150, 25)
 $iIDButtonSauvegarde = GUICtrlCreateButton("Sauvegarde", 10, 110, 150, 25)
 $iIDButtonWU = GUICtrlCreateButton("Windows et Office", 10, 140, 150, 25)
 $iIDButtonPilotes = GUICtrlCreateButton("Pilotes", 10, 170, 150, 25)
-$iIDButtonStabilite = GUICtrlCreateButton("Test de mémoire vive", 10, 200, 150, 25)
+$iIDButtonStabilite = GUICtrlCreateButton("Tests", 10, 200, 150, 25)
 $iIDButtonScripts = GUICtrlCreateButton("Scripts et outils", 10, 230, 150, 25)
 
 Local $y = 70 + ($iFonctions * 30)
@@ -521,9 +542,8 @@ If _FichierCacheExist("Restauration") = 0 Then
 
 	$sRestauration = IniRead($sConfig, "Parametrages", "Restauration", 0)
 	If $sRestauration = 1 Then
-		If($hSplash <> "") Then
-			$hSplash = SplashTextOn("Démarrage de BAO", "Création du raccourci sur le bureau" & @LF & "Chargement des dépendances" & @LF & "Désactivation de la mise en veille" & @LF & "Lecture du fichier de configuration" & @LF & "Création du dossier rapport" & @LF & "Vérification de la licence de Windows" & @LF & "Génération des informations système" & @LF & "Ouverture de BAO" & @LF & "Création d'un point de restauration", 300, 160, @DesktopWidth - 400, @DesktopHeight - 250, 21, "", 10)
-		EndIf
+		$sSplashTxt = $sSplashTxt & @LF & "Création d'un point de restauration"
+		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 		_Restauration("Démarrage de BAO")
 		_FichierCache("Restauration", 1)
 	EndIf
@@ -636,7 +656,7 @@ While 1
 
 		Case $iIDMenu1sfx
 
-			_CreerSfx()
+			_CreerSfx($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 		Case $iIDMenu1reini
 
@@ -650,19 +670,19 @@ While 1
 
 		Case $iIDMenu2ajout
 
-			_CreerIDSuivi()
+			_CreerIDSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 		Case $iIDMenu2completer
 
-			_CompleterSuivi()
+			_CompleterSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 		Case $iIDMenu2supp
 
-			_SupprimerSuivi()
+			_SupprimerSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 		Case $iIDMenu2index
 
-			_CreerIndex()
+			_CreerIndex($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 		Case $sIDVarALLUSERSPROFILE, $sIDVarAPPDATA, $sIDVarLOCALAPPDATA, $sIDVarProgramData, $sIDVarProgramFiles, $sIDVarProgramFiles86, $sIDVarPUBLIC, $sIDVarTEMP, $sIDVarTMP, $sIDVarUSERPROFILE, $sIDVarwindir
 
@@ -724,7 +744,7 @@ While 1
 
 		Case $iIDButtonUninstall
 
-			_DesinstallerBAO()
+			_DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 
 		Case $sIDHelp
 

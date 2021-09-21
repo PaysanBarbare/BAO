@@ -23,7 +23,7 @@ Auteur : Bastien ROUCHES
 Fonction : Suivi des interventions pour les clients
 #ce
 
-Func _CreerIDSuivi()
+Func _CreerIDSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 	Local $iPIN = Random(1000, 9999, 1)
 	Local $sQuestion
 
@@ -51,7 +51,7 @@ Func _CreerIDSuivi()
 			If(StringLeft($sNom, 4) <> "Tech") Then
 				_FichierCache("Suivi", $iPIN)
 				GUICtrlSetData($iLabelPC, "Client : " & $sNom & " (" & $iPIN & ")")
-				_DebutIntervention($iPIN)
+				_DebutIntervention($iPIN, $sFTPAdresse, $sFTPUser, $sFTPPort)
 			EndIf
 
 		Else
@@ -60,7 +60,7 @@ Func _CreerIDSuivi()
 	EndIf
 EndFunc
 
-Func _CompleterSuivi()
+Func _CompleterSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 	Local $hGUIsuivi = GUICreate("Compléter le suivi", 400, 140)
 	Local $iPIN, $eGet, $iRetour, $iIDCloture
@@ -85,7 +85,7 @@ Func _CompleterSuivi()
 	Else
 		$iPIN = _FichierCache("Suivi")
 		If $iPIN = 1 Then
-			_CreerIDSuivi()
+			_CreerIDSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 			$iPIN = _FichierCache("Suivi")
 		EndIf
 		GUICtrlCreateLabel("Ajouter une information de suivi au client : " & $sNom & " (" & $iPIN & ")", 10, 10)
@@ -117,7 +117,7 @@ Func _CompleterSuivi()
 		EndIf
 
 		If(GUICtrlRead($iIDCloture) = $GUI_CHECKED) Then
-			_FinIntervention($iPIN)
+			_FinIntervention($iPIN, $sFTPAdresse, $sFTPUser, $sFTPPort)
 			_SupprimerIDSuivi($iPIN)
 			If(StringLeft($sNom, 4) <> "Tech") Then
 				GUICtrlSetData($iLabelPC, "Client : " & $sNom)
@@ -127,7 +127,7 @@ Func _CompleterSuivi()
 		GUIDelete()
 		Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 		Do
-			$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierSuivi & $iPIN & '.txt')
+			$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iPIN & '.txt')
 		Until $iRetour <> -1
 	Else
 		GUIDelete()
@@ -140,7 +140,7 @@ Func _SupprimerIDSuivi($idSuivi)
 	EndIf
 EndFunc
 
-Func _SupprimerSuivi()
+Func _SupprimerSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 	If(StringLeft($sNom, 4) <> "Tech") Then
 		Local $iSuivi = _FichierCache("Suivi")
@@ -185,7 +185,7 @@ Func _SupprimerSuivi()
 			GUIDelete()
 			Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 			Do
-				$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierSuivi & $iPIN & '.txt', 1)
+				$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iPIN & '.txt', 1)
 			Until $iRetour <> -1
 		Else
 			GUIDelete()
@@ -193,29 +193,30 @@ Func _SupprimerSuivi()
 	EndIf
 EndFunc
 
-Func _DebutIntervention($iCodeSuivi)
+Func _DebutIntervention($iCodeSuivi, $sFTPAdresse, $sFTPUser, $sFTPPort)
 	local $iRetour
 	Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iCodeSuivi & '.txt'
 	FileWriteLine($sNomFichier, _FichierCache("PremierLancement") & " - Intervention débutée")
 	Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 	Do
-		$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierSuivi & $iCodeSuivi & '.txt')
+		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iCodeSuivi & '.txt')
 	Until $iRetour <> -1
 
 EndFunc
 
-Func _FinIntervention($iCodeSuivi)
+Func _FinIntervention($iCodeSuivi, $sFTPAdresse, $sFTPUser, $sFTPPort, $sInput = "")
 	local $iRetour
 	Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iCodeSuivi & '.txt'
+	FileWriteLine($sNomFichier, $sInput)
 	FileWriteLine($sNomFichier, _Now() & " - Intervention terminée")
 	Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 	Do
-		$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierSuivi & $iCodeSuivi & '.txt')
+		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iCodeSuivi & '.txt')
 	Until $iRetour <> -1
 
 EndFunc
 
-Func _CreerIndex()
+Func _CreerIndex($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 	GUICtrlSetData($statusbar, " Création et envoi du fichier index.php")
 	GUICtrlSetData($statusbarprogress, 20)
@@ -231,7 +232,7 @@ Func _CreerIndex()
 
 	Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 	Do
-		$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierSuivi & 'index.php')
+		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & 'index.php')
 	Until $iRetour <> -1
 
 	if($iRetour <> 1) Then

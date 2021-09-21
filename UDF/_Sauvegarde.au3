@@ -266,8 +266,8 @@ Func _SauvegardeAutomatique()
 				Local $aListe = _ListeProgrammes()
 
 				FileWriteLine($hFichierSauvegarde, "Programmes installés :")
-				For $sProgi in $aListe
-					FileWriteLine($hFichierSauvegarde, " - " & $sProgi)
+				For $aProgi in $aListe
+					FileWriteLine($hFichierSauvegarde, " - " & $aProgi[0])
 				Next
 				FileWriteLine($hFichierSauvegarde, "")
 

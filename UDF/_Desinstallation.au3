@@ -18,57 +18,125 @@ This file is part of "Boîte A Outils"
     along with Boîte A Outils.  If not, see <https://www.gnu.org/licenses/>.
 #ce
 
-Func _DesinstallerBAO()
+Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 
-	Local $sRepsup = 7, $sProgDes, $t = 0
+	Local $iIDButtonDesinstaller = 1, $iIDButtonAnnuler = 1, $eGet, $iRapport = 0, $iEteindre = 0, $sInput, $iIDInputInfo, $sProgDes, $t = 0
 	if $sNom <> "" Then
-		$sRepsup = MsgBox($MB_YESNOCANCEL, "Suppression", "Voulez vous éteindre l'ordinateur après la désinstallation ?")
+		Local $hGUIdes = GUICreate("Désinstallation de BAO", 400, 100)
+		Local $iIDCheckRapport = GUICtrlCreateCheckbox("Afficher/compléter le rapport", 10, 10)
+		Local $iIDCheckEteindre = GUICtrlCreateCheckbox("Eteindre l'ordinateur", 10, 30)
+
+		If _FichierCacheExist("Suivi") = 1 Then
+			If _FichierCache("Suivi") > 1 Then
+			GUICtrlCreateLabel("Information de suivi à ajouter :", 200, 10)
+			$iIDInputInfo = GUICtrlCreateInput("", 200, 30)
+			EndIf
+		EndIf
+
+		$iIDButtonDesinstaller = GUICtrlCreateButton("Désinstaller", 100, 60, 90, 25, $BS_DEFPUSHBUTTON)
+		$iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 60, 90, 25)
+
+
+
+		GUISetState(@SW_SHOW)
+
+		$eGet = GUIGetMsg()
+
+		While $eGet <> $GUI_EVENT_CLOSE And $eGet <> $iIDButtonAnnuler And $eGet <> $iIDButtonDesinstaller
+			$eGet = GUIGetMsg()
+		WEnd
+
 	EndIf
 
-	If ($sRepsup = 6 Or $sRepsup = 7) Then
-		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés", 300, 100, @DesktopWidth - 400, @DesktopHeight - 200, 21, "", 10)
+	If ($eGet = $iIDButtonDesinstaller) Then
+
+		If(GUICtrlRead($iIDCheckRapport) = $GUI_CHECKED) Then
+			$iRapport = 1
+		EndIf
+
+		If(GUICtrlRead($iIDCheckEteindre) = $GUI_CHECKED) Then
+			$iEteindre = 1
+		EndIf
+
+		If(GUICtrlRead($iIDInputInfo) <> "") Then
+			$sInput = GUICtrlRead($iIDInputInfo)
+		EndIf
+
+		GUIDelete()
+	EndIf
+
+	If ($eGet <> $iIDButtonAnnuler) Then
+
+		$sSplashTxt = "Enregistrement des changements apportés"
+		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+
 		FileWriteLine($hFichierRapport, "")
 		FileWriteLine($hFichierRapport, "Changements apportés :")
-		_GetInfoSysteme()
-		Local $aListeApSupp = _ListeProgrammes()
 
-		For $sProgAvSupp in $aListeAvSupp
-			If _ArraySearch($aListeApSupp, $sProgAvSupp) = -1 Then
-				$t = $t + 1
-				$sProgDes &= " - " & $sProgAvSupp & @CRLF
+		_GetInfoSysteme()
+
+		If($aListeAvSupp <> "") Then
+
+			Local $aListeApSupp = _ListeProgrammes()
+
+			For $sProgAvSupp in $aListeAvSupp
+				If _ArraySearch($aListeApSupp, $sProgAvSupp) = -1 Then
+					$t = $t + 1
+					$sProgDes &= " - " & $sProgAvSupp & @CRLF
+				EndIf
+			Next
+			If $t > 0 Then
+				FileWriteLine($hFichierRapport, " " & $t & " Programme(s) désinstallé(s) : ")
+				FileWrite($hFichierRapport, $sProgDes)
+				FileWriteLine($hFichierRapport, "")
 			EndIf
-		Next
-		If $t > 0 Then
-			FileWriteLine($hFichierRapport, " " & $t & " Programme(s) désinstallé(s) : ")
-			FileWrite($hFichierRapport, $sProgDes)
-			FileWriteLine($hFichierRapport, "")
 		EndIf
 		FileWriteLine($hFichierRapport, " Espace libre sur " & @HomeDrive & " : " & $iFreeSpace & " Go")
 		FileWriteLine($hFichierRapport, "")
 		FileWriteLine($hFichierRapport, "Fin de l'intervention : " & _Now())
 
-		FileClose($hFichierRapport)
+		If $iRapport = 1 Then
+			_CompleterRapport()
+		EndIf
+
 		Local $sNomFichier = $sDossierRapport & "\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt"
 		FileMove($sDossierRapport & "\Rapport intervention.txt", $sNomFichier, 1)
-		FileCopy($sNomFichier, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
-		Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
-		Local $iRetour
-		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés" & @LF & "Sauvegarde du rapport", 300, 100, @DesktopWidth - 400, @DesktopHeight - 200, 21, "", 10)
-		Do
-			$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierRapports & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt")
-			if($iRetour = 1) Then
-				If(_FichierCacheExist("Suivi") And _FichierCache("Suivi") <> 1) Then
-					_FinIntervention(_FichierCache("Suivi"))
-					_SupprimerIDSuivi(_FichierCache("Suivi"))
-				EndIf
+
+		Local $iRetour = 0
+
+		$sSplashTxt = $sSplashTxt & @LF & "Sauvegarde du rapport"
+		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+
+		If StringLeft(@ScriptDir, 2) <> "\\" Then
+
+			Do
+				$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierRapports & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt")
+			Until $iRetour <> -1
+
+		EndIf
+
+		If $iRetour = 0 Then
+			FileCopy($sNomFichier, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
+			$iRetour = 1
+		EndIf
+
+		if($iRetour = 1) Then
+			If(_FichierCacheExist("Suivi") And _FichierCache("Suivi") <> 1) Then
+				_FinIntervention(_FichierCache("Suivi"), $sFTPAdresse, $sFTPUser, $sFTPPort, $sInput)
+				_SupprimerIDSuivi(_FichierCache("Suivi"))
 			EndIf
-		Until $iRetour <> -1
-		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés" & @LF & "Sauvegarde du rapport" & @LF & "Suppression des dépendances de BAO", 300, 100, @DesktopWidth - 400, @DesktopHeight - 200, 21, "", 10)
+		EndIf
+
+		$sSplashTxt = $sSplashTxt & @LF & "Suppression des dépendances de BAO"
+		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 		_ReiniBAO()
-		$hSplash = SplashTextOn("Désinstallation de BAO", "Enregistrement des changements apportés" & @LF & "Sauvegarde du rapport" & @LF & "Suppression des dépendances de BAO" & @LF & "Suppression de BAO", 300, 100, @DesktopWidth - 400, @DesktopHeight - 200, 21, "", 10)
-		_Uninstall($sRepsup)
+		$sSplashTxt = $sSplashTxt & @LF & "Suppression de BAO"
+		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+		_Uninstall($iEteindre)
 		SplashOff()
 		Exit
+	Else
+		GUIDelete()
 	EndIf
 EndFunc
 
@@ -119,7 +187,7 @@ Func _Uninstall($iRep)
 		ShellExecute ( @ComSpec , ' /c RMDIR /S /Q "' & FileGetShortName(@ScriptDir) & '"', "" , "", @SW_HIDE )
 	EndIf
 
-	If $iRep = 6 Then
+	If $iRep = 1 Then
 		ShellExecute ( @ComSpec , " /c shutdown -s -t 15" , "" , "", @SW_HIDE )
 	EndIf
 
