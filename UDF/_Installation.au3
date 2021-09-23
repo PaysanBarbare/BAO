@@ -116,24 +116,23 @@ Func _InstallationAutomatique()
 	While ($idMsgInst <> $GUI_EVENT_CLOSE) And ($idMsgInst <> $iIDButtonInstaller)
 
 		If $idMsgInst = $iIDButtonSelectionner Then
-			Local $aTemp[]
+			Local $aSofts[0]
 			For $icheck In $idCheckboxInternet
 				GUICtrlSetState($icheck, $GUI_CHECKED)
-				_ArrayAdd($aTemp, GUICtrlRead($icheck, 1))
+				_ArrayAdd($aSofts, GUICtrlRead($icheck, 1))
 			Next
 			For $icheck In $idCheckboxBureautique
 				GUICtrlSetState($icheck, $GUI_CHECKED)
-				_ArrayAdd($aTemp, GUICtrlRead($icheck, 1))
+				_ArrayAdd($aSofts, GUICtrlRead($icheck, 1))
 			Next
 			For $icheck In $idCheckboxMultimedia
 				GUICtrlSetState($icheck, $GUI_CHECKED)
-				_ArrayAdd($aTemp, GUICtrlRead($icheck, 1))
+				_ArrayAdd($aSofts, GUICtrlRead($icheck, 1))
 			Next
 			For $icheck In $idCheckboxDivers
 				GUICtrlSetState($icheck, $GUI_CHECKED)
-				_ArrayAdd($aTemp, GUICtrlRead($icheck, 1))
+				_ArrayAdd($aSofts, GUICtrlRead($icheck, 1))
 			Next
-			$aSofts = $aTemp
 		ElseIf $idMsgInst = $iIDButtonDeselectionner Then
 			Local $aSofts[0]
 			For $icheck In $idCheckboxInternet
@@ -257,73 +256,121 @@ EndFunc
 
 Func _InstallationEnCours($aSofts)
 
-	Local $iPidChoco, $sOutput, $aArray, $iPerc, $sProgErr = "", $iSautligne = 0
+	Local $iPidChoco, $sOutput, $aArray, $iPerc, $sProgErr = "", $iSautligne = 0, $aListeInstall, $sDejaInstalle, $sMessFin
 	GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
 
 	For $po = 0 To (UBound($aSofts) - 1)
 
-		Local $hID, $sPC = "Indéterminé", $sNomFichier = @ScriptDir & "\Cache\InstallationEnCours\" & $aSofts[$po] & ".txt"
+		Local $aListeInstall = _ListeProgrammes()
+		$aListeInstall = _ArrayUnique($aListeInstall)
 
-		If FileExists($sNomFichier) Then
+		For $i = 1 To $aListeInstall[0]
+			If StringInStr($aListeInstall[$i], " ") Then
+				_ArrayAdd($aListeInstall, StringReplace($aListeInstall[$i], " ", ""))
+			EndIf
+			If StringInStr($aListeInstall[$i], "-") Then
+				_ArrayAdd($aListeInstall, StringReplace($aListeInstall[$i], "-", ""))
+			EndIf
+		Next
 
-			$hID = FileOpen($sNomFichier)
+		If _ArraySearch($aListeInstall, $aSofts[$po]) = -1 Then
+
+			Local $hID, $sPC = "Indéterminé", $sNomFichier = @ScriptDir & "\Cache\InstallationEnCours\" & $aSofts[$po] & ".txt"
+
+			If FileExists($sNomFichier) Then
+
+				$hID = FileOpen($sNomFichier)
+				If $hID = -1 Then
+					_Attention("Impossible d'ouvrir " & $sNomFichier)
+				Else
+					$sPC = FileReadLine($hID, 1)
+					FileClose($hID)
+				EndIf
+				GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po] & " en attente [" & $sPC & "]")
+
+				While (FileExists($sNomFichier))
+					Sleep(10000)
+				WEnd
+			EndIf
+
+			$hID = FileOpen($sNomFichier, 9)
 			If $hID = -1 Then
-				_Attention("Impossible d'ouvrir " & $sNomFichier)
+					_Attention("Impossible d'ouvrir " & $sNomFichier)
 			Else
-				$sPC = FileReadLine($hID, 1)
-				FileClose($hID)
+					FileWriteLine($hID, @ComputerName)
+					FileClose($hID)
 			EndIf
-			GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po] & " en attente [" & $sPC & "]")
 
-			While (FileExists($sNomFichier))
-				Sleep(10000)
+			; Local $envChoco = RegRead("HKEY_CURRENT_USER\Environment\", "ChocolateyInstall")
+
+			GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po])
+
+			$iPerc = (($po * 90) / UBound($aSofts)) + 10
+			GUICtrlSetData($statusbarprogress, $iPerc)
+			$iPidChoco = Run( @ComSpec & ' /c ' & 'choco install -y --limitoutput ' & $aSofts[$po], "",@SW_HIDE, $STDOUT_CHILD)
+			While ProcessExists($iPidChoco)
+				If GUIGetMsg() = $iIDCancelDL Then
+					ProcessClose($iPidChoco)
+				EndIf
 			WEnd
-		EndIf
 
-		$hID = FileOpen($sNomFichier, 9)
-		If $hID = -1 Then
-				_Attention("Impossible d'ouvrir " & $sNomFichier)
-		Else
-				FileWriteLine($hID, @ComputerName)
-				FileClose($hID)
-		EndIf
+			;ProcessWaitClose($iPidChoco)
+			$sOutput = StdoutRead($iPidChoco)
 
-		; Local $envChoco = RegRead("HKEY_CURRENT_USER\Environment\", "ChocolateyInstall")
+			; Utilise StringSplit pour partager la sortie de StdoutRead en un tableau. Tous les retours chariot (@CRLF) sont supprimés et @CRLF (saut de ligne) est utilisé comme séparateur.
+			$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)
+			If _ArraySearch($aArray, " The install of " & $aSofts[$po] & " was successful.") = -1 Then
 
-		GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po])
+				GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po] & " (2ème essai)")
 
-		$iPerc = (($po * 90) / UBound($aSofts)) + 10
-		GUICtrlSetData($statusbarprogress, $iPerc)
-		$iPidChoco = Run( @ComSpec & ' /c ' & 'choco install -y --limitoutput ' & $aSofts[$po], "",@SW_HIDE, $STDOUT_CHILD)
-		While ProcessExists($iPidChoco)
-			If GUIGetMsg() = $iIDCancelDL Then
-				ProcessClose($iPidChoco)
+				$iPidChoco = Run( @ComSpec & ' /c ' & 'choco install -y -f --limitoutput ' & $aSofts[$po], "",@SW_HIDE, $STDOUT_CHILD)
+				While ProcessExists($iPidChoco)
+					If GUIGetMsg() = $iIDCancelDL Then
+						ProcessClose($iPidChoco)
+					EndIf
+				WEnd
+
+				;ProcessWaitClose($iPidChoco)
+				$sOutput = StdoutRead($iPidChoco)
+
+				; Utilise StringSplit pour partager la sortie de StdoutRead en un tableau. Tous les retours chariot (@CRLF) sont supprimés et @CRLF (saut de ligne) est utilisé comme séparateur.
+				$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)
+				If _ArraySearch($aArray, " The install of " & $aSofts[$po] & " was successful.") = -1 Then
+					$sProgErr &= " - " & $aSofts[$po] & @LF
+					ProcessClose("choco.exe")
+					Run( @ComSpec & ' /c ' & 'choco uninstall -y ' & $aSofts[$po], "", @SW_HIDE, $STDOUT_CHILD)
+					$iSautligne = 0
+				Else
+					$iSautligne = 1
+					FileWriteLine($hFichierRapport, " " & $aSofts[$po] & " installé")
+				EndIf
+			Else
+				$iSautligne = 1
+				FileWriteLine($hFichierRapport, " " & $aSofts[$po] & " installé")
 			EndIf
-		WEnd
 
-		;ProcessWaitClose($iPidChoco)
-		$sOutput = StdoutRead($iPidChoco)
-
-		; Utilise StringSplit pour partager la sortie de StdoutRead en un tableau. Tous les retours chariot (@CRLF) sont supprimés et @CRLF (saut de ligne) est utilisé comme séparateur.
-		$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)
-		If _ArraySearch($aArray, " The install of " & $aSofts[$po] & " was successful.") = -1 Then
-			$sProgErr &= " - " & $aSofts[$po] & @LF
-			ProcessClose("choco.exe")
-			Run( @ComSpec & ' /c ' & 'choco uninstall -y ' & $aSofts[$po], "", @SW_HIDE, $STDOUT_CHILD)
-			$iSautligne = 0
+			If Not FileDelete($sNomFichier) Then
+				RunWait( @ComSpec & ' /c ' & 'del "' & $sNomFichier & '"', "",@SW_HIDE)
+			EndIf
 		Else
-			$iSautligne = 1
-			FileWriteLine($hFichierRapport, " " & $aSofts[$po] & " installé")
+			$sDejaInstalle &= " - " & $aSofts[$po] & @LF
 		EndIf
-
-		If Not FileDelete($sNomFichier) Then _Attention("Impossible de supprimer " & $sNomFichier & ". Supprimez le manuellement", 1)
 	Next
 
 	GUICtrlSetData($statusbarprogress, 100)
 	GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
 
-	If($sProgErr <> "") Then
-		_Attention("Les programmes suivants n'ont pas été installé : " & @lf & $sProgErr & "Réessayez ou installez-les manuellement", 1)
+	If($sProgErr <> "" Or $sDejaInstalle <> "") Then
+		If $sProgErr <> "" Then
+			$sMessFin = "Les programmes suivants n'ont pas été installé : " & @lf & $sProgErr & "Réessayez ou installez-les manuellement" & @LF & @LF
+		EndIf
+
+		If $sDejaInstalle <> "" Then
+			$sMessFin &= "Les programmes suivants étaient déjà installés : " & @lf & $sDejaInstalle
+		EndIf
+
+		_Attention($sMessFin, 1)
+
 		If $iSautligne = 1 Then
 			FileWriteLine($hFichierRapport, "")
 		EndIf

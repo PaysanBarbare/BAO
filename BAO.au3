@@ -73,6 +73,7 @@ Global $sVersion = "0.7.0" ; 21/09/21
 #include <File.au3>
 #include <FTPEx.au3>
 #include <GUIConstantsEx.au3>
+#include <GuiEdit.au3>
 #include <GuiMenu.au3>
 #include <GuiTreeView.au3>
 #include <IE.au3>
@@ -249,7 +250,7 @@ If(FileExists($sListeProgrammes)) Then
 	_FileReadToArray($sListeProgrammes, $aListeAvSupp, 0)
 Else
 	$aListeAvSupp = _ListeProgrammes()
-	_FileWriteFromArray($sListeProgrammes, $aListeAvSupp)
+	_FileWriteFromArray($sListeProgrammes, _ArrayUnique($aListeAvSupp, 0, 0, 0, 0))
 EndIf
 
 ; Déclaration des boutons de fonctions (pour calculer la taille de la fenêtre BAO)
@@ -318,10 +319,9 @@ Local $i, $j, $iPremElement, $iDernElement, $x = 70
 Local $iIDMenuLog = GUICtrlCreateMenu("Logiciels")
 
 $iPremElement = $iIDMenuLog + 1
+Local $aTemp, $iIDMenuDoc, $aTempLog[3], $sNomLog, $sURL, $sIDSM, $aShortcut
 
 For $i = 1 To $aDoc[0]
-
-	Local $aTemp
 
 	If @OSArch = "X64" Then
 		$aTemp = _FileListToArrayRec(@ScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x86.url")
@@ -331,51 +331,33 @@ For $i = 1 To $aDoc[0]
 
 	If	@error <> 1 Then
 		If $aDoc[$i] <> "Favoris" Then
-
-			Local $iIDMenuDoc = GUICtrlCreateMenu($aDoc[$i], $iIDMenuLog)
-			For $j = 1 To $aTemp[0]
-				Local $aTempLog[3]
-				Local $sNomLog = StringTrimRight($aTemp[$j], 4)
-				Local $sURL
-				If(StringRight($aTemp[$j], 3) = "url") Then
-					$sURL = IniRead( @ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j], "InternetShortcut","URL", "ERROR")
-				Else
-					$sURL = FileReadLine(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
-				EndIf
-
-				Local $sIDSM = GUICtrlCreateMenuItem($sNomLog, $iIDMenuDoc)
-				$aTempLog[0] = $sIDSM
-				$aTempLog[1] = $sNomLog
-				$aTempLog[2] = $sURL
-				; on stocke dans le tableau l'id du menu et l'url
-				$aMenu[$sNomLog] = $aTempLog
-				$aMenuID[$sIDSM] = $aTempLog
-
-			Next
-		Else
-			For $j = 1 To $aTemp[0]
-				Local $aTempLog[3]
-				Local $sNomLog = StringTrimRight($aTemp[$j], 4)
-				Local $sURL
-				If(StringRight($aTemp[$j], 3) = "url") Then
-					$sURL = IniRead( @ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j], "InternetShortcut","URL", "ERROR")
-				ElseIf(StringRight($aTemp[$j], 3) = "lnk") Then
-					Local $aShortcut = FileGetShortcut(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
-					$sURL = $aShortcut[0]
-				Else
-					$sURL = FileReadLine(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
-				EndIf
-
-				Local $sIDSM = GUICtrlCreateButton($sNomLog, 700, $x, 150, 25)
-				$aTempLog[0] = $sIDSM
-				$aTempLog[1] = $sNomLog
-				$aTempLog[2] = $sURL
-				; on stocke dans le tableau l'id du menu et l'url
-				$aMenu[$sNomLog] = $aTempLog
-				$aMenuID[$sIDSM] = $aTempLog
-				$x = $x + 25
-			Next
+			$iIDMenuDoc = GUICtrlCreateMenu($aDoc[$i], $iIDMenuLog)
 		EndIf
+
+		For $j = 1 To $aTemp[0]
+			$sNomLog = StringTrimRight($aTemp[$j], 4)
+			If(StringRight($aTemp[$j], 3) = "url") Then
+				$sURL = IniRead( @ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j], "InternetShortcut","URL", "ERROR")
+			ElseIf(StringRight($aTemp[$j], 3) = "lnk") Then
+				$aShortcut = FileGetShortcut(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
+				$sURL = $aShortcut[0]
+			Else
+				$sURL = FileReadLine(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
+			EndIf
+			If $aDoc[$i] <> "Favoris" Then
+				$sIDSM = GUICtrlCreateMenuItem($sNomLog, $iIDMenuDoc)
+			Else
+				$sIDSM = GUICtrlCreateButton($sNomLog, 700, $x, 150, 25)
+				$x = $x + 25
+			EndIf
+			$aTempLog[0] = $sIDSM
+			$aTempLog[1] = $sNomLog
+			$aTempLog[2] = $sURL
+			; on stocke dans le tableau l'id du menu et l'url
+			$aMenu[$sNomLog] = $aTempLog
+			$aMenuID[$sIDSM] = $aTempLog
+
+		Next
 	EndIf
 Next
 
@@ -441,9 +423,6 @@ Else
 	$iLabelPC = GUICtrlCreateLabel($sNom, 10, 10, 540)
 	_RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 EndIf
-
-$sSplashTxt = $sSplashTxt & @LF & "Ouverture de BAO"
-SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 Local $iIDespacelibre = GUICtrlCreateLabel(@HomeDrive & " " & $iFreeSpace & " Go libre", 620, 164 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 Local $aMemStats = MemGetStats()
@@ -535,6 +514,9 @@ GUICtrlCreateGroup("Rapport", 170, 50, 520, 77 + ($iFonctions * 30) + UBound($sL
 
 $iIDEditRapport = GUICtrlCreateEdit("", 180, 70,500, 47 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, BitOR($ES_READONLY, $WS_VSCROLL))
 _UpdEdit($iIDEditRapport, $hFichierRapport)
+
+$sSplashTxt = $sSplashTxt & @LF & "Ouverture de BAO"
+SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 GUISetState(@SW_SHOW)
 

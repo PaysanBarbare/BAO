@@ -45,9 +45,11 @@ Func _ListeProgrammes()
 			$act_name = StringReplace ($act_name, " (remove only)", "")
 			$sIcon = RegRead ($key & "\" & $act_key, "DisplayIcon")
 			$iIDIcon = 0
+
 			if($sIcon = "") Then
 				$sIcon = "shell32.dll"
 			EndIf
+
 			$sUninstallString = RegRead ($key & "\" & $act_key, "UninstallString")
 			$sQuietUninstallString = RegRead ($key & "\" & $act_key, "QuietUninstallString")
 			$sInstallDate = RegRead ($key & "\" & $act_key, "InstallDate")
@@ -73,7 +75,7 @@ Func _ListeProgrammes()
 				Else
 					$aVirg = StringSplit($sIcon, ",")
 					if(@error = 0 And $aVirg[0] > 1) Then
-						$sIcon = $aVirg[1]
+						$sIcon = StringReplace($aVirg[1], '"',"")
 						$iIDIcon = $aVirg[2]
 					EndIf
 				EndIf
@@ -114,20 +116,25 @@ Func _Nettoyage()
 		EndIf
 	WEnd
 
-	If MapExists($aMenu, "Privazer") Then
-		If(_Telecharger("Privazer", ($aMenu["Privazer"])[2])) Then
-			_Executer("Privazer")
-		EndIf
-	Else
-		_Attention("Privazer n'existe pas dans les liens")
-	EndIf
+	Local $sNettoyeur = IniRead($sConfig, "Desinfection", "Nettoyeur", "Privazer")
 
-	Local $sPd
-	For $sPd In $aButtonDes
-		If MapExists($aMenu, $sPd) Then
-			_Telecharger($sPd, ($aMenu[$sPd])[2])
+	Local $sRepNet = MsgBox($MB_YESNO, "Logiciel de nettoyage", "Démarrer le nettoyage avec " & $sNettoyeur & " ?")
+	If ($sRepNet = 6) Then
+		If MapExists($aMenu, $sNettoyeur) Then
+			If(_Telecharger($sNettoyeur, ($aMenu[$sNettoyeur])[2])) Then
+				_Executer($sNettoyeur)
+			EndIf
+
+			Local $sPd
+			For $sPd In $aButtonDes
+				If MapExists($aMenu, $sPd) Then
+					_Telecharger($sPd, ($aMenu[$sPd])[2])
+				EndIf
+			Next
+		Else
+			_Attention($sNettoyeur & " n'existe pas dans les liens")
 		EndIf
-	Next
+	EndIf
 
 	_UpdEdit($iIDEditRapport, $hFichierRapport)
 
@@ -167,10 +174,11 @@ Func _Desinstalleur()
 	Next
 	_GUICtrlTreeView_EndUpdate($idTreeView)
 
-	$iIDBDes = GUICtrlCreateButton("Désinstaller (silencieux)", 605, 10, 185, 25)
+	$iIDBDes = GUICtrlCreateButton("Désinstaller", 605, 10, 185, 25)
 	$iIDBAdd = GUICtrlCreateButton("Ajouter à la blacklist", 605, 40, 185, 25)
 	$iIDBMod = GUICtrlCreateButton("Modifier la blacklist", 605, 70, 185, 25)
 	$iIDBAct = GUICtrlCreateButton("Actualiser la liste", 605, 100, 185, 25)
+
 	$iIDBQuit = GUICtrlCreateButton("Quitter", 605, 130, 185, 25)
 
 	GUISetState(@SW_SHOW)
@@ -222,9 +230,23 @@ Func _Desinstalleur()
 							$sNameProcess = StringMid($aListeProgInst[$b-1][3], StringInStr($aListeProgInst[$b-1][3], "\", 0, -1))
 							if(StringLeft($aListeProgInst[$b-1][3], 7) = "MsiExec") Then
 								$aListeProgInst[$b-1][3] = StringReplace($aListeProgInst[$b-1][3], "/i", "/x")
-								$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /passive'
+								If (StringLeft($aListeProgInst[$b-1][3], 1) = '"') Then
+									$aListeProgInst[$b-1][3] = $aListeProgInst[$b-1][3] & ' /passive'
+								Else
+									$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /passive'
+								EndIf
+							ElseIf(StringRight($aListeProgInst[$b-1][3], 10)="/uninstall" Or StringRegExp($aListeProgInst[$b-1][3], "unins00[0-9]{1}.exe")) Then
+								If (StringLeft($aListeProgInst[$b-1][3], 1) = '"') Then
+									$aListeProgInst[$b-1][3] = $aListeProgInst[$b-1][3] & ' /silent'
+								Else
+									$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /silent'
+								EndIf
 							ElseIf(StringRight($aListeProgInst[$b-1][3], 4)=".exe" Or StringRight($aListeProgInst[$b-1][3], 5)='.exe"') Then
-								$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /S'
+								If (StringLeft($aListeProgInst[$b-1][3], 1) = '"') Then
+									$aListeProgInst[$b-1][3] = $aListeProgInst[$b-1][3] & ' /S'
+								Else
+									$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /S'
+								EndIf
 							EndIf
 							$ipid = Run(@ComSpec & ' /c ' & $aListeProgInst[$b-1][3],"", @SW_HIDE, $STDERR_CHILD + $STDOUT_CHILD)
 						EndIf
@@ -233,7 +255,6 @@ Func _Desinstalleur()
 						$sOutput = StderrRead($ipid)
 						While @error = 0
 							; Sort de la boucle si le processus ferme ou si StderrRead retourne une erreur.
-							$sEchecs = $sEchecs & $aListeProgInst[$b-1][0] & " : " &  _OEMToAnsi($sOutput) & @LF
 
 							$iErreur = 1
 							$sOutput = StderrRead($ipid)
@@ -241,7 +262,7 @@ Func _Desinstalleur()
 						If $iErreur = 0 Then
 							GUICtrlSetState($iButtonSuivant, $GUI_ENABLE)
 							Local $idMsgDes2 = GUIGetMsg()
-							While($idMsgDes2 <> $iButtonSuivant)
+							While($idMsgDes2 <> $iButtonSuivant And $idMsgDes2 <> $GUI_EVENT_CLOSE)
 								RegEnumVal($aListeProgInst[$b-1][6],1)
 								If @error Then
 									ExitLoop
@@ -249,8 +270,10 @@ Func _Desinstalleur()
 								$idMsgDes2 = GUIGetMsg()
 							WEnd
 							GUICtrlSetState($iButtonSuivant, $GUI_DISABLE)
+						ElseIf $sOutput <> "" Then
+							$sEchecs = $sEchecs & $aListeProgInst[$b-1][0] & " : " &  _OEMToAnsi($sOutput) & @LF
 						EndIf
-
+						Sleep(1000)
 					Next
 					$retour = 1
 					GUICtrlSetData($iProgress, 100)

@@ -24,7 +24,7 @@ Func _TestsStabilite()
 	_ChangerEtatBouton($iIDAction, "Patienter")
 	GUICtrlSetData($statusbar, " Tests en cours, patientez")
 
-	Local $iIDrun, $sStress
+	Local $iIDrun, $sStress, $sOutput
 
 	Local $hMat = GUICreate("Centre de tests", 1200, 600)
 	GUICtrlCreateGroup("Choisissez un outil", 10, 10, 285,580)
@@ -32,7 +32,8 @@ Func _TestsStabilite()
 	Local $iButtonRess = GUICtrlCreateButton("Moniteur de ressources", 20, 60, 265)
 	Local $iButtonFiabilite = GUICtrlCreateButton("Moniteur de fiabilité", 20, 90, 265)
 	Local $iButtonStress = GUICtrlCreateButton("Stress test (Heavy Load)", 20, 120, 265)
-	Local $iButtonHD = GUICtrlCreateButton("Test vitesse de disque (CrystalDiskMark)", 20, 150, 265)
+	Local $iButtonStress2 = GUICtrlCreateButton("Stress test 2 (PowerMAX)", 20, 150, 265)
+	Local $iButtonHD = GUICtrlCreateButton("Test vitesse de disque (CrystalDiskMark)", 20, 180, 265)
 
 	GUICtrlCreateGroup("Etat SMART des disques durs", 305, 10, 485,580)
 	GUICtrlSetData($statusbar, " Tests en cours, patientez")
@@ -40,20 +41,24 @@ Func _TestsStabilite()
 	Local $sSmart = _GetSmart2(0)
 	GUICtrlCreateEdit($sSmart, 315, 30, 465, 550)
 
-	GUICtrlCreateGroup("Gestionnaire de périphériques", 800, 10, 390,300)
+	GUICtrlCreateGroup("Gestionnaire de périphériques", 800, 10, 390,190)
 	Local $iBoutonGest = GUICtrlCreateButton("Ouvrir le gestionnaire de périphériques", 900, 30, 200)
 	GUICtrlSetData($statusbarprogress, 50)
 	Local $sDevProb = _DeviceProblems()
-	GUICtrlCreateEdit($sDevProb, 810, 60, 370, 240)
+	GUICtrlCreateEdit($sDevProb, 810, 60, 370, 130)
 
-	GUICtrlCreateGroup("Etats de veille", 800, 310, 390,280)
-	Local $iBoutonHOn = GUICtrlCreateButton("Activer veille prolongée", 810, 330, 180)
-	Local $iBoutonHOff = GUICtrlCreateButton("Désactiver veille prolongée", 1000, 330, 180)
-	Local $iBoutonFastOn = GUICtrlCreateButton("Activer démarrage rapide", 810, 360, 180)
-	Local $iBoutonFastOff = GUICtrlCreateButton("Désactiver démarrage rapide", 1000, 360, 180)
+	GUICtrlCreateGroup("Etats de veille", 800, 210, 390,180)
+	Local $iBoutonHOn = GUICtrlCreateButton("Activer veille prolongée", 810, 230, 180)
+	Local $iBoutonHOff = GUICtrlCreateButton("Désactiver veille prolongée", 1000, 230, 180)
+	Local $iBoutonFastOn = GUICtrlCreateButton("Activer démarrage rapide", 810, 260, 180)
+	Local $iBoutonFastOff = GUICtrlCreateButton("Désactiver démarrage rapide", 1000, 260, 180)
 	GUICtrlSetData($statusbarprogress, 75)
 	Local $sHib = _HibernateTest()
-	Local $sEditPower = GUICtrlCreateEdit(_OEMToAnsi($sHib), 810, 390, 370, 190)
+	Local $sEditPower = GUICtrlCreateEdit(_OEMToAnsi($sHib), 810, 290, 370, 90)
+
+	GUICtrlCreateGroup("Indices de performance", 800, 390, 390,200)
+	Local $iBoutonCalc = GUICtrlCreateButton("Calculer les indices de performance", 910, 410, 180)
+	Local $sEditPerf = GUICtrlCreateEdit("", 810, 440, 370, 140)
 
 	GUICtrlSetData($statusbarprogress, 100)
 
@@ -95,6 +100,15 @@ Func _TestsStabilite()
 					_Attention($sStress & " n'existe pas dans les liens")
 				EndIf
 
+			Case $iButtonStress2
+				If MapExists($aMenu, "powerMAX") Then
+					If(_Telecharger("powerMAX", ($aMenu["powerMAX"])[2])) Then
+						_Executer("powerMAX")
+					EndIf
+				Else
+					_Attention("powerMAX n'existe pas dans les liens")
+				EndIf
+
 			Case $iButtonHD
 
 				If MapExists($aMenu, "CrystalDiskMark.zip") Then
@@ -129,6 +143,20 @@ Func _TestsStabilite()
 					GUICtrlSetData($sEditPower, _OEMToAnsi($sHib))
 				EndIf
 
+			Case $iBoutonCalc
+				$iIDrun = Run( @ComSpec & ' /c winsat prepop')
+				ProcessWaitClose($iIDrun)
+				$iIDrun = Run(@ComSpec & ' /c ' & '@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -command "GET-WMIOBJECT WIN32_WINSAT | SELECT-OBJECT CPUSCORE,D3DSCORE,DISKSCORE,GRAPHICSSCORE,MEMORYSCORE"', "", "", $STDIN_CHILD + $STDOUT_CHILD + $STDERR_CHILD)
+				StdinWrite($iIDrun)
+				;ClipPut(@ComSpec & ' /c ' & '@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -command "GET-WMIOBJECT WIN32_WINSAT | SELECT-OBJECT CPUSCORE,D3DSCORE,DISKSCORE,GRAPHICSSCORE,MEMORYSCORE"')
+				 While 1
+					$sOutput = StdoutRead($iIDrun)
+					If @error Then ExitLoop
+					If $sOutput <> "" Then
+						_GUICtrlEdit_AppendText($sEditPerf, $sOutput)
+					EndIf
+				WEnd
+
 		EndSwitch
 
 		$idMsgInst = GUIGetMsg()
@@ -148,7 +176,9 @@ Func _TestsMemoire()
 
 	Local $hEventLog = _EventLog__Open("", "System")
 	Local $iOffset = _EventLog__Read($hEventLog, True, False)
-	_FichierCache("StabiliteTime", $iOffset)
+	If($iOffset[0]) Then
+		_FichierCache("StabiliteTime", $iOffset[1])
+	EndIf
 	_EventLog__Close($hEventLog)
 
 	ShellExecuteWait($sTestRam)
@@ -160,6 +190,9 @@ Func _ResultatStabilite()
 	Local $iOffset = _FichierCache("StabiliteTime")
 	Local $hEventLog = _EventLog__Open("", "System")
 	Local $aEvent = _EventLog__Read($hEventLog, False, True, $iOffset)
+
+	$sSplashTxt = $sSplashTxt & @LF & "Recherche résultat du test de mémoire vive"
+	SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 	Do
 		If $aEvent[10] = "Microsoft-Windows-MemoryDiagnostics-Results" Then

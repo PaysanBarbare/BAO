@@ -9,7 +9,7 @@ goto:eof
 goto:eof
 
 :run
-%~dp0\AdwCleaner.exe
+"%~dp0\AdwCleaner.exe"
 sc start DWAgent
 goto:eof
 

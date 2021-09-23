@@ -7,7 +7,7 @@ goto:eof
 
 :install
 Echo Patientez pendant l'installation de RogueKiller
-%~dp0\RogueKiller.exe /nocancel /norestart /silent /suppressmsgboxes /noicons /DIR="%ProgramFiles%\RogueKiller\"
+"%~dp0\RogueKiller.exe" /nocancel /norestart /silent /suppressmsgboxes /noicons /DIR="%ProgramFiles%\RogueKiller\"
 goto:eof
 
 :run
@@ -23,7 +23,7 @@ tasklist | find /i "RogueKiller" >nul 2>&1
 IF ERRORLEVEL 1 (
   GOTO uninstall
 ) ELSE (
-  Timeout /T 5 /Nobreak > NULL
+  Timeout /T 5 /Nobreak > nul
   GOTO LOOP
 )
 

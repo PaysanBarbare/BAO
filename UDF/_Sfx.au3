@@ -26,11 +26,18 @@ Fonction : Création de fichier auto extractible avec 7zip et envoi sur FTP
 Func _CreerSFX($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 	; Création de l'archive 7z
+	Local $sPwdSFX = IniRead($sConfig, "FTP", "PwdSFX", "")
 	If FileExists(@ScriptDir & "\Outils\BAO.7z") Then FileDelete(@ScriptDir & "\Outils\BAO.7z")
 	If FileExists(@ScriptDir & "\Outils\BAO-sfx.exe") Then FileDelete(@ScriptDir & "\Outils\BAO-sfx.exe")
 	GUICtrlSetData($statusbar, " Création de l'archive SFX")
 	GUICtrlSetData($statusbarprogress, 0)
+
 	RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" a "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\*" -x!"' & @ScriptDir & '\Cache" -x!"' & @ScriptDir & '\Rapports""', @ScriptDir & "\Outils\", @SW_HIDE)
+	If $sPwdSFX = 1 Then
+		RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" a "' & @ScriptDir & '\Outils\BAO.7z" -i!"' & @ScriptDir & '\Cache\Pwd\*.sha"', @ScriptDir, @SW_HIDE)
+		RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" rn "' & @ScriptDir & '\Outils\BAO.7z" "dws.sha" "Cache\Pwd\dws.sha"', @ScriptDir, @SW_HIDE)
+		RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" rn "' & @ScriptDir & '\Outils\BAO.7z" "ftp.sha" "Cache\Pwd\ftp.sha"', @ScriptDir, @SW_HIDE)
+	EndIf
 
 	GUICtrlSetData($statusbarprogress, 50)
 	RunWait(@ComSpec & ' /c copy /b "' & @ScriptDir & '\Outils\7zsd_All.sfx" + "' & @ScriptDir & '\Outils\sfx.config" + "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\Outils\BAO-sfx.exe"', @ScriptDir & "\Outils\", @SW_HIDE)

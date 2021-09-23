@@ -78,6 +78,7 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		If($aListeAvSupp <> "") Then
 
 			Local $aListeApSupp = _ListeProgrammes()
+			$aListeApSupp = _ArrayUnique($aListeApSupp, 0, 0, 0, 0)
 
 			For $sProgAvSupp in $aListeAvSupp
 				If _ArraySearch($aListeApSupp, $sProgAvSupp) = -1 Then

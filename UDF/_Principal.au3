@@ -60,7 +60,7 @@ Func _InitialisationBAO($sConfig)
 
 		IniWriteSection($sConfig,"BureauDistant", "Agent=https://www.dwservice.net/download/dwagent_x86.exe"&@LF&"Mail=votreadressemail@domaine.fr"&@CRLF)
 
-		IniWriteSection($sConfig,"Desinfection", "Programmes de desinfection=RogueKiller AdwCleaner MalwareByte ZHPCleaner"&@CRLF)
+		IniWriteSection($sConfig,"Desinfection", "Nettoyeur=Privazer"&@LF&"Programmes de desinfection=RogueKiller AdwCleaner MalwareByte ZHPCleaner"&@CRLF)
 
 		IniWriteSection($sConfig, "FTP", "Adresse="&@LF&"Utilisateur="&@LF&"Port=21"&@LF&"DossierRapports=/www/rapports/"&@LF&"DossierSFX=/www/dl/"&@LF&"DossierSuivi=/www/suivi/"&@CRLF)
 
