@@ -19,4 +19,5 @@ https://www.isergues.fr/bao.php
 * Snappy Driver Installer Origin : GNU General Public License
 * 7zip :  GNU LGPL
 * PrivaZer : voir licence sur le site
+* SmartMonTools: GNU GPL
 * Les logiciels personnalisables par l'utilisateur sont soumis à leurs licences respectives
