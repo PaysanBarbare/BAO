@@ -28,10 +28,12 @@ Func _BureauDistant()
 
 		If StringLeft($sNom, 4) <> "Tech" And FileExists($programFilesDir & "\DWAgent\runtime\dwagent.exe") Then
 			If(_FichierCacheExist("BureauDistant") = 1) Then
+				_FileWriteLog($hLog, 'Désinstallation DWAgent')
 				_UninstallDWAgent()
 				_ChangerEtatBouton($iIDAction, "Desactiver")
 				_FichierCache("BureauDistant", "-1")
 			Else
+				_FileWriteLog($hLog, 'DWAgent déjà installé, activation du bouton "Bureau Distant"')
 				_FichierCache("BureauDistant", "1")
 				_ChangerEtatBouton($iIDAction, "Activer")
 			EndIf
@@ -74,6 +76,7 @@ Func _BureauDistant()
 					EndIf
 
 					If $sMdp <> "" Then
+						_FileWriteLog($hLog, 'Installation de DWAgent')
 
 						If($bSVGMdp = 1) Then
 							_Crypter("dws", $sMdp, $sMailBD)
@@ -106,6 +109,7 @@ Func _BureauDistant()
 			  ShellExecute("chrome", 'https://www.dwservice.net/fr/login.html')
 			EndIf
 		EndIf
+		_UpdEdit($iIDEditLog, $hLog)
 	Else
 		_Attention("L'adresse email de votre compte DWS doit être renseignée dans le fichier config.ini")
 		_ChangerEtatBouton($iIDAction, "Desactiver")

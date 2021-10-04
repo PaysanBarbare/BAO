@@ -1,0 +1,9 @@
+### Réinstallation du système d'exploitation ###
+- Remplacement du disque dur par un SSD
+- Réinstallation complète de Windows
+- Installation des logiciels recommandés et des pilotes de périphériques
+- Configuration des navigateurs Internet
+- Installation des mises à jour de Windows
+- Récupération des données
+- Tests de bon fonctionnement
+

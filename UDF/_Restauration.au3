@@ -20,10 +20,13 @@ This file is part of "Boîte A Outils"
 
 Func _Restauration($sDescription = "")
 
+	_FileWriteLog($hLog, 'Création point de restauration "' & $sDescription & '"')
+	_UpdEdit($iIDEditLog, $hLog)
+
 	GUICtrlSetData($statusbar, "Création d'un point de restauration, patientez")
 	GUICtrlSetData($statusbarprogress, 10)
 	If($sDescription = "") Then
-		$sDescription = InputBox("Création d'un point de restauration", "Description du point de restauration", "Point de restauration BAO")
+		$sDescription = InputBox("Création d'un point de restauration", "Description du point de restauration", $sSociete & " - Point de restauration")
 		If @error Then
 			GUICtrlSetData($statusbar, "")
 			GUICtrlSetData($statusbarprogress, 0)

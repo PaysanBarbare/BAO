@@ -1,0 +1,7 @@
+### Préparation ordinateur neuf ###
+- Suppression des logiciels inutiles ou en version d'essai
+- Installation du pack de logiciels recommandé
+- Configuration des navigateurs Internet
+- Installation des mises à jour de Windows
+- Tests de bon fonctionnement
+

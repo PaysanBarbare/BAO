@@ -1,0 +1,6 @@
+### Remplacement du disque dur ###
+- Sauvegarde des données
+- Clone du disque dur sur disque neuf
+- Installation des mises à jour de Windows
+- Tests de bon fonctionnement
+

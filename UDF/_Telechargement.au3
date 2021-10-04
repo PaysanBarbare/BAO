@@ -51,7 +51,7 @@ Func _Telecharger($sNom, $sChemin)
 	If _isInternetConnected() = 0 Then
 		$iInternet = 0
 	Else
-
+		_FileWriteLog($hLog, "Téléchargement de " & $sNom)
 		DirCreate(@ScriptDir & "\Cache\Download\")
 		$dl = 0
 
@@ -59,6 +59,8 @@ Func _Telecharger($sNom, $sChemin)
 
 		; Téléchargement indirect
 		If (StringLeft(StringRight($sNom, 4), 1)) = "." Or (StringLeft(StringRight($sNom, 3), 1)) = "." Then
+
+			_FileWriteLog($hLog, "Recherche du lien de téléchargement dans le code source de la page")
 
 			if(StringLeft($sNom, 1) = "&") Then
 				$sNom = StringTrimLeft($sNom, 1)
@@ -85,6 +87,7 @@ Func _Telecharger($sNom, $sChemin)
 
 				; le lien récupéré dans la page est un lien relatif (surement à améliorer)
 				If(StringLeft($url,4) <> "http") Then
+					_FileWriteLog($hLog, "Recherche du lien absolu")
 					_IEErrorHandlerRegister()
 					Local $oIE=_IECreate($sChemin,0,0)
 					Local $oLinks = _IELinkGetCollection($oIE)
@@ -101,6 +104,7 @@ Func _Telecharger($sNom, $sChemin)
 
 					If StringLeft($url,4) <> "http" Then
 						; le lien absolu n'a pas pu être récupéré, ouverture du lien d'origine
+						_FileWriteLog($hLog, "Lien non trouvé")
 						_Attention("Le logiciel n'a pas pu être télécharger automatiquement. Enregistrez " & $sNom & " dans le dossier " & @ScriptDir & "\Cache\Download\")
 						ShellExecute($sChemin)
 						Return True
@@ -108,6 +112,7 @@ Func _Telecharger($sNom, $sChemin)
 				EndIf
 			Else
 				; Pas de lien trouvé dans la page
+				_FileWriteLog($hLog, "Lien non trouvé")
 				_Attention("Le logiciel n'a pas pu être télécharger automatiquement. Enregistrez " & $sNom & " dans le dossier " & @ScriptDir & "\Cache\Download\")
 				ShellExecute($sChemin)
 				Return True
@@ -116,6 +121,7 @@ Func _Telecharger($sNom, $sChemin)
 		Else
 			$ext = StringRight($url, 4)
 			If StringLeft($ext, 1) <> "." Then
+				_FileWriteLog($hLog, "Extension inconnue. Essai avec .exe")
 				; Pas d'extension défini, on pari sur .exe. Il faudrait faire une recherche MIME sur fichier, mais normalement c'est un cas rare
 				$ext = ".exe"
 			EndIf
@@ -170,9 +176,11 @@ Func _Telecharger($sNom, $sChemin)
 							EndIf
 						EndIf
 					Else
+						_FileWriteLog($hLog, "Logiciel à jour, téléchargement ignoré")
 						$bOK = True
 					EndIf
 				Else
+					_FileWriteLog($hLog, "Logiciel à jour, téléchargement ignoré")
 					$bOK = True
 				EndIf
 			Else
@@ -180,6 +188,7 @@ Func _Telecharger($sNom, $sChemin)
 			EndIf
 
 			if $dl = 1 Then
+				_FileWriteLog($hLog, "Démarrage du téléchargement")
 
 				; Téléchargement direct
 				$hDownload = InetGet($url, $sProgrun, 1, 1)
@@ -296,26 +305,28 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 
 		If FileExists($sDocp) = 0 Then
 			If($bPWD = 1) Then
-				RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" x "' & $sProgruntmp & '" -o"' & $sDocp & '" -p"' & $sPWDZip&'""', @ScriptDir & '\Cache\Download\', @SW_HIDE)
+				_FileWriteLog($hLog, "Décompression de l'archive avec mot de passe")
+				RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z\7z.exe" x "' & $sProgruntmp & '" -o"' & $sDocp & '" -p"' & $sPWDZip&'""', @ScriptDir & '\Cache\Download\', @SW_HIDE)
 			Else
-				RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" x "' & $sProgruntmp & '" -o"' & $sDocp & '""', @ScriptDir & '\Cache\Download\', @SW_HIDE)
+				_FileWriteLog($hLog, "Décompression de l'archive")
+				RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z\7z.exe" x "' & $sProgruntmp & '" -o"' & $sDocp & '""', @ScriptDir & '\Cache\Download\', @SW_HIDE)
 			EndIf
 		EndIf
 
-		If(StringInStr(@ScriptDir, "\\")) Then ;UNC
- 			;DriveMapDel(@ScriptDir)
-; 			@ScriptDir = @ScriptDir
- ;			$sDocp = @ScriptDir & "\Cache\Download\" & $sNom & "\"
-			; attribution des droits sur les fichiers en réseau
-			;ClipPut('icacls "' & $sDocp & '" /T /grant *S-1-1-0:F')
-			;_debug('icacls "' & $sDocp & '" /T /grant *S-1-1-0:F')
-			RunWait('icacls * /T /grant *S-1-1-0:F', $sDocp, @SW_HIDE)
- 		EndIf
+;~ 		If(StringInStr(@ScriptDir, "\\")) Then ;UNC
+;~  			;DriveMapDel(@ScriptDir)
+;~ ; 			@ScriptDir = @ScriptDir
+;~  ;			$sDocp = @ScriptDir & "\Cache\Download\" & $sNom & "\"
+;~ 			; attribution des droits sur les fichiers en réseau
+;~ 			;ClipPut('icacls "' & $sDocp & '" /T /grant *S-1-1-0:F')
+;~ 			;_debug('icacls "' & $sDocp & '" /T /grant *S-1-1-0:F')
+;~ 			RunWait('icacls * /T /grant *S-1-1-0:F', $sDocp, @SW_HIDE)
+;~  		EndIf
 
 		$sDocp = _RechercheExeInZip($sDocp, $sNom)
 	EndIf
 
-	Local $sDocOutil = @ScriptDir & "\Outils\" & $sNom & "\"
+	Local $sDocOutil = @ScriptDir & "\Config\" & $sNom & "\"
 	If(FileExists($sDocOutil)) Then
 		If($sDocp <> "") Then
 			FileCopy($sDocOutil & "*", $sDocp, 1)
@@ -325,6 +336,8 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 	EndIf
 
 	If($norun = 0) Then
+
+		_FileWriteLog($hLog, "Exécution de " & $sProgrun)
 
 		If FileExists($sProgrun) = 0 Then
 			_Attention($sProgrun & " n'existe pas. Si votre antivirus l'a mis en quarantaine, restaurez le maintenant", 1)
@@ -372,6 +385,7 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 	Else
 		$iPid = $sDocp
 	EndIf
+	_UpdEdit($iIDEditLog, $hLog)
 
 	GUICtrlSetData($statusbar, "")
 
@@ -391,6 +405,8 @@ EndFunc   ;==>_Executer
 
 Func _RechercheExeInZip($doc, $sNom)
 
+	_FileWriteLog($hLog, "Recherche de l'exécutable dans l'archive décompressée")
+	_UpdEdit($iIDEditLog, $hLog)
 	$sProgrun = $doc
 	_FileListToArray($doc, "*", $FLTA_FILES)
 	If(@error = 4) Then
@@ -432,20 +448,15 @@ Func _UpdateProg()
 	Local $aListeLiens = MapKeys($aMenu)
 	Local $bReturn
 
-	FileWriteLine($hFichierRapport, "Début des téléchargements")
-	_UpdEdit($iIDEditRapport, $hFichierRapport)
 	For $sNomLogk in $aListeLiens
 		If(StringLeft($sNomLogk, 1) <> "#" And StringLeft($sNomLogk, 1) <> "&" And StringLeft(($aMenu[$sNomLogk])[2], 4) = "http") Then
 			$bReturn = _Telecharger($sNomLogk, ($aMenu[$sNomLogk])[2])
 			If ($bReturn = False) Then
-				FileWriteLine($hFichierRapport, "  Echec du téléchargement de " & $sNomLogk)
-				_UpdEdit($iIDEditRapport, $hFichierRapport)
+				_Attention("Echec du téléchargement de " & $sNomLogk, 1)
 			EndIf
 		EndIf
 	Next
-	FileWriteLine($hFichierRapport, "Fin des téléchargements")
-	FileWriteLine($hFichierRapport, "")
-	_UpdEdit($iIDEditRapport, $hFichierRapport)
+	;_UpdEdit($iIDEditRapport, $hFichierRapport)
 EndFunc
 
 

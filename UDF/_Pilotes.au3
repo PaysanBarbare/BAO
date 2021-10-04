@@ -21,10 +21,14 @@ This file is part of "Boîte A Outils"
 Func _InstallationPilotes()
 	_ChangerEtatBouton($iIDAction, "Patienter")
 	If(StringLeft($sNom, 4) = "Tech") Then
+		_FileWriteLog($hLog, 'Téléchargement de la base de données de pilotes')
+		_UpdEdit($iIDEditLog, $hLog)
 		_Telecharger("SDI.zip", ($aMenu["SDI.zip"])[2])
 		Local $sDocexe = _Executer("SDI.zip", "", 1)
 		Run(@ComSpec & ' /c autoupdate.bat', $sDocexe)
 	Else
+		_FileWriteLog($hLog, 'Recherche et installation de pilotes manquants')
+		_UpdEdit($iIDEditLog, $hLog)
 		_Telecharger("SDI.zip", ($aMenu["SDI.zip"])[2])
 		_Executer("SDI.zip")
 	EndIf

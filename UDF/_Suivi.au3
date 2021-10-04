@@ -49,6 +49,8 @@ Func _CreerIDSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 			FileClose($hSuivi)
 
 			If(StringLeft($sNom, 4) <> "Tech") Then
+				_FileWriteLog($hLog, 'Association "' & $sNom & '" et suivi : ' & $iPIN)
+				_UpdEdit($iIDEditLog, $hLog)
 				_FichierCache("Suivi", $iPIN)
 				GUICtrlSetData($iLabelPC, "Client : " & $sNom & " (" & $iPIN & ")")
 				_DebutIntervention($iPIN, $sFTPAdresse, $sFTPUser, $sFTPPort)
@@ -110,6 +112,7 @@ Func _CompleterSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 		EndIf
 		Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iPIN & '.txt'
 		If FileReadLine($sNomFichier) = "" Then
+			_FileWriteLog($hLog, 'Intervention débutée sur le suivi')
 			FileWriteLine($sNomFichier,  _Now() & " - Intervention débutée")
 		EndIf
 		If GUICtrlRead($sInfosuivi) <> "" Then
@@ -117,6 +120,7 @@ Func _CompleterSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 		EndIf
 
 		If(GUICtrlRead($iIDCloture) = $GUI_CHECKED) Then
+			_FileWriteLog($hLog, 'Intevention cloturée sur le suivi')
 			_FinIntervention($iPIN, $sFTPAdresse, $sFTPUser, $sFTPPort)
 			_SupprimerIDSuivi($iPIN)
 			If(StringLeft($sNom, 4) <> "Tech") Then
@@ -129,6 +133,7 @@ Func _CompleterSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 		Do
 			$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iPIN & '.txt')
 		Until $iRetour <> -1
+		_UpdEdit($iIDEditLog, $hLog)
 	Else
 		GUIDelete()
 	EndIf
@@ -180,6 +185,8 @@ Func _SupprimerSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 			$iPIN = GUICtrlRead($iIDCombo)
 
 			Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iPIN & '.txt'
+			_FileWriteLog($hLog, 'Code de suivi supprimé')
+			_UpdEdit($iIDEditLog, $hLog)
 			_SupprimerIDSuivi($iPIN)
 
 			GUIDelete()
@@ -202,6 +209,9 @@ Func _DebutIntervention($iCodeSuivi, $sFTPAdresse, $sFTPUser, $sFTPPort)
 		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iCodeSuivi & '.txt')
 	Until $iRetour <> -1
 
+	_FileWriteLog($hLog, 'Intervention débutée sur le suivi')
+	_UpdEdit($iIDEditLog, $hLog)
+
 EndFunc
 
 Func _FinIntervention($iCodeSuivi, $sFTPAdresse, $sFTPUser, $sFTPPort, $sInput = "")
@@ -213,6 +223,9 @@ Func _FinIntervention($iCodeSuivi, $sFTPAdresse, $sFTPUser, $sFTPPort, $sInput =
 	Do
 		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iCodeSuivi & '.txt')
 	Until $iRetour <> -1
+
+	_FileWriteLog($hLog, 'Intervention cloturée sur le suivi')
+	_UpdEdit($iIDEditLog, $hLog)
 
 EndFunc
 
@@ -240,6 +253,8 @@ Func _CreerIndex($sFTPAdresse, $sFTPUser, $sFTPPort)
 	Else
 		GUICtrlSetData($statusbarprogress, 100)
 		Sleep(2000)
+		_FileWriteLog($hLog, 'Fichier créé sur le ftp: "' & $sFTPDossierSuivi & 'index.php' & '"')
+		_UpdEdit($iIDEditLog, $hLog)
 	EndIf
 
 	GUICtrlSetData($statusbar, "")

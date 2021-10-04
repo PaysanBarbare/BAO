@@ -1,0 +1,8 @@
+### Désinfection de l'ordinateur ###
+- Suppression des fichiers temporaires
+- Suppression des logiciels inutiles
+- Recherche et suppression des logiciels espions, malveillants, et des virus
+- Nettoyage des navigateurs Internet
+- Installation des dernières mises à jour de Windows
+- Tests de bon fonctionnement
+

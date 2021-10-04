@@ -106,7 +106,6 @@ Func _Nettoyage()
 
 	If _FichierCacheExist("Desinfection") = 0 Then
 		_FichierCache("Desinfection", $iIDAction)
-		FileWriteLine($hFichierRapport, "Nettoyage de l'ordinateur")
 	EndIf
 
 	While 1
@@ -116,37 +115,17 @@ Func _Nettoyage()
 		EndIf
 	WEnd
 
-	Local $sNettoyeur = IniRead($sConfig, "Desinfection", "Nettoyeur", "Privazer")
-
-	Local $sRepNet = MsgBox($MB_YESNO, "Logiciel de nettoyage", "Démarrer le nettoyage avec " & $sNettoyeur & " ?")
-	If ($sRepNet = 6) Then
-		If MapExists($aMenu, $sNettoyeur) Then
-			If(_Telecharger($sNettoyeur, ($aMenu[$sNettoyeur])[2])) Then
-				_Executer($sNettoyeur)
-			EndIf
-
-			Local $sPd
-			For $sPd In $aButtonDes
-				If MapExists($aMenu, $sPd) Then
-					_Telecharger($sPd, ($aMenu[$sPd])[2])
-				EndIf
-			Next
-		Else
-			_Attention($sNettoyeur & " n'existe pas dans les liens")
-		EndIf
-	EndIf
-
-	_UpdEdit($iIDEditRapport, $hFichierRapport)
-
+	_CalculProgDesinstallation()
+	_UpdEdit($iIDEditLogDesinst, $sFileDesinstallation)
 	_ChangerEtatBouton($iIDAction, "Activer")
 
 EndFunc
 
 Func _Desinstalleur()
 
-	Local $retour = 0, $ipid, $sNameProcess, $iLabelProg, $iPerc, $sOutput, $iErreur = 0, $sEchecs, $sRepReg
+	Local $retour = 0, $ipid, $iLabelProg, $iPerc, $sOutput, $iErreur = 0, $sEchecs, $sRepReg
 	Local $aListeProgInst = _ListeProgrammes()
-	Local $sBlacklist = @ScriptDir & "\Outils\Blacklist.txt", $aBList, $hBlack
+	Local $sBlacklist = @ScriptDir & "\Config\Blacklist.txt", $aBList, $hBlack
 	Local $aItems[0][5], $iIDBDes, $iIDBSupp, $iIDBAdd, $iIDBMod, $iIDBAct, $iIDBQuit
 
 	If(FileExists($sBlacklist)) Then
@@ -206,6 +185,8 @@ Func _Desinstalleur()
 
 				if $iContinue = 1 Then
 
+					_FileWriteLog($hLog, 'Désinstallation silentieuse des logiciels')
+
 					Local $hUninstProg = GUICreate("Désinstallation en cours ...", 300, 100, @DesktopWidth - 400, @DesktopHeight - 250)
 					$iLabelProg = GUICtrlCreateLabel("", 10, 10, 280, 25)
 					Local $iProgress = GUICtrlCreateProgress(10, 40, 280, 20)
@@ -224,10 +205,8 @@ Func _Desinstalleur()
 						GUICtrlSetData($iProgress, $iPerc)
 						GUICtrlSetData($iLabelProg, "Désinstallation en cours de " & $aListeProgInst[$b-1][0])
 						if $aListeProgInst[$b-1][4] <> "" Then
-							$sNameProcess = StringMid($aListeProgInst[$b-1][4], StringInStr($aListeProgInst[$b-1][4], "\", 0, -1))
 							$ipid = Run(@ComSpec & ' /c "' & $aListeProgInst[$b-1][4] & '"',"", @SW_HIDE, $STDERR_CHILD + $STDOUT_CHILD)
 						Else
-							$sNameProcess = StringMid($aListeProgInst[$b-1][3], StringInStr($aListeProgInst[$b-1][3], "\", 0, -1))
 							if(StringLeft($aListeProgInst[$b-1][3], 7) = "MsiExec") Then
 								$aListeProgInst[$b-1][3] = StringReplace($aListeProgInst[$b-1][3], "/i", "/x")
 								If (StringLeft($aListeProgInst[$b-1][3], 1) = '"') Then
@@ -248,6 +227,8 @@ Func _Desinstalleur()
 									$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /S'
 								EndIf
 							EndIf
+							_FileWriteLog($hLog, 'Désinstallation de ' & $aListeProgInst[$b-1][0])
+							_FileWriteLog($hLog, 'CMD : ' & $aListeProgInst[$b-1][3])
 							$ipid = Run(@ComSpec & ' /c ' & $aListeProgInst[$b-1][3],"", @SW_HIDE, $STDERR_CHILD + $STDOUT_CHILD)
 						EndIf
 						Sleep(500)
@@ -329,36 +310,17 @@ Func _Desinstalleur()
 
 				For $i = 0 To $iNBProginst - 1
 					If $idMsgDes = $aItems[$i][2] Then
-						$sRepReg = MsgBox($MB_YESNO, "Suppression de " & $aListeProgInst[$i][0], "Etes vous sûr de vouloir désinstaller " & $aListeProgInst[$i][0] & " ?")
-						If ($sRepReg = 6) Then
-							$ipid = Run(@ComSpec & ' /c "' & $aListeProgInst[$i][3] & '"',"", @SW_HIDE, $STDERR_CHILD + $STDOUT_CHILD)
-							$sNameProcess = StringMid($aListeProgInst[$i][3], StringInStr($aListeProgInst[$i][3], "\", 0, -1))
+						_FileWriteLog($hLog, 'Désinstallation de ' & $aListeProgInst[$i][0])
+						_FileWriteLog($hLog, 'CMD : ' & $aListeProgInst[$i][3])
+						$ipid = RunWait(@ComSpec & ' /c "' & $aListeProgInst[$i][3] & '"',"", @SW_HIDE)
+						Sleep(5000)
+						$retour = 1
 
-							Sleep(500)
-							If ProcessExists($ipid) Then
-								ProcessWaitClose($ipid)
-								$retour = 1
-							ElseIf ProcessExists($sNameProcess) Then
-								ProcessWaitClose($sNameProcess)
-								$retour = 1
-							Else
-								$sOutput = StderrRead($ipid)
-								While @error = 0
-									; Sort de la boucle si le processus ferme ou si StderrRead retourne une erreur.
-									_Attention($aListeProgInst[$i][0] & " : " &  _OEMToAnsi($sOutput), 1)
-
-									$iErreur = 1
-									$sOutput = StderrRead($ipid)
-								WEnd
-								If $iErreur = 0 Then
-									WinWaitActive($hGUIDesintalleur)
-									$retour = 1
-								EndIf
-							EndIf
-						EndIf
 					ElseIf $idMsgDes = $aItems[$i][3] Then
 						$sRepReg = MsgBox($MB_YESNO, "Suppression de " & $aListeProgInst[$i][0], "Voulez supprimer la clé de registre : " & @LF & $aListeProgInst[$i][6])
 						If ($sRepReg = 6) Then
+							_FileWriteLog($hLog, 'Suppression clé de registre de ' & $aListeProgInst[$i][0])
+							_FileWriteLog($hLog, 'REG : ' & $aListeProgInst[$i][6])
 							RegDelete($aListeProgInst[$i][6])
 							$retour = 1
 							Sleep(1000)
@@ -384,6 +346,8 @@ Func _Desinstalleur()
 		$idMsgDes = GUIGetMsg()
 	WEnd
 
+	_UpdEdit($iIDEditLog, $hLog)
+
 	GUIDelete($hGUIDesintalleur)
 
 	If $sEchecs <> "" Then
@@ -391,6 +355,22 @@ Func _Desinstalleur()
 	EndIf
 	Return $retour
 
+EndFunc
+
+Func _CalculProgDesinstallation()
+	If($aListeAvSupp <> "") Then
+		$hDesinstallation = FileOpen($sFileDesinstallation,2)
+
+		Local $aListeApSupp = _ListeProgrammes()
+		$aListeApSupp = _ArrayUnique($aListeApSupp, 0, 0, 0, 0)
+
+		For $sProgAvSupp in $aListeAvSupp
+			If _ArraySearch($aListeApSupp, $sProgAvSupp) = -1 Then
+				FileWrite($hDesinstallation, $sProgAvSupp & "[BR]")
+			EndIf
+		Next
+		FileClose($hDesinstallation)
+	EndIf
 EndFunc
 
 Func _NettoyageProg($aButtonDes)
@@ -404,9 +384,9 @@ Func _NettoyageProg($aButtonDes)
 			If $iPidret = 0 Then
 				_ChangerEtatBouton($iIDAction, "Desactiver")
 			ElseIf(_FichierCacheExist($sNomProgDes) = 0) Then
+				_FileWriteLog($hLog, "Execution de " & $sNomProgDes)
+				_UpdEdit($iIDEditLog, $hLog)
 				$iPidt[$sNomProgDes & "n"] = $iPidret
-				FileWriteLine($hFichierRapport, " Exécution de " & $sNomProgDes)
-				_UpdEdit($iIDEditRapport, $hFichierRapport)
 				_FichierCache($sNomProgDes, $iIDAction)
 				_ChangerEtatBouton($iIDAction, "Activer")
 			Else
@@ -418,7 +398,7 @@ Func _NettoyageProg($aButtonDes)
 		RunWait(@ComSpec & ' /c ""' & @ScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & '.bat" uninstall"')
 		FileDelete(@ScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & ".bat")
 	Else
-		If FileExists(@ScriptDir & "\Outils\" & $aButtonDes[$iIDAction + 1] & "\" & $aButtonDes[$iIDAction + 1] & ".bat") = 0 Then
+		If FileExists(@ScriptDir & "\Config\" & $aButtonDes[$iIDAction + 1] & "\" & $aButtonDes[$iIDAction + 1] & ".bat") = 0 Then
 			_Attention($sNomProgDes & " n'existe pas dans les liens")
 		Else
 			_Attention('Ce bouton sert à désinstaller "' & $aButtonDes[$iIDAction + 1] & '" après un redémarrage de l' & "'" & 'ordinateur ou un arrêt intempestif de bao')
@@ -429,83 +409,345 @@ EndFunc
 Func _ResetBrowser()
 	_FichierCache("ResetBrowser", $iIDAction)
 	_ChangerEtatBouton($iIDAction, "Patienter")
-;~ 	If(FileExists(@ScriptDir & "\Outils\ResetBrowser.exe")) Then
-;~ 			FileWriteLine($hFichierRapport, " Nettoyage des navigateurs Internet")
-;~ 			Run(@ScriptDir & "\Outils\ResetBrowser.exe")
-;~ 			_UpdEdit($iIDEditRapport, $hFichierRapport)
-;~ 	Else
-;~ 		_Attention("ResetBrowser.exe n'est pas dans le dossier Outils, Téléchagez le")
-;~ 		ShellExecute("https://www.comment-supprimer.com/telecharger/resetbrowser/")
-;~ 	EndIf
-	; Nettoyage des navigateurs
 
-	_BrowserClose()
+	Local $iNettoyage, $iIE, $iStartFS, $iEndFS, $iLVIE, $iLVCHROME, $iLVEDGE1, $iLVEDGE2, $iLVFIREFOX
 
-	GUICtrlSetData($statusbar, " Nettoyage d'Internet Explorer")
-	RunWait("RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 255")
-	FileWriteLine($hFichierRapport, "  Internet Explorer nettoyé")
+	Local $hGUInav = GUICreate("Nettoyage des navigateurs Internet", 600, 350)
+	GUICtrlCreateLabel("Choisissez un mode de nettoyage :", 10, 10)
+	Local $iID1 = GUICtrlCreateRadio("Manuel (Ouvre les navigateurs 1 par 1)", 60, 30)
+	Local $iID2 = GUICtrlCreateRadio("Léger (Supprime cache et historique de tous les profils de chaque navigateur)", 60, 50)
+	GUICtrlSetState($iID2, $GUI_CHECKED)
+	Local $iID3 = GUICtrlCreateRadio("Modéré (Réinitialise chaque profil, en conservant les favoris et les mots de passe enregistrés)", 60, 70)
+	Local $iID4 = GUICtrlCreateRadio("Complet (Supprime le dossier contenant les profils)", 60, 90)
+	Local $iID5 = GUICtrlCreateCheckbox("Nettoyer aussi Internet Explorer et MS Edge (ancienne version)", 60, 120)
 
-	If (FileExists(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC\")) Then
-		GUICtrlSetData($statusbar, " Nettoyage de Microsoft Edge")
+	GUICtrlCreateLabel("Résultats : ", 10, 150)
+	Local $iIDListViewNav = GUICtrlCreateListView("Navigateur|Mode|Résultat", 10, 170, 580, 140)
+	_GUICtrlListView_SetColumnWidth($iIDListViewNav, 0, 200)
+	_GUICtrlListView_SetColumnWidth($iIDListViewNav, 1, 100)
+	_GUICtrlListView_SetColumnWidth($iIDListViewNav, 2, 270)
+	$iLVIE = GUICtrlCreateListViewItem("Internet Explorer", $iIDListViewNav)
+	$iLVEDGE1 = GUICtrlCreateListViewItem("Microsoft Edge (ancien)", $iIDListViewNav)
+	$iLVEDGE2 = GUICtrlCreateListViewItem("Microsoft Edge (nouveau)", $iIDListViewNav)
 
-		Local $aEdge = _FileListToArray(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC", "#!*", 2)
-
-		If(IsArray($aEdge)) Then
-			For $i = 1 To $aEdge[0]
-				DirRemove(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC\" & $aEdge[$i], 1)
-			Next
-		EndIf
-
-		FileWriteLine($hFichierRapport, "  Microsoft Edge nettoyé")
+	RegEnumVal($HKLM & "\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe\",1)
+	If @error = 0 Then
+		$iLVCHROME = GUICtrlCreateListViewItem("Google Chrome", $iIDListViewNav)
 	EndIf
 
-	If (FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\")) Then
-		GUICtrlSetData($statusbar, " Nettoyage de Google Chrome")
-
-		DirRemove(@LocalAppDataDir & "\Google\Chrome\User Data\Default\Cache\", 1)
-		FileDelete(@LocalAppDataDir & "\Google\Chrome\User Data\Default\*History*")
-
-		ShellExecuteWait("chrome", '--profile-directory="Default" chrome://settings/resetProfileSettings')
-
-		Local $aProfils = _FileListToArrayRec(@LocalAppDataDir & "\Google\Chrome\User Data\", "Profile *")
-		If $aProfils <> "" Then
-			For $i=1 To $aProfils[0]
-				DirRemove(@LocalAppDataDir & "\Google\Chrome\User Data\" & $aProfils[$i] & "Cache\", 1)
-				FileDelete(@LocalAppDataDir & "\Google\Chrome\User Data\" & $aProfils[$i] & "*History*")
-				ShellExecuteWait("chrome", '--profile-directory="'& StringTrimRight($aProfils[$i], 1) &'" chrome://settings/resetProfileSettings')
-			Next
-		EndIf
-
-		FileWriteLine($hFichierRapport, "  Google Chrome nettoyé")
+	RegEnumVal($HKLM & "\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe\",1)
+	If @error = 0 Then
+		$iLVFIREFOX = GUICtrlCreateListViewItem("Mozilla Firefox", $iIDListViewNav)
 	EndIf
 
+	Local $iIDButtonDemarrer = GUICtrlCreateButton("Nettoyer", 200, 320, 90, 25, $BS_DEFPUSHBUTTON)
+	Local $iIDButtonAnnuler = GUICtrlCreateButton("Quitter", 310, 320, 90, 25)
+	GUISetState(@SW_SHOW)
 
-	If (FileExists(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\")) Then
-		GUICtrlSetData($statusbar, " Nettoyage de Mozilla Firefox")
+	Local $eGet = GUIGetMsg()
 
-		Local $aProfil = _FileListToArray(@LocalAppDataDir & "\Mozilla\Firefox\Profiles", "*", 2)
-		If DirRemove(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\", 1) = 0 Then
-			_Attention('Le dossier "' & @LocalAppDataDir & "\Mozilla\Firefox\Profiles\" & '" n''a pas pu être supprimé')
-		EndIf
-		For $i = 1 To $aProfil[0]
-			If FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\") Then
-				; fichiers à supprimer
-				;FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite")
+	While $eGet <> $GUI_EVENT_CLOSE And $eGet <> $iIDButtonAnnuler
+
+		If($eGet = $iIDButtonDemarrer) Then
+			_FileWriteLog($hLog, "Nettoyage des navigateurs")
+			;~ 	If(FileExists(@ScriptDir & "\Outils\ResetBrowser.exe")) Then
+			;~ 			FileWriteLine($hFichierRapport, " Nettoyage des navigateurs Internet")
+			;~ 			Run(@ScriptDir & "\Outils\ResetBrowser.exe")
+			;~ 			_UpdEdit($iIDEditRapport, $hFichierRapport)
+			;~ 	Else
+			;~ 		_Attention("ResetBrowser.exe n'est pas dans le dossier Outils, Téléchagez le")
+			;~ 		ShellExecute("https://www.comment-supprimer.com/telecharger/resetbrowser/")
+			;~ 	EndIf
+				; Nettoyage des navigateurs
+
+			_BrowserClose()
+
+			$iNettoyage = 1
+			$iIE = 0
+
+			If (GUICtrlRead($iID2) = $GUI_CHECKED) Then
+				$iNettoyage = 2
+			ElseIf(GUICtrlRead($iID3) = $GUI_CHECKED) Then
+				$iNettoyage = 3
+			ElseIf(GUICtrlRead($iID4) = $GUI_CHECKED) Then
+				$iNettoyage = 4
 			EndIf
-		Next
 
-		ShellExecuteWait("firefox", '-safe-mode')
-		ProcessWaitClose("firefox.exe")
-		FileWriteLine($hFichierRapport, "  Mozilla Firefox nettoyé")
+			If (GUICtrlRead($iID5) = $GUI_CHECKED) Then
+				$iIE = 1
+			EndIf
+
+			; nettoyage IE et Edge ancien
+			If $iIE = 1 Then
+				_FileWriteLog($hLog, "Nettoyage d'Internet Explorer")
+				GUICtrlSetData($statusbar, " Nettoyage d'Internet Explorer")
+
+				RunWait("RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 255")
+				GUICtrlSetData($iLVIE, "Internet Explorer| - | Effectué")
+
+				If (FileExists(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC\")) Then
+					_FileWriteLog($hLog, "Nettoyage de Microsoft Edge (ancienne version)")
+					GUICtrlSetData($statusbar, " Nettoyage de Microsoft Edge (ancienne version)")
+					GUICtrlSetData($statusbarprogress, 10)
+
+					$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC") / 1024
+
+					Local $aEdge = _FileListToArray(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC", "#!*", 2)
+
+					If(IsArray($aEdge)) Then
+						For $i = 1 To $aEdge[0]
+							DirRemove(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC\" & $aEdge[$i], 1)
+						Next
+					EndIf
+
+					$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC") / 1024
+					GUICtrlSetData($iLVEDGE1, "Microsoft Edge (ancien)| - | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+					_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+
+				EndIf
+			EndIf
+
+			Switch $iNettoyage
+
+				Case 1
+					_FileWriteLog($hLog, "Nettoyage manuel des navigateurs")
+					GUICtrlSetData($statusbarprogress, 30)
+					ShellExecuteWait("msedge")
+					GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| Manuel | -")
+					GUICtrlSetData($statusbarprogress, 60)
+					ShellExecuteWait("Chrome")
+					GUICtrlSetData($iLVCHROME, "Google Chrome | Manuel | -")
+					GUICtrlSetData($statusbarprogress, 90)
+					ShellExecuteWait("firefox")
+					GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | Manuel | -")
+
+				Case 2
+					_FileWriteLog($hLog, "Nettoyage léger des navigateurs")
+						If (FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\")) Then
+							GUICtrlSetData($statusbarprogress, 30)
+							_FileWriteLog($hLog, "Nettoyage du profil par défaut de Edge")
+							GUICtrlSetData($statusbar, " Nettoyage de Microsoft Edge")
+							$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
+							DirRemove(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\Cache\", 1)
+							FileDelete(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\*History*")
+
+							Local $aProfilsedge = _FileListToArrayRec(@LocalAppDataDir & "\Microsoft\Edge\User Data\", "Profile *")
+							If $aProfilsedge <> "" Then
+								For $i=1 To $aProfilsedge[0]
+									_FileWriteLog($hLog, "Nettoyage du profil " & $aProfilsedge[$i] & " de Edge")
+									DirRemove(@LocalAppDataDir & "\Microsoft\Edge\User Data\" & $aProfilsedge[$i] & "Cache\", 1)
+									FileDelete(@LocalAppDataDir & "\Microsoft\Edge\User Data\" & $aProfilsedge[$i] & "*History*")
+								Next
+							EndIf
+
+							$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
+							GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| Léger | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+							_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+						Else
+							_FileWriteLog($hLog, "Rien à nettoyer pour Edge")
+							GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| - | -")
+						EndIf
+
+						If (FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\")) Then
+							GUICtrlSetData($statusbarprogress, 60)
+							_FileWriteLog($hLog, "Nettoyage du profil par défaut de Chrome")
+							GUICtrlSetData($statusbar, " Nettoyage de Google Chrome")
+							$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
+							DirRemove(@LocalAppDataDir & "\Google\Chrome\User Data\Default\Cache\", 1)
+							FileDelete(@LocalAppDataDir & "\Google\Chrome\User Data\Default\*History*")
+
+							Local $aProfils = _FileListToArrayRec(@LocalAppDataDir & "\Google\Chrome\User Data\", "Profile *")
+							If $aProfils <> "" Then
+								For $i=1 To $aProfils[0]
+									_FileWriteLog($hLog, "Nettoyage du profil " & $aProfils[$i] & " de Chrome")
+									DirRemove(@LocalAppDataDir & "\Google\Chrome\User Data\" & $aProfils[$i] & "Cache\", 1)
+									FileDelete(@LocalAppDataDir & "\Google\Chrome\User Data\" & $aProfils[$i] & "*History*")
+								Next
+							EndIf
+
+							$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
+							If $iLVCHROME Then
+								GUICtrlSetData($iLVCHROME, "Google Chrome | Léger | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+							EndIf
+							_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+						Else
+							_FileWriteLog($hLog, "Rien à nettoyer pour Chrome")
+							GUICtrlSetData($iLVCHROME, "Google Chrome | - | -")
+						EndIf
+
+						If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\")) Then
+							GUICtrlSetData($statusbarprogress, 90)
+							_FileWriteLog($hLog, "Nettoyage de Firefox")
+							GUICtrlSetData($statusbar, " Nettoyage de Mozilla Firefox")
+							$iStartFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
+							Local $aProfil = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles", "*", 2)
+							DirRemove(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\", 1)
+							_SQLite_Startup(@ScriptDir & "\Outils\sqlite3.dll", False, 1)
+							For $i = 1 To $aProfil[0]
+								If FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite") Then
+									; fichiers à supprimer
+									_FileWriteLog($hLog, "Nettoyage du profil " & $aProfil[$i] & " de Firefox")
+									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\favicons.sqlite")
+									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\content-prefs.sqlite")
+									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\permissions.sqlite")
+									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\formhistory.sqlite")
+									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\search.json.mozlz4")
+									DirRemove(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\extensions\", 1)
+									; Nettoyage de l'historique tout en gardant les favoris:
+									;ConsoleWrite("_SQLite_LibVersion=" & _SQLite_LibVersion() & @CRLF)
+									_SQLite_Open(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite")
+									_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
+									_SQLite_Close()
+								EndIf
+							Next
+							_SQLite_Shutdown()
+
+							$iEndFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
+							If $iLVFIREFOX Then
+								GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | Léger | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+							EndIf
+							_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+						Else
+							_FileWriteLog($hLog, "Rien à nettoyer pour Firefox")
+							GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | - | -")
+						EndIf
+
+
+				Case 3
+					_FileWriteLog($hLog, "Nettoyage modéré des navigateurs")
+					GUICtrlSetData($statusbarprogress, 30)
+					If (FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\")) Then
+						_FileWriteLog($hLog, "Nettoyage du profil par défaut de Edge")
+						GUICtrlSetData($statusbar, " Nettoyage de Microsoft Edge")
+						$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
+						ShellExecuteWait("msedge", '--profile-directory="Default" edge://settings/resetProfileSettings')
+
+						Local $aProfilsedge = _FileListToArrayRec(@LocalAppDataDir & "\Microsoft\Edge\User Data\", "Profile *")
+						If $aProfilsedge <> "" Then
+							For $i=1 To $aProfilsedge[0]
+								_FileWriteLog($hLog, "Nettoyage du profil " & $aProfilsedge[$i] & " de Edge")
+								ShellExecuteWait("msedge", '--profile-directory="'& StringTrimRight($aProfilsedge[$i], 1) &'" edge://settings/resetProfileSettings')
+							Next
+						EndIf
+
+						$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
+						GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| Modéré | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+
+					EndIf
+
+					If (FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\")) Then
+						GUICtrlSetData($statusbarprogress, 60)
+						_FileWriteLog($hLog, "Nettoyage du profil par défaut de Chrome")
+						GUICtrlSetData($statusbar, " Nettoyage de Google Chrome")
+						$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
+						ShellExecuteWait("chrome", '--profile-directory="Default" chrome://settings/resetProfileSettings')
+
+						Local $aProfils = _FileListToArrayRec(@LocalAppDataDir & "\Google\Chrome\User Data\", "Profile *")
+						If $aProfils <> "" Then
+							For $i=1 To $aProfils[0]
+								_FileWriteLog($hLog, "Nettoyage du profil " & $aProfils[$i] & " de Chrome")
+								ShellExecuteWait("chrome", '--profile-directory="'& StringTrimRight($aProfils[$i], 1) &'" chrome://settings/resetProfileSettings')
+							Next
+						EndIf
+
+						$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
+						If $iLVCHROME Then
+							GUICtrlSetData($iLVCHROME, "Google Chrome | Modéré | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+						EndIf
+						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+
+					EndIf
+
+
+					If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\")) Then
+						GUICtrlSetData($statusbarprogress, 90)
+						_FileWriteLog($hLog, "Nettoyage de Firefox")
+						GUICtrlSetData($statusbar, " Nettoyage de Mozilla Firefox")
+						$iStartFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
+						ShellExecuteWait("firefox", '-safe-mode')
+						ProcessWaitClose("firefox.exe")
+						$iEndFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
+						If $iLVFIREFOX Then
+							GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | Modéré | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+						EndIf
+						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+					EndIf
+
+				Case 4
+					_FileWriteLog($hLog, "Nettoyage complet des navigateurs")
+					GUICtrlSetData($statusbarprogress, 30)
+
+					If FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\") Then
+						$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
+						If DirRemove(@LocalAppDataDir & "\Microsoft\Edge\User Data\", 1) Then
+							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Microsoft\Edge\User Data\" & '" supprimé')
+						Else
+							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Microsoft\Edge\User Data\" & '" NON supprimé')
+						EndIf
+						$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
+						GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| Complet | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+					EndIf
+					GUICtrlSetData($statusbarprogress, 60)
+					If FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\") Then
+						$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
+						If DirRemove(@LocalAppDataDir & "\Google\Chrome\User Data\", 1) Then
+							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Google\Chrome\User Data\" & '" supprimé')
+						Else
+							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Microsoft\Edge\User Data\" & '" NON supprimé')
+						EndIf
+						$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
+						If $iLVCHROME Then
+							GUICtrlSetData($iLVCHROME, "Google Chrome | Complet | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+						EndIf
+						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+					EndIf
+					GUICtrlSetData($statusbarprogress, 90)
+					If FileExists(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\") Then
+						If DirRemove(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\", 1) Then
+							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Mozilla\Firefox\Profiles\" & '" supprimé')
+						Else
+							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Mozilla\Firefox\Profiles\" & '" NON supprimé')
+						EndIf
+					EndIf
+
+					If FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\") Then
+						$iStartFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
+						If DirRemove(@AppDataDir & "\Mozilla\Firefox\Profiles\", 1) Then
+							_FileWriteLog($hLog, 'Dossier "' & @AppDataDir & "\Mozilla\Firefox\Profiles\" & '" supprimé')
+							$iEndFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
+							If $iLVFIREFOX Then
+								GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | Complet | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+							EndIf
+							_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+						Else
+							_FileWriteLog($hLog, 'Dossier "' & @AppDataDir & "\Mozilla\Firefox\Profiles\" & '" NON supprimé')
+						EndIf
+					EndIf
+
+			EndSwitch
+			GUICtrlSetData($statusbar, "")
+			GUICtrlSetData($statusbarprogress, 0)
+
+		EndIf
+
+		$eGet = GUIGetMsg()
+	WEnd
+
+	GUIDelete()
+
+	If $iNettoyage Then
+		_UpdEdit($iIDEditLog, $hLog)
+		_ChangerEtatBouton($iIDAction, "Activer")
+	Else
+		_ChangerEtatBouton($iIDAction, "Desactiver")
 	EndIf
 
-	FileWriteLine($hFichierRapport, "")
-	GUICtrlSetData($statusbar, "")
-	_UpdEdit($iIDEditRapport, $hFichierRapport)
-	_ChangerEtatBouton($iIDAction, "Activer")
 EndFunc
 
 Func _BrowserClose()
+	_FileWriteLog($hLog, "Fermeture automatique des navigateurs Internet")
     Local $aList = 0
     Local $aProcesses = StringSplit('iexplore.exe|chrome.exe|firefox.exe|MicrosoftEdge.exe', '|', $STR_NOCOUNT) ; Multiple processes
     For $i = 0 To UBound($aProcesses) - 1

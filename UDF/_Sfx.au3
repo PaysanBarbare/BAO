@@ -25,36 +25,41 @@ Fonction : Création de fichier auto extractible avec 7zip et envoi sur FTP
 
 Func _CreerSFX($sFTPAdresse, $sFTPUser, $sFTPPort)
 
+	_FileWriteLog($hLog, 'Création SFX')
 	; Création de l'archive 7z
 	Local $sPwdSFX = IniRead($sConfig, "FTP", "PwdSFX", "")
-	If FileExists(@ScriptDir & "\Outils\BAO.7z") Then FileDelete(@ScriptDir & "\Outils\BAO.7z")
-	If FileExists(@ScriptDir & "\Outils\BAO-sfx.exe") Then FileDelete(@ScriptDir & "\Outils\BAO-sfx.exe")
+	If FileExists(@ScriptDir & "\Outils\7z\BAO.7z") Then FileDelete(@ScriptDir & "\Outils\7z\BAO.7z")
+	If FileExists(@ScriptDir & "\Outils\7z\BAO-sfx.exe") Then FileDelete(@ScriptDir & "\Outils\7z\BAO-sfx.exe")
 	GUICtrlSetData($statusbar, " Création de l'archive SFX")
 	GUICtrlSetData($statusbarprogress, 0)
 
-	RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" a "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\*" -x!"' & @ScriptDir & '\Cache" -x!"' & @ScriptDir & '\Rapports""', @ScriptDir & "\Outils\", @SW_HIDE)
+	RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z\7z.exe" a "' & @ScriptDir & '\Outils\7z\BAO.7z" "' & @ScriptDir & '\*" -x!"' & @ScriptDir & '\Cache" -x!"' & @ScriptDir & '\Rapports""', @ScriptDir & "\Outils\7z\", @SW_HIDE)
 	If $sPwdSFX = 1 Then
-		RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" a "' & @ScriptDir & '\Outils\BAO.7z" -i!"' & @ScriptDir & '\Cache\Pwd\*.sha"', @ScriptDir, @SW_HIDE)
-		RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" rn "' & @ScriptDir & '\Outils\BAO.7z" "dws.sha" "Cache\Pwd\dws.sha"', @ScriptDir, @SW_HIDE)
-		RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z.exe" rn "' & @ScriptDir & '\Outils\BAO.7z" "ftp.sha" "Cache\Pwd\ftp.sha"', @ScriptDir, @SW_HIDE)
+		RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z\7z.exe" a "' & @ScriptDir & '\Outils\7z\BAO.7z" -i!"' & @ScriptDir & '\Cache\Pwd\*.sha"', @ScriptDir, @SW_HIDE)
+		RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z\7z.exe" rn "' & @ScriptDir & '\Outils\7z\BAO.7z" "dws.sha" "Cache\Pwd\dws.sha"', @ScriptDir, @SW_HIDE)
+		RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z\7z.exe" rn "' & @ScriptDir & '\Outils\7z\BAO.7z" "ftp.sha" "Cache\Pwd\ftp.sha"', @ScriptDir, @SW_HIDE)
 	EndIf
 
-	GUICtrlSetData($statusbarprogress, 50)
-	RunWait(@ComSpec & ' /c copy /b "' & @ScriptDir & '\Outils\7zsd_All.sfx" + "' & @ScriptDir & '\Outils\sfx.config" + "' & @ScriptDir & '\Outils\BAO.7z" "' & @ScriptDir & '\Outils\BAO-sfx.exe"', @ScriptDir & "\Outils\", @SW_HIDE)
-	GUICtrlSetData($statusbarprogress, 100)
+	GUICtrlSetData($statusbarprogress, 30)
+	RunWait(@ComSpec & ' /c copy /b "' & @ScriptDir & '\Outils\7z\7zsd_All.sfx" + "' & @ScriptDir & '\Outils\7z\sfx.config" + "' & @ScriptDir & '\Outils\7z\BAO.7z" "' & @ScriptDir & '\Outils\7z\BAO-sfx.exe"', @ScriptDir & "\Outils\7z\", @SW_HIDE)
+	GUICtrlSetData($statusbarprogress, 60)
 
 	Local $sFTPDossierSFX = IniRead($sConfig, "FTP", "DossierSFX", "")
 
 	Local $iRetour
 	Do
-		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, @ScriptDir & "\Outils\BAO-sfx.exe", $sFTPDossierSFX & "BAO-sfx.exe")
+		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, @ScriptDir & "\Outils\7z\BAO-sfx.exe", $sFTPDossierSFX & "BAO-sfx.exe")
 	Until $iRetour <> -1
 
 	if $iRetour = 0 Then
-		FileMove(@ScriptDir & "\Outils\BAO-sfx.exe", @DesktopDir, 1)
+		_FileWriteLog($hLog, 'Copie du fichier SFX sur le bureau')
+		FileMove(@ScriptDir & "\Outils\7z\BAO-sfx.exe", @DesktopDir, 1)
 		_Attention("L'archive BAO-sfx.exe a été enregistrée sur votre bureau")
+	Else
+		_FileWriteLog($hLog, 'SFX enregistré sur le FTP')
 	EndIf
 
+	_UpdEdit($iIDEditLog, $hLog)
 	GUICtrlSetData($statusbar, "")
 	GUICtrlSetData($statusbarprogress, 0)
 

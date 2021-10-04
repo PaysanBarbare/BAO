@@ -75,6 +75,8 @@ Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemov
 
 			GUICtrlSetData($statusbarprogress, 50)
 
+			_FileWriteLog($hLog, 'Connexion au serveur FTP')
+			_UpdEdit($iIDEditLog, $hLog)
 			Local $hConn = _FTP_Connect($hOpen, $sFTPAdresse, $sFTPUser, $sMdp, 0, $sFTPPort)
 
 			If @error Then
@@ -94,7 +96,7 @@ Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemov
 				If($bRemove = 1) Then
 					_FTP_FileDelete($hConn, $sDossier)
 				Else
-					If(StringRight($sFichier, 3) = "txt" Or StringRight($sFichier, 3) = "php") Then
+					If(StringRight($sFichier, 3) = "txt" Or StringRight($sFichier, 3) = "pax" Or StringRight($sFichier, 3) = "php") Then
 						_FTP_FilePut($hConn, $sFichier, $sDossier, $INTERNET_FLAG_TRANSFER_ASCII)
 					Else
 						_FTP_FilePut($hConn, $sFichier, $sDossier)

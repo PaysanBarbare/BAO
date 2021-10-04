@@ -114,16 +114,16 @@ Func _SauvegardeAutomatique()
 
 			If($sLetter <> "" And DirCreate($sDossierDesti & '\Autres données\') = 1) Then
 
-				FileWriteLine($hFichierRapport, "Démarrage de la sauvegarde")
-				FileWriteLine($hFichierRapport, '  Destination : "' & $sDossierDesti & '"')
+				_FileWriteLog($hLog, 'Sauvegarde destination : "' & $sDossierDesti & '"')
 
 				If MapExists($aMenu, "ProduKey") Then
 					_Telecharger("ProduKey", ($aMenu["ProduKey"])[2])
 					Local $iPidPK = _Executer("ProduKey", '/shtml "' & $sDossierDesti & '\Autres données\ProduKeys.html"')
 					ProcessWaitClose($iPidPK)
 					If(FileExists($sDossierDesti & '\Autres données\ProduKeys.html')) Then
-						FileWriteLine($hFichierRapport, "  Clés de produit copiées")
+						_FileWriteLog($hLog, 'Clés de produit sauvegardées')
 					Else
+						_FileWriteLog($hLog, 'Clés de produit non sauvegardées')
 						_Attention("Clés de produits non copiées")
 					EndIf
 				EndIf
@@ -136,7 +136,7 @@ Func _SauvegardeAutomatique()
 						If FileExists(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html") Then
 							Sleep(2000)
 							FileMove(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html", $sDossierDesti & "\Autres données\BrowsersPwd.html", 1)
-							FileWriteLine($hFichierRapport, "  Mots de passe de navigateurs copiés")
+							_FileWriteLog($hLog, 'Mots de passe sauvegardés')
 							ProcessClose($iPidW)
 						EndIf
 					WEnd
@@ -158,7 +158,7 @@ Func _SauvegardeAutomatique()
  						If FileExists(@ScriptDir & "\Cache\Download\MailPassView\report.html") Then
 							Sleep(2000)
  							FileMove(@ScriptDir & "\Cache\Download\MailPassView\report.html", $sDossierDesti & "\Autres données\MailsPwd.html", 1)
- 							FileWriteLine($hFichierRapport, "  Mots de passe mail copiés")
+ 							_FileWriteLog($hLog, 'Mots de passe mail sauvegardés')
  							ProcessClose($iPidM)
  						EndIf
  					WEnd
@@ -228,17 +228,17 @@ Func _SauvegardeAutomatique()
 
 					If(DriveSpaceFree($sLetter) < DirGetSize(_WinAPI_ShellGetKnownFolderPath($sKeys)) / 1048576) Then
 						_Attention("Espace sur le disque " & $sLetter & " insuffisant")
-						FileWriteLine($hFichierRapport, '  Dossier "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" non sauvegardé : espace disque insuffisant')
+						_FileWriteLog($hLog, 'Dossier "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" non sauvegardé : espace disque insuffisant')
 					Else
 						RunWait(@ComSpec & ' /c robocopy "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" "' &  $sDossierDesti & '\' & $mListeSVG[$sKeys] & '" /E')
-						FileWriteLine($hFichierRapport, '  Dossier "' & $mListeSVG[$sKeys] & '" : ' & Round(DirGetSize($sDossierDesti & "\" & $mListeSVG[$sKeys]) / (1024 * 1024 * 1024), 2) & " sur " & Round(DirGetSize(_WinAPI_ShellGetKnownFolderPath($sKeys)) / (1024 * 1024 * 1024), 2) & " Go copiés")
+						_FileWriteLog($hLog, 'Dossier "' & $mListeSVG[$sKeys] & '" : ' & Round(DirGetSize($sDossierDesti & "\" & $mListeSVG[$sKeys]) / (1024 * 1024 * 1024), 2) & " sur " & Round(DirGetSize(_WinAPI_ShellGetKnownFolderPath($sKeys)) / (1024 * 1024 * 1024), 2) & " Go copiés")
 					EndIf
 
 				Next
 
 				If(FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\Bookmarks")) Then
 					FileCopy(@LocalAppDataDir & "\Google\Chrome\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\", 1)
-					FileWriteLine($hFichierRapport, "  Favoris de Google Chrome sauvegardés")
+					_FileWriteLog($hLog,"Favoris de Google Chrome sauvegardés")
 				EndIf
 
 				If(FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles")) Then
@@ -247,27 +247,27 @@ Func _SauvegardeAutomatique()
 					For $sTmpDoc In $aTempFF
 						If(FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups")) Then
 							DirCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\Autres données\FirefoxBookmarks", 1)
-							FileWriteLine($hFichierRapport, "  Marque-pages de Firefox sauvegardés")
+							_FileWriteLog($hLog, "Marque-pages de Firefox sauvegardés")
 						EndIf
 					Next
 				EndIf
 
 				If(FileExists(@LocalAppDataDir & "\Microsoft\Outlook")) Then
 					DirCopy(@LocalAppDataDir & "\Microsoft\Outlook", $sDossierDesti & "\Autres données\Outlook", 1)
-					FileWriteLine($hFichierRapport, "  PST de Microsoft Outlook sauvegardés")
+					_FileWriteLog($hLog, "PST de Microsoft Outlook sauvegardés")
 				EndIf
 
-				FileWriteLine($hFichierRapport, "")
-
-				FileSetPos($hFichierRapport, 0, $FILE_BEGIN)
-				Local $hFichierSauvegarde = FileOpen($sDossierDesti & "\Autres données\Infos sauvegarde.txt", 1)
-				FileWrite($hFichierSauvegarde, FileRead($hFichierRapport))
+;~ 				FileSetPos($hFichierRapport, 0, $FILE_BEGIN)
+				_FileWriteLog($hLog, 'Création du fichier"' & $sDossierDesti & '\Autres données\Infos sauvegarde.txt"')
+ 				Local $hFichierSauvegarde = FileOpen($sDossierDesti & "\Autres données\Infos sauvegarde.txt", 1)
+;~ 				FileWrite($hFichierSauvegarde, FileRead($hFichierRapport))
 
 				Local $aListe = _ListeProgrammes()
+				$aListe = _ArrayUnique($aListe, 0, 0, 0, 0)
 
 				FileWriteLine($hFichierSauvegarde, "Programmes installés :")
-				For $aProgi in $aListe
-					FileWriteLine($hFichierSauvegarde, " - " & $aProgi[0])
+				For $sProgi in $aListe
+					FileWriteLine($hFichierSauvegarde, " - " & $sProgi)
 				Next
 				FileWriteLine($hFichierSauvegarde, "")
 
@@ -287,7 +287,7 @@ Func _SauvegardeAutomatique()
 
 				GUICtrlSetData($statusbar, "")
 				GUICtrlSetData($statusbarprogress, 0)
-				_UpdEdit($iIDEditRapport, $hFichierRapport)
+				_UpdEdit($iIDEditLog, $hLog)
 				_ChangerEtatBouton($iIDAction, "Activer")
 				If(_FichierCacheExist("Sauvegarde") = 0) Then
 					_FichierCache("Sauvegarde", "1")
@@ -313,16 +313,16 @@ Func _SauvegardeAutomatique()
 
 			If($sLetter <> "" And DirCreate($sDossierDesti & '\Autres données\') = 1) Then
 
-				FileWriteLine($hFichierRapport, "Démarrage de la sauvegarde")
-				FileWriteLine($hFichierRapport, '  Destination : "' & $sDossierDesti & '"')
+				_FileWriteLog($hLog, 'Sauvegarde sur : "' & $sDossierDesti & '"')
 
 				If MapExists($aMenu, "ProduKey") Then
 					_Telecharger("ProduKey", ($aMenu["ProduKey"])[2])
 					Local $iPidPK = _Executer("ProduKey", '/external /shtml "' & $sDossierDesti & '\Autres données\ProduKeys.html')
 					ProcessWaitClose($iPidPK)
 					If(FileExists($sDossierDesti & '\Autres données\ProduKeys.html')) Then
-						FileWriteLine($hFichierRapport, "  Clés de produit copiées")
+						_FileWriteLog($hLog, "Clés de produit copiées")
 					Else
+						_FileWriteLog($hLog, "Clés de produit non copiées")
 						_Attention("Clés de produits non copiées")
 					EndIf
 				EndIf
@@ -332,16 +332,16 @@ Func _SauvegardeAutomatique()
 
 				If(DriveSpaceFree($sLetter) < (DirGetSize($sSource) - DirGetSize($sSource & "\Appdata")) / 1048576) Then
 					_Attention("Espace sur le disque " & $sLetter & " insuffisant")
-					FileWriteLine($hFichierRapport, '  Dossier "' & $sSource & '" non sauvegardé : espace disque insuffisant')
+					_FileWriteLog($hLog, '  Dossier "' & $sSource & '" non sauvegardé : espace disque insuffisant')
 				Else
 					RunWait(@ComSpec & ' /c robocopy "' & $sSource & '" "' &  $sDossierDesti & '" /E /XD "' & $sSource & '\Appdata"')
-					FileWriteLine($hFichierRapport, '  Dossier "' & $sSource & '" : ' & Round(DirGetSize($sDossierDesti) / (1024 * 1024 * 1024), 2) & " sur " & Round((DirGetSize($sSource) - DirGetSize($sSource & "\Appdata")) / (1024 * 1024 * 1024), 2) & " Go copiés")
+					_FileWriteLog($hLog, 'Dossier "' & $sSource & '" : ' & Round(DirGetSize($sDossierDesti) / (1024 * 1024 * 1024), 2) & " sur " & Round((DirGetSize($sSource) - DirGetSize($sSource & "\Appdata")) / (1024 * 1024 * 1024), 2) & " Go copiés")
 				EndIf
 
 
 				If(FileExists($sSource & "\AppData\Local\Google\Chrome\User Data\Default\Bookmarks")) Then
 					FileCopy($sSource & "\AppData\Local\Google\Chrome\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\", 1)
-					FileWriteLine($hFichierRapport, "  Favoris de Google Chrome sauvegardés")
+					_FileWriteLog($hLog, "Favoris de Google Chrome sauvegardés")
 				EndIf
 
 				If(FileExists($sSource & "\Roaming\LocalMozilla\Firefox\Profiles")) Then
@@ -350,21 +350,19 @@ Func _SauvegardeAutomatique()
 					For $sTmpDoc In $aTempFF
 						If(FileExists($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups")) Then
 							DirCopy($sSource & "\AppData\Roaming\Local\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\Autres données\FirefoxBookmarks", 1)
-							FileWriteLine($hFichierRapport, "  Marque-pages de Firefox sauvegardés")
+							_FileWriteLog($hLog, " Marque-pages de Firefox sauvegardés")
 						EndIf
 					Next
 				EndIf
 
 				If(FileExists($sSource & "\AppData\Local\Microsoft\Outlook")) Then
 					DirCopy($sSource& "\AppData\Local\Microsoft\Outlook", $sDossierDesti & "\Autres données\Outlook", 1)
-					FileWriteLine($hFichierRapport, "  PST de Microsoft Outlook sauvegardés")
+					_FileWriteLog($hLog, "PST de Microsoft Outlook sauvegardés")
 				EndIf
-
-				FileWriteLine($hFichierRapport, "")
 
 				GUICtrlSetData($statusbar, "")
 				GUICtrlSetData($statusbarprogress, 0)
-				_UpdEdit($iIDEditRapport, $hFichierRapport)
+				_UpdEdit($iIDEditLog, $hLog)
 				_ChangerEtatBouton($iIDAction, "Activer")
 				If(_FichierCacheExist("Sauvegarde") = 0) Then
 					_FichierCache("Sauvegarde", "1")
@@ -409,10 +407,13 @@ Func _CopierSur()
 	WEnd
 
 	If($eGet = $iIDButtonDemarrer And GUICtrlRead($iIDCombo) <> "Choisissez la destination") Then
+
 		$sLetter = StringLeft(GUICtrlRead($iIDCombo), 2)
 		GUIDelete()
 
 		$sDossierDesti = $sLetter & "\BAO"
+		_FileWriteLog($hLog, 'Copie de BAO sur "' & $sDossierDesti & '"')
+		_UpdEdit($iIDEditLog, $hLog)
 		GUICtrlSetData($statusbar, "Copie en cours")
 		RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '" "' &  $sDossierDesti & '" /MIR /XD "' & @ScriptDir & '\Cache\Pwd\"')
 		GUICtrlSetData($statusbar, "")

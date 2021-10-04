@@ -2,9 +2,12 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Version=Beta
 #AutoIt3Wrapper_Outfile_type=a3x
+#AutoIt3Wrapper_Outfile=D:\GitHub\BAO\BAO\BAO.a3x
 #AutoIt3Wrapper_UseUpx=y
 #AutoIt3Wrapper_Compile_Both=y
 #AutoIt3Wrapper_UseX64=y
+;#AutoIt3Wrapper_Run_Au3Stripper=y
+;#Au3Stripper_Parameters=/mo
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #pragma compile(ProductName, BAO)
 #pragma compile(CompanyName, Isergues Informatique)
@@ -58,13 +61,14 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "0.7.0" ; 21/09/21
+Global $sVersion = "0.7.2" ; 28/09/21
 
 #include-once
 #include <APIDiagConstants.au3>
 #include <Array.au3>
 #include <ButtonConstants.au3>
 #include <ColorConstants.au3>
+#include <ComboConstants.au3>
 #include <Constants.au3>
 #include <Crypt.au3>
 #include <Date.au3>
@@ -74,14 +78,19 @@ Global $sVersion = "0.7.0" ; 21/09/21
 #include <FTPEx.au3>
 #include <GUIConstantsEx.au3>
 #include <GuiEdit.au3>
+#include <GuiListView.au3>
 #include <GuiMenu.au3>
+#include <GuiRichEdit.au3>
 #include <GuiTreeView.au3>
 #include <IE.au3>
 #include <Inet.au3>
+#include <ListViewConstants.au3>
 #include <MemoryConstants.au3>
 #include <Misc.au3>
 #include <Process.au3>
 #include <ProgressConstants.au3>
+#include <SQLite.au3>
+#include <SQLite.dll.au3>
 #include <StaticConstants.au3>
 #include <String.au3>
 #include <StringConstants.au3>
@@ -93,8 +102,29 @@ Global $sVersion = "0.7.0" ; 21/09/21
 ; BAO ne peut être lancé qu'une fois.
 _Singleton(@ScriptName, 0)
 
-Local $sDossierRapport, $sNom, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $bActiv = 0
-Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $hFichierRapport, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid
+Local $sDossierRapport, $sNom, $bNonPremierDemarrage = False, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $sSubKey, $sMdps, $sAutoUser
+Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin
+
+; déclaration des fichiers rapport
+Global $hLog, $sFileLog
+Global $hEntete, $sFileEntete
+Global $hInfosys, $sFileInfosys
+Global $hInfosysupd, $sFileInfosysupd
+Global $hInstallation, $sFileInstallation
+Global $hDesinstallation, $sFileDesinstallation
+Global $hRapport, $sFileRapport
+Global $sNomFichierRapport
+
+; Création des fichiers logs et rapport temporaires
+$sFileLog = @LocalAppDataDir & "\bao\logs.txt"
+$sFileEntete = @LocalAppDataDir & "\bao\entete.bao"
+$sFileInfosys = @LocalAppDataDir & "\bao\infosys.bao"
+$sFileInfosysupd = @LocalAppDataDir & "\bao\infosysupd.bao"
+$sFileInstallation = @LocalAppDataDir & "\bao\install.bao"
+$sFileDesinstallation = @LocalAppDataDir & "\bao\uninstall.bao"
+$sFileRapport = @LocalAppDataDir & "\bao\rapport.bao"
+
+$hLog = FileOpen($sFileLog, 9)
 
 If @OSArch = "X64" Then
     $HKLM = "HKLM64"
@@ -124,7 +154,6 @@ If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
 	SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 	Sleep(2000)
 	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", "", "", "Boîte à Outils", @ScriptDir & "\Outils\bao.ico")
-	;FileCreateShortcut(@ScriptFullPath, @DesktopDir & "\BAO.lnk", @ScriptDir)
 EndIf
 
 $sSplashTxt = $sSplashTxt & @LF & "Chargement des dépendances"
@@ -136,6 +165,7 @@ Const $sConfig = @ScriptDir & "\config.ini"
 #include "UDF\_Desinfection.au3"
 #include "UDF\_Desinstallation.au3"
 #include "UDF\_FTP.au3"
+#include "UDF\_Infosys.au3"
 #include "UDF\_Installation.au3"
 #include "UDF\_Mdp.au3"
 #include "UDF\_MiseAJour.au3"
@@ -150,7 +180,6 @@ Const $sConfig = @ScriptDir & "\config.ini"
 #include "UDF\_Stabilite.au3"
 #include "UDF\_Suivi.au3"
 #include "UDF\_Telechargement.au3"
-
 
 ; Désactivation de la mise en veille https://www.autoitscript.com/forum/topic/152381-screensaver-sleep-lock-and-power-save-disabling/
 
@@ -172,9 +201,10 @@ _InitialisationBAO($sConfig)
 
 ; Création du dossier rapport et du fichier rapport d'intervention
 
+$sSociete = IniRead($sConfig, "Parametrages", "Societe", "NomSociete")
+
 $sDossierRapport = @DesktopDir & "\" & IniRead($sConfig, "Parametrages", "Dossier", "Rapports")
 If DirCreate($sDossierRapport) = 0 Then	_Erreur("Impossible de créer le dossier '" & $sDossierRapport & "' sur le bureau")
-$hFichierRapport = FileOpen($sDossierRapport & "\Rapport intervention.txt", 1)
 
 ; intialisation des variables FTP
 Local $sFTPAdresse = IniRead($sConfig, "FTP", "Adresse", "")
@@ -183,9 +213,7 @@ Local $sFTPPort = IniRead($sConfig, "FTP", "Port", "")
 Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
 
-; Sauvegarde du nom du client dans un fichier unique associé à l'ordinateur
-
-$iFreeSpace = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
+_CalculFS()
 
 $sSplashTxt = $sSplashTxt & @LF & "Vérification version et licence Windows"
 SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
@@ -219,7 +247,7 @@ For $Obj_Item In $Obj_Services
 	EndIf
 Next
 
-If $bActiv = 0 Then
+If $bActiv = 2 Then
 	$sOSv = $sOSv & " (non activé)";
 EndIf
 
@@ -231,26 +259,27 @@ if(_FichierCacheExist("Client") = 0) Then
 
 	$sNom = _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 Else
+	$bNonPremierDemarrage = True
 	$sNom = _FichierCache("Client")
-	If FileGetPos($hFichierRapport) = 0 Then
-		_RapportInfos()
-	EndIf
+	$sSplashTxt = $sSplashTxt & @LF & "Recherche des modifications sur le matériel"
+	SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+	_GetInfoSysteme()
+;~ 	If FileGetPos($hFichierRapport) = 0 Then
+;~ 		_RapportInfos($bActiv)
+;~ 	EndIf
 EndIf
-
-
 
 If(FileExists(@ScriptDir & "\Liens\") = 0) Then _Erreur('Dossier "Liens" manquant')
 
 ; initialisation désinfection
-$sNomDesinstalleur = IniRead($sConfig, "Desinfection", "Desinstalleur", "")
-$sPrivazer = IniRead($sConfig, "Desinfection", "Privazer", "Free")
-$sListeProgdes = _StringExplode(IniRead($sConfig, "Desinfection", "Programmes de desinfection", "RogueKiller AdwCleaner MalwareByte ZHPCleaner"), " ")
+$sListeProgdes = _StringExplode(IniRead($sConfig, "Desinfection", "Programmes de desinfection", "Privazer RogueKiller AdwCleaner MalwareByte ZHPCleaner"), " ")
 
 If(FileExists($sListeProgrammes)) Then
 	_FileReadToArray($sListeProgrammes, $aListeAvSupp, 0)
 Else
 	$aListeAvSupp = _ListeProgrammes()
-	_FileWriteFromArray($sListeProgrammes, _ArrayUnique($aListeAvSupp, 0, 0, 0, 0))
+	$aListeAvSupp =  _ArrayUnique($aListeAvSupp, 0, 0, 0, 0)
+	_FileWriteFromArray($sListeProgrammes, $aListeAvSupp)
 EndIf
 
 ; Déclaration des boutons de fonctions (pour calculer la taille de la fenêtre BAO)
@@ -265,8 +294,7 @@ Local $iIDButtonScripts
 ; Soit :
 Local $iFonctions = 7
 
-$hGUIBAO = GUICreate("Boîte A Outils (bêta) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
-GUISetBkColor($COLOR_WHITE)
+$hGUIBAO = GUICreate($sSociete & " - Boîte A Outils (bêta) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 
 $statusbar = GUICtrlCreateLabel("", 10, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 410, 20, $SS_CENTERIMAGE)
 $statusbarprogress = GUICtrlCreateProgress(440, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 250, 20)
@@ -399,14 +427,9 @@ If(StringLeft($sNom, 4) <> "Tech") Then
 	; Activation de BAO au démarrage
 	RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce","BAO","REG_SZ",'"' & @DesktopDir & '\BAO.lnk"')
 
-	Local $iAutoAdmin = RegRead($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon")
-	if _FichierCacheExist("Autologon") = 0 And $iAutoAdmin = 0 Then
-		_FichierCache("Autologon", 1)
-	EndIf
-
 	If _FichierCacheExist("Autologon") = 1 Then
 		$iIDAutologon = GUICtrlCreateCheckbox("Autologon", 530, 160 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
-		If $iAutoAdmin = 1 Then
+		If _FichierCache("Autologon") = 1 Then
 			GUICtrlSetState($iIDAutologon, $GUI_CHECKED)
 		EndIf
 	EndIf
@@ -433,14 +456,14 @@ GUICtrlSetFont($iLabelPC, 18)
 
 Local $sDate = _FichierCache("PremierLancement")
 GUICtrlCreateLabel("Nom du PC : " & @ComputerName, 450, 2)
-GUICtrlCreateLabel("OS : " & $sOSv, 450, 20, 400)
-If($bActiv = 0) Then
+GUICtrlCreateLabel("OS : " & $sOSv, 450, 18, 400)
+If($bActiv = 2) Then
 	GUICtrlSetColor(-1, $COLOR_RED)
 Else
 	GUICtrlSetColor(-1, $COLOR_GREEN)
 EndIf
 GUICtrlSetFont(-1, Default, 600)
-GUICtrlCreateLabel("Début : " & $sDate, 450, 38, 200)
+GUICtrlCreateLabel("Début : " & $sDate, 450, 34, 200, 15)
 GUICtrlSetFont(-1, Default, 600)
 
 
@@ -449,13 +472,13 @@ $iIDButtonInstallation = GUICtrlCreateButton("Installation", 10, 80, 150, 25)
 $iIDButtonSauvegarde = GUICtrlCreateButton("Sauvegarde", 10, 110, 150, 25)
 $iIDButtonWU = GUICtrlCreateButton("Windows et Office", 10, 140, 150, 25)
 $iIDButtonPilotes = GUICtrlCreateButton("Pilotes", 10, 170, 150, 25)
-$iIDButtonStabilite = GUICtrlCreateButton("Tests", 10, 200, 150, 25)
+$iIDButtonStabilite = GUICtrlCreateButton("Centre de contrôles", 10, 200, 150, 25)
 $iIDButtonScripts = GUICtrlCreateButton("Scripts et outils", 10, 230, 150, 25)
 
 Local $y = 70 + ($iFonctions * 30)
 Local $pgroup = $y-20
 
-Local $iIDButtonNettoyage = GUICtrlCreateButton("1 - Nettoyage", 10, $y, 150, 25)
+Local $iIDButtonNettoyage = GUICtrlCreateButton("1 - Désinstallation", 10, $y, 150, 25)
 If(_FichierCacheExist("Desinfection") = 1) Then
 	_ChangerEtatBouton($iIDButtonNettoyage, "Activer")
 EndIf
@@ -465,7 +488,7 @@ Local $z
 Local $iIDMenuDes, $iLargeur
 
 For $z = 1 To UBound($sListeProgdes)
-	If FileExists(@ScriptDir & "\Outils\" & $sListeProgdes[$z - 1] & "\" & $sListeProgdes[$z - 1] & ".bat") Then
+	If FileExists(@ScriptDir & "\Config\" & $sListeProgdes[$z - 1] & "\" & $sListeProgdes[$z - 1] & ".bat") Then
 		$iLargeur = 125
 		GUICtrlCreateButton("X", 135, $y, 25, 25)
 	Else
@@ -480,20 +503,22 @@ For $z = 1 To UBound($sListeProgdes)
 	$y = $y + 25
 Next
 
-Local $iIDButtonResetBrowser = GUICtrlCreateButton($z + 1 & " - RAZ Navigateurs", 10, $y, 150, 25)
+Local $iIDButtonResetBrowser = GUICtrlCreateButton($z + 1 & " - Navigateurs Internet", 10, $y, 150, 25)
 If(_FichierCacheExist("ResetBrowser") = 1) Then
 	_ChangerEtatBouton($iIDButtonResetBrowser, "Activer")
 EndIf
 
 GUICtrlCreateGroup("Désinfection", 5, $pgroup, 160, (($z + 2) * 25) + 2)
+GUICtrlSetFont (-1, 9, 800)
 
-Local $iIDButtonEnvoi = GUICtrlCreateButton("Compléter le rapport", 700, $y - 60, 150, 25)
+Local $iIDButtonEnvoi = GUICtrlCreateButton("Exporter le rapport", 700, $y - 60, 150, 25)
 Local $iIDButtonUninstall = GUICtrlCreateButton("Désinstaller", 700, $y - 30, 150, 25)
 Local $iIDButtonQuit = GUICtrlCreateButton("Quitter", 700, $y , 150, 25)
 
 If ($x > $y - 65) Then _Attention("Il y a trop de liens dans le dossier Favoris, merci d'en supprimer")
 
 GUICtrlCreateGroup("Favoris et raccourcis", 695, 50, 160, $y - 128)
+GUICtrlSetFont (-1, 9, 800)
 
 If _FichierCacheExist("Bureaudistant") = 1 Then	_ChangerEtatBouton($iIDButtonBureaudistant, "Activer")
 
@@ -510,23 +535,60 @@ If _FichierCacheExist("StabiliteTime") = 1 Then
 	_FichierCache("StabiliteTime", -1)
 EndIf
 
-GUICtrlCreateGroup("Rapport", 170, 50, 520, 77 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+Local $iIDTAB = GUICtrlCreateTab(170, 50, 520, 77 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+Local $iIDTABInfossys = GUICtrlCreateTabItem("Infos système")
+$idListInfosys = GUICtrlCreateListView("Nom |Valeur ", 180, 80, 500, 37 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+_GUICtrlListView_SetColumnWidth($idListInfosys, 0, 130)
+_GUICtrlListView_SetColumnWidth($idListInfosys, 1, 360)
+Local $iIDTABInstall = GUICtrlCreateTabItem("Intervention")
+$iIDEditInter = GUICtrlCreateEdit("", 180, 80, 300, 190)
+GUICtrlCreateGroup("Modèles", 490, 80, 190, 160)
+Local $idSampleMessage = GUICtrlCreateTreeView(490, 100, 170, 130)
+Local $aModele = _FileListToArray(@ScriptDir & '\Config\Modeles\', "*.txt")
+Local $iIDTVModele[$aModele[0]]
+For $i = 1 To $aModele[0]
+	$iIDTVModele[$i-1] = GUICtrlCreateTreeViewItem(StringTrimRight($aModele[$i], 4), $idSampleMessage)
+Next
+$iIDBoutonInscMat = GUICtrlCreateButton("Inscrire changements log/mat", 490, 245, 190)
+GUICtrlSetTip(-1, "Enregistre les changements logiciels et matériels dans le rapport")
+GUICtrlCreateLabel("Logiciels installés :", 180, 280)
+GUICtrlSetColor(-1, $COLOR_GREEN)
+GUICtrlCreateLabel("Logiciels désinstallés :", 435, 280)
+GUICtrlSetColor(-1, $COLOR_RED)
+$iIDEditLogInst = GUICtrlCreateEdit("", 180, 300, 245, -183 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, BitOR($ES_READONLY, $WS_VSCROLL))
+$iIDEditLogDesinst = GUICtrlCreateEdit("", 435, 300, 245, -183 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, BitOR($ES_READONLY, $WS_VSCROLL))
+Local $iIDTABLogs = GUICtrlCreateTabItem("Logs")
+Local $iIDButtonClear = GUICtrlCreateButton("Effacer les logs", 180, 80)
+$iIDEditLog = GUICtrlCreateEdit("", 180, 110, 500, 7 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, BitOR($ES_READONLY, $WS_VSCROLL))
+GUICtrlCreateTabItem("")
 
-$iIDEditRapport = GUICtrlCreateEdit("", 180, 70,500, 47 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, BitOR($ES_READONLY, $WS_VSCROLL))
-_UpdEdit($iIDEditRapport, $hFichierRapport)
+If _FichierCacheExist("Inscription") = 1 Then _ChangerEtatBouton($iIDBoutonInscMat, "Activer")
+
+_RapportParseur($idListInfosys )
+;_UpdEdit($iIDEditLog, $sFileLog)
+_UpdEdit($iIDEditLogInst, $sFileInstallation)
+_UpdEdit($iIDEditLogDesinst, $sFileDesinstallation)
+_UpdEdit($iIDEditInter, $sFileRapport)
+
+;_RemplirListInfosys($iIDTABInfossys)
 
 $sSplashTxt = $sSplashTxt & @LF & "Ouverture de BAO"
 SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 GUISetState(@SW_SHOW)
 
+If $bNonPremierDemarrage Then
+	GUICtrlSetState($iIDTABInstall, $GUI_SHOW)
+EndIf
+
 If _FichierCacheExist("Restauration") = 0 Then
 
 	$sRestauration = IniRead($sConfig, "Parametrages", "Restauration", 0)
 	If $sRestauration = 1 Then
+		_FileWriteLog($hLog, 'Création point de restauration "' & $sSociete & ' - Debut Intervention"')
 		$sSplashTxt = $sSplashTxt & @LF & "Création d'un point de restauration"
 		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
-		_Restauration("Démarrage de BAO")
+		_Restauration($sSociete & ' - Debut Intervention')
 		_FichierCache("Restauration", 1)
 	EndIf
 EndIf
@@ -534,6 +596,8 @@ EndIf
 Local $stdoutwu, $datawu, $iFreeSpacech
 
 SplashOff()
+
+_UpdEdit($iIDEditLog, $hLog)
 
 While 1
 	$iIDAction = GUIGetMsg()
@@ -543,6 +607,8 @@ While 1
 		$iMin = @MIN
 
 		If Not($sYear = @YEAR And $sMon = @MON And $sDay = @MDAY) Then
+			_FileWriteLog($hLog, "Correction automatique de l'heure")
+			_UpdEdit($iIDEditLog, $hLog)
 			_Attention("L'horloge a été resynchronisée, vérifiez la pile de BIOS", 1)
 			$sYear = @YEAR
 			$sMon = @MON
@@ -568,9 +634,13 @@ While 1
 
 		Case $iIDCheckboxwu
 			If(GUICtrlRead($iIDCheckboxwu) = $GUI_CHECKED) Then
+				_FileWriteLog($hLog, 'Arrêt de WU')
+				_UpdEdit($iIDEditLog, $hLog)
 				RunWait(@ComSpec & ' /c net stop wuauserv & net stop bits & net stop dosvc', '', @SW_HIDE)
 				_FichierCache("WUInactif", 1)
 			Else
+				_FileWriteLog($hLog, 'Démarrage de WU')
+				_UpdEdit($iIDEditLog, $hLog)
 				RunWait(@ComSpec & ' /c net start wuauserv & net start bits & net start dosvc', '', @SW_HIDE)
 				_FichierCache("WUInactif", -1)
 			EndIf
@@ -580,35 +650,52 @@ While 1
 
 		Case $iIDAutologon
 
-			Local $sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
-
+			Local $sDomaine
 			If(GUICtrlRead($iIDAutologon) = $GUI_CHECKED) Then
-				Local $sMdps = InputBox("Mot de passe de session", "Entrez votre mot de passe de session", "", "*")
+				_FileWriteLog($hLog, 'Activation Autologon')
+				_UpdEdit($iIDEditLog, $hLog)
+				$sSubKey = RegEnumKey("HKEY_USERS\.DEFAULT\Software\Microsoft\IdentityCRL\StoredIdentities", 1)
+				If $sSubKey = "" Then
+					$sAutoUser = @UserName
+				Else
+					$sAutoUser = "MicrosoftAccount\" & $sSubKey
+				EndIf
+
+				$sMdps = InputBox("Mot de passe de session", "Entrez votre mot de passe de session pour" & @CRLF & '"' & $sAutoUser & '"', "", "*")
 
 				If $sMdps <> "" Then
+					$sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
 					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 1)
 					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName","REG_SZ", @UserName)
 					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword","REG_SZ", $sMdps)
 					If($sDomaine <> "") Then
 						RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain","REG_SZ", $sDomaine)
 					EndIf
+					_FichierCache("Autologon", 1)
 				Else
 					GUICtrlSetState($iIDAutologon, $GUI_UNCHECKED)
+					_FichierCache("Autologon", 2)
 				EndIf
-			Else
+			ElseIf(GUICtrlRead($iIDAutologon) = $GUI_UNCHECKED) Then
+				_FileWriteLog($hLog, 'Désactivation Autologon')
+				$sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
+				_UpdEdit($iIDEditLog, $hLog)
 				RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 0)
 				RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName")
 				RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword")
 				If($sDomaine <> "") Then
 					RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain")
 				EndIf
+				_FichierCache("Autologon", 2)
 			EndIf
 
 		Case $GUI_EVENT_CLOSE
+			_SaveInter()
 			RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")
 			Exit
 
 		Case $iIDButtonQuit
+			_SaveInter()
 			RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")
 			Exit
 
@@ -616,7 +703,7 @@ While 1
 			ShellExecuteWait($sConfig)
 
 		Case $iIDMenu1dossier
-			ShellExecute(@ScriptDir)
+			Run("explorer.exe " & @ScriptDir)
 
 		Case $iIDMenu1dossierAppdata
 			ShellExecute(@LocalAppDataDir & "\bao")
@@ -626,10 +713,14 @@ While 1
 
 		Case $iIDMenu1clearcache
 
+			_FileWriteLog($hLog, 'Suppression du Cache')
+			_UpdEdit($iIDEditLog, $hLog)
 			_ClearCache()
 
 		Case $iIDMenu1update
 
+			_FileWriteLog($hLog, 'Mise à jour de tous les logiciels')
+			_UpdEdit($iIDEditLog, $hLog)
 			_UpdateProg()
 
 		Case $iIDMenu1copier
@@ -676,6 +767,25 @@ While 1
 				_Attention("Cette variable d'environnement n'exite pas ou n'est pas un dossier")
 			EndIf
 
+		Case $iIDTAB
+			If GUICtrlRead($iIDTAB, 1) = $iIDTABInstall Then
+				_CalculProgDesinstallation()
+				_UpdEdit($iIDEditLogDesinst, $sFileDesinstallation)
+			EndIf
+
+		Case $iIDTVModele[0] To $iIDTVModele[$aModele[0] - 1]
+			_SaveInter()
+			_GetModele(GUICtrlRead($idSampleMessage, 1))
+
+		case $iIDBoutonInscMat
+			_SaveChangeToInter()
+
+		Case $iIDButtonClear
+			FileClose($hLog)
+			FileDelete($sFileLog)
+			FileOpen($sFileLog, 1)
+			_UpdEdit($iIDEditLog, $hLog)
+
 		Case $iIDButtonBureaudistant
 
 			_BureauDistant()
@@ -707,6 +817,7 @@ While 1
 		Case $iIDButtonNettoyage
 
 			_Nettoyage()
+			GUICtrlSetState($iIDTABInstall, $GUI_SHOW)
 
  		Case $iIDButtonNettoyage + 1 to $iIDButtonResetBrowser -1 ; Désinfection
 
@@ -718,7 +829,7 @@ While 1
 
  		Case $iIDButtonEnvoi
 
-			_CompleterRapport()
+			_ExporterRapport()
 
  		Case $iPremElement To $iDernElement
 
@@ -730,7 +841,7 @@ While 1
 
 		Case $sIDHelp
 
-			ShellExecute(@ScriptDir & "\bao_manuel.pdf")
+			ShellExecute("https://boiteaoutils.notion.site/boiteaoutils/Bo-te-A-Outils-BAO-a8530d0ca7834f36b2a8ea856deba06b")
 
 		Case $sIDapropos
 

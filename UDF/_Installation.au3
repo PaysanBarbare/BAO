@@ -99,11 +99,12 @@ Func _InstallationAutomatique()
 	Local $iIDButtonDeselectionner = GUICtrlCreateButton("Aucun", 165, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
 	Local $iIDButtonDefaut = GUICtrlCreateButton("Par défaut", 240, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
 	$p = $p+1
-;~ 	Local $iIDCache = GUICtrlCreateCheckbox("Utiliser le cache ? (Décochez pour installer Firefox)", 20, $iHauteurCadre1 + $iHauteurCadre2 + 70)
-;~ 	GUICtrlSetState (-1, 1)
-;~ 	If(StringInStr(@ScriptDir, "\\") = 0) Then ;UNC
-;~ 		GUICtrlSetState($iIDCache, 32)
-;~ 	EndIf
+ 	Local $iIDCache
+	If StringLeft(@ScriptDir, 2) = "\\" Then
+		$iIDCache = GUICtrlCreateCheckbox("Utiliser le cache sur le partage ?", 20, $iHauteurCadre1 + $iHauteurCadre2 + 70)
+		GUICtrlSetState (-1, 1)
+	EndIf
+
 	Local $iIDButtonInstaller = GUICtrlCreateButton("Installer", 125, $iHauteurCadre1 + $iHauteurCadre2 + 100, 150, 25, $BS_DEFPUSHBUTTON)
 
 	 ; Boucle jusqu'à ce que l'utilisateur quitte.
@@ -192,11 +193,11 @@ Func _InstallationAutomatique()
 		$idMsgInst = GUIGetMsg()
 	WEnd
 
-;~ 	If GUICtrlRead($iIDCache) = $GUI_CHECKED Then
-;~ 		$iIDCache = 1
-;~ 	Else
-;~ 		$iIDCache = 0
-;~ 	EndIf
+ 	If GUICtrlRead($iIDCache) = $GUI_CHECKED Then
+ 		$iIDCache = 1
+ 	Else
+ 		$iIDCache = 0
+ 	EndIf
 
 	; Supprime l'interface graphique précédente et tous ses contrôles.
 
@@ -206,6 +207,7 @@ Func _InstallationAutomatique()
 
 		;$sListeSofts = _ArrayToString($aListeSofts, " ")
 		If FileExists( @AppDataCommonDir & "\chocolatey\choco.exe") = 0 Then
+			_FileWriteLog($hLog, 'Installation de Chocolatey')
 			GUICtrlSetData($statusbar, " Préparation de l'installation")
 			GUICtrlSetData($statusbarprogress, 5)
 			Local $sEnvVar = EnvGet("PATH")
@@ -224,27 +226,29 @@ Func _InstallationAutomatique()
 				_ChangerEtatBouton($iIDAction, "Desactiver")
 			Else
 				_FichierCache("Installation", 1)
-				FileWriteLine($hFichierRapport, "Installation de logiciels : ")
 			EndIf
 		Else
+			_FileWriteLog($hLog, 'Chocolatey est déjà installé')
 			_FichierCache("Installation", 1)
 		EndIf
 
 		If(_FichierCacheExist("Installation") = 1) Then
 
-;~ 			If $iIDCache = 1 Then
+ 			If $iIDCache = 1 Then
+				_FileWriteLog($hLog, 'Cache sur ' & @ScriptDir & '\Cache\Choco"')
 				RunWait( @ComSpec & ' /c ' & 'choco config set cacheLocation "' & @ScriptDir & '\Cache\Choco"', "", @SW_HIDE)
-;~ 			Else
-;~ 				RunWait( @ComSpec & ' /c ' & 'choco config unset cacheLocation', "", @SW_HIDE)
-;~ 			EndIf
+ 			Else
+				_FileWriteLog($hLog, 'Cache dossier temp')
+ 				RunWait( @ComSpec & ' /c ' & 'choco config unset cacheLocation', "", @SW_HIDE)
+ 			EndIf
 
 			_InstallationEnCours($aSofts)
 
 			GUICtrlSetData($statusbar, "")
 			GUICtrlSetData($statusbarprogress, 0)
 			_ChangerEtatBouton($iIDAction, "Activer")
-			_UpdEdit($iIDEditRapport, $hFichierRapport)
 		EndIf
+
 	Else
 		If(_FichierCacheExist("Installation") = 1) Then
 			_ChangerEtatBouton($iIDAction, "Activer")
@@ -256,10 +260,14 @@ EndFunc
 
 Func _InstallationEnCours($aSofts)
 
-	Local $iPidChoco, $sOutput, $aArray, $iPerc, $sProgErr = "", $iSautligne = 0, $aListeInstall, $sDejaInstalle, $sMessFin
+	Local $iPidChoco, $sOutput, $aArray, $iPerc, $sProgErr = "", $iInstallOk, $aListeInstall, $sDejaInstalle, $sMessFin
 	GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
 
+	$hInstallation = FileOpen($sFileInstallation,1)
+
 	For $po = 0 To (UBound($aSofts) - 1)
+
+		$iInstallOk = 0
 
 		Local $aListeInstall = _ListeProgrammes()
 		$aListeInstall = _ArrayUnique($aListeInstall)
@@ -304,6 +312,7 @@ Func _InstallationEnCours($aSofts)
 			; Local $envChoco = RegRead("HKEY_CURRENT_USER\Environment\", "ChocolateyInstall")
 
 			GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po])
+			_FileWriteLog($hLog, "Installation de " &  $aSofts[$po])
 
 			$iPerc = (($po * 90) / UBound($aSofts)) + 10
 			GUICtrlSetData($statusbarprogress, $iPerc)
@@ -320,10 +329,11 @@ Func _InstallationEnCours($aSofts)
 			; Utilise StringSplit pour partager la sortie de StdoutRead en un tableau. Tous les retours chariot (@CRLF) sont supprimés et @CRLF (saut de ligne) est utilisé comme séparateur.
 			$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)
 			If _ArraySearch($aArray, " The install of " & $aSofts[$po] & " was successful.") = -1 Then
-
+				_FileWriteLog($hLog, "Installation de " &  $aSofts[$po] & " (2ème essai)")
 				GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po] & " (2ème essai)")
-
-				$iPidChoco = Run( @ComSpec & ' /c ' & 'choco install -y -f --limitoutput ' & $aSofts[$po], "",@SW_HIDE, $STDOUT_CHILD)
+				$iPidChoco = Run( @ComSpec & ' /c ' & 'choco uninstall -y ' & $aSofts[$po], "", @SW_HIDE)
+				ProcessWaitClose($iPidChoco)
+				$iPidChoco = Run( @ComSpec & ' /c ' & 'choco install -y --limitoutput ' & $aSofts[$po], "",@SW_HIDE, $STDOUT_CHILD)
 				While ProcessExists($iPidChoco)
 					If GUIGetMsg() = $iIDCancelDL Then
 						ProcessClose($iPidChoco)
@@ -336,17 +346,38 @@ Func _InstallationEnCours($aSofts)
 				; Utilise StringSplit pour partager la sortie de StdoutRead en un tableau. Tous les retours chariot (@CRLF) sont supprimés et @CRLF (saut de ligne) est utilisé comme séparateur.
 				$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)
 				If _ArraySearch($aArray, " The install of " & $aSofts[$po] & " was successful.") = -1 Then
-					$sProgErr &= " - " & $aSofts[$po] & @LF
-					ProcessClose("choco.exe")
-					Run( @ComSpec & ' /c ' & 'choco uninstall -y ' & $aSofts[$po], "", @SW_HIDE, $STDOUT_CHILD)
-					$iSautligne = 0
+					_FileWriteLog($hLog, "Installation de " &  $aSofts[$po] & " (3ème essai)")
+					GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po] & " (3ème essai)")
+					$iPidChoco = Run( @ComSpec & ' /c ' & 'choco install -y -f --limitoutput ' & $aSofts[$po], "",@SW_HIDE, $STDOUT_CHILD)
+					While ProcessExists($iPidChoco)
+						If GUIGetMsg() = $iIDCancelDL Then
+							ProcessClose($iPidChoco)
+						EndIf
+					WEnd
+
+					;ProcessWaitClose($iPidChoco)
+					$sOutput = StdoutRead($iPidChoco)
+
+					; Utilise StringSplit pour partager la sortie de StdoutRead en un tableau. Tous les retours chariot (@CRLF) sont supprimés et @CRLF (saut de ligne) est utilisé comme séparateur.
+					$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)
+					If _ArraySearch($aArray, " The install of " & $aSofts[$po] & " was successful.") = -1 Then
+						_FileWriteLog($hLog, "Echec installation " & $aSofts[$po])
+						$sProgErr &= " - " & $aSofts[$po] & @LF
+						ProcessClose("choco.exe")
+						Run( @ComSpec & ' /c ' & 'choco uninstall -y ' & $aSofts[$po], "", @SW_HIDE)
+					Else
+						$iInstallOk = 1
+					EndIf
 				Else
-					$iSautligne = 1
-					FileWriteLine($hFichierRapport, " " & $aSofts[$po] & " installé")
+					$iInstallOk = 1
 				EndIf
 			Else
-				$iSautligne = 1
-				FileWriteLine($hFichierRapport, " " & $aSofts[$po] & " installé")
+				$iInstallOk = 1
+			EndIf
+
+			If $iInstallOk = 1 Then
+				_FileWriteLog($hLog, "Installatin réussie de " & $aSofts[$po])
+				FileWrite($hInstallation, $aSofts[$po] & "[BR]")
 			EndIf
 
 			If Not FileDelete($sNomFichier) Then
@@ -360,6 +391,10 @@ Func _InstallationEnCours($aSofts)
 	GUICtrlSetData($statusbarprogress, 100)
 	GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
 
+	_UpdEdit($iIDEditLog, $hLog)
+	_UpdEdit($iIDEditLogInst, $hInstallation)
+	FileClose($sFileInstallation)
+
 	If($sProgErr <> "" Or $sDejaInstalle <> "") Then
 		If $sProgErr <> "" Then
 			$sMessFin = "Les programmes suivants n'ont pas été installé : " & @lf & $sProgErr & "Réessayez ou installez-les manuellement" & @LF & @LF
@@ -371,11 +406,6 @@ Func _InstallationEnCours($aSofts)
 
 		_Attention($sMessFin, 1)
 
-		If $iSautligne = 1 Then
-			FileWriteLine($hFichierRapport, "")
-		EndIf
-	Else
-		FileWriteLine($hFichierRapport, "")
 	EndIf
 
 EndFunc
@@ -384,10 +414,12 @@ Func _ClearCache()
 
 	If FileExists(@ScriptDir & '\Cache\Choco') Then
 		if DirRemove(@ScriptDir & '\Cache\Choco', 1) = 1 Then
-			FileWriteLine($hFichierRapport, "Cache des installations nettoyé")
-			FileWriteLine($hFichierRapport, "")
-			_UpdEdit($iIDEditRapport, $hFichierRapport)
+			_Attention("Cache nettoyé")
+		Else
+			_Attention("Impossible de supprimer " & @ScriptDir & '\Cache\Choco')
 		EndIf
+	Else
+		_Attention("Le dossier " & @ScriptDir & '\Cache\Choco' &  " n'existe pas")
 	EndIf
 
 EndFunc

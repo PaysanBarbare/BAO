@@ -1,0 +1,10 @@
+### Réinstallation du système d'exploitation ###
+- Sauvegarde des données
+- Formatage du disque dur
+- Installation de Windows
+- Installation des logiciels recommandés et des pilotes de périphériques
+- Configuration des navigateurs Internet
+- Installation des mises à jour de Windows
+- Récupération des données
+- Tests de bon fonctionnement
+

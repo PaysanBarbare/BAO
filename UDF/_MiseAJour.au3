@@ -163,6 +163,8 @@ Func _MiseAJourOS()
 						GUICtrlSetData($statusbar, "Copie en cours, patientez")
 						GUICtrlSetData($statusbarprogress, 10)
 
+						_FileWriteLog($hLog, "Copie de " & $sFileTE & " sur l'ordinateur")
+
 						RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '\Cache\ISO" "' &  @LocalAppDataDir & '\bao" "' &  $sFileTE & '"')
 						$sDocTE = @LocalAppDataDir & '\bao\tmp\'
 					EndIf
@@ -171,7 +173,8 @@ Func _MiseAJourOS()
 
 					If (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso") Then
 
-						If(FileCopy(@ScriptDir & "\Outils\7z.*", $sDocTE, 9)) Then
+						If(FileCopy(@ScriptDir & "\Outils\7z\7z.*", $sDocTE, 9)) Then
+							_FileWriteLog($hLog, "Décompression de " & $sFileTE)
 							GUICtrlSetData($statusbar, "Extraction en cours, patientez")
 							GUICtrlSetData($statusbarprogress, 20)
 							RunWait(@ComSpec & ' /c 7z.exe x "..\' &  $sFileTE & '"', $sDocTE)
@@ -272,6 +275,8 @@ Func _DlISO()
 					If FileExists($sDestiso & $sNomFicIso) And $iIsoSize = FileGetSize($sDestiso) Then
 						_Attention($sDestiso & "existe déjà.")
 					Else
+						_FileWriteLog($hLog, "Téléchargement de " & $sNomFicIso)
+						_UpdEdit($iIDEditLog, $hLog)
 						$hDownload = InetGet($sURLiso, $sDestiso & $sNomFicIso, 1, 1)
 						$TotalSize = Round($iIsoSize / 1024)
 						GUICtrlSetData($statusbar, " Téléchargement de " & $sNomFicIso)

@@ -1,0 +1,10 @@
+.doc, LibreOffice.Doc
+.docx, LibreOffice.Docx
+.htm, ChromeHTML
+.html, ChromeHTML
+.pdf, AcroExch.Document.DC
+.txt, txtfile
+.xls, LibreOffice.Xls
+.xlsx, LibreOffice.Xlsx
+http, ChromeHTML
+https, ChromeHTML

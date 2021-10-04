@@ -20,21 +20,36 @@ This file is part of "Boîte A Outils"
 
 Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 
-	Local $iIDButtonDesinstaller = 1, $iIDButtonAnnuler = 1, $eGet, $iRapport = 0, $iEteindre = 0, $sInput, $iIDInputInfo, $sProgDes, $t = 0
+	Local $iIDButtonDesinstaller, $iIDButtonAnnuler, $iAnnul = False, $iDeleteGUI = False, $eGet, $iRapport = 0, $iRapportInsc = 0, $iEteindre = 0, $sInput, $iIDInputInfo, $sProgDes, $t = 0, $sNomFichier = StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.bao"
+	Local $sNomRapportComplet = @LocalAppDataDir & "\bao\" & $sNomFichier
+
 	if $sNom <> "" Then
-		Local $hGUIdes = GUICreate("Désinstallation de BAO", 400, 100)
-		Local $iIDCheckRapport = GUICtrlCreateCheckbox("Afficher/compléter le rapport", 10, 10)
-		Local $iIDCheckEteindre = GUICtrlCreateCheckbox("Eteindre l'ordinateur", 10, 30)
+		$iDeleteGUI = True
+		Local $hGUIdes = GUICreate("Désinstallation de BAO", 400, 120)
+		Local $iIDCheckComplet = GUICtrlCreateCheckbox("Completer automatiquement le rapport", 10, 10)
+		If _FichierCacheExist("Inscription") = 1 Then
+			If _FichierCache("Inscription") = 1 Then
+				GUICtrlSetTip($iIDCheckComplet, "Déjà fait précédemment")
+				GUICtrlSetState($iIDCheckComplet, $GUI_UNCHECKED)
+			Else
+				GUICtrlSetState($iIDCheckComplet, $GUI_CHECKED)
+			EndIf
+		Else
+		GUICtrlSetState($iIDCheckComplet, $GUI_CHECKED)
+		EndIf
+
+		Local $iIDCheckRapport = GUICtrlCreateCheckbox("Afficher le rapport", 10, 30)
+		Local $iIDCheckEteindre = GUICtrlCreateCheckbox("Eteindre l'ordinateur", 10, 50)
 
 		If _FichierCacheExist("Suivi") = 1 Then
 			If _FichierCache("Suivi") > 1 Then
-			GUICtrlCreateLabel("Information de suivi à ajouter :", 200, 10)
-			$iIDInputInfo = GUICtrlCreateInput("", 200, 30)
+			GUICtrlCreateLabel("Information de suivi à ajouter :", 240, 10)
+			$iIDInputInfo = GUICtrlCreateInput("", 240, 30)
 			EndIf
 		EndIf
 
-		$iIDButtonDesinstaller = GUICtrlCreateButton("Désinstaller", 100, 60, 90, 25, $BS_DEFPUSHBUTTON)
-		$iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 60, 90, 25)
+		$iIDButtonDesinstaller = GUICtrlCreateButton("Désinstaller", 100, 80, 90, 25, $BS_DEFPUSHBUTTON)
+		$iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 80, 90, 25)
 
 
 
@@ -45,10 +60,15 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		While $eGet <> $GUI_EVENT_CLOSE And $eGet <> $iIDButtonAnnuler And $eGet <> $iIDButtonDesinstaller
 			$eGet = GUIGetMsg()
 		WEnd
-
+	Else
+		$iAnnul = True
 	EndIf
 
-	If ($eGet = $iIDButtonDesinstaller) Then
+	If ($eGet = $iIDButtonDesinstaller And $iAnnul = False) Then
+
+		If(GUICtrlRead($iIDCheckComplet) = $GUI_CHECKED) Then
+			$iRapportInsc = 1
+		EndIf
 
 		If(GUICtrlRead($iIDCheckRapport) = $GUI_CHECKED) Then
 			$iRapport = 1
@@ -62,46 +82,31 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 			$sInput = GUICtrlRead($iIDInputInfo)
 		EndIf
 
+		$iAnnul = True
+		$iDeleteGUI = False
+
 		GUIDelete()
 	EndIf
 
-	If ($eGet <> $iIDButtonAnnuler) Then
+	If ($iAnnul) Then
+		_FileWriteLog($hLog, "Désinstallation de BAO")
 
 		$sSplashTxt = "Enregistrement des changements apportés"
 		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
-		FileWriteLine($hFichierRapport, "")
-		FileWriteLine($hFichierRapport, "Changements apportés :")
+		_FileWriteLog($hLog, "Enregistrement des changements saisi dans le champs intervention")
 
-		_GetInfoSysteme()
+		_SaveInter()
 
-		If($aListeAvSupp <> "") Then
-
-			Local $aListeApSupp = _ListeProgrammes()
-			$aListeApSupp = _ArrayUnique($aListeApSupp, 0, 0, 0, 0)
-
-			For $sProgAvSupp in $aListeAvSupp
-				If _ArraySearch($aListeApSupp, $sProgAvSupp) = -1 Then
-					$t = $t + 1
-					$sProgDes &= " - " & $sProgAvSupp & @CRLF
-				EndIf
-			Next
-			If $t > 0 Then
-				FileWriteLine($hFichierRapport, " " & $t & " Programme(s) désinstallé(s) : ")
-				FileWrite($hFichierRapport, $sProgDes)
-				FileWriteLine($hFichierRapport, "")
-			EndIf
-		EndIf
-		FileWriteLine($hFichierRapport, " Espace libre sur " & @HomeDrive & " : " & $iFreeSpace & " Go")
-		FileWriteLine($hFichierRapport, "")
-		FileWriteLine($hFichierRapport, "Fin de l'intervention : " & _Now())
-
-		If $iRapport = 1 Then
-			_CompleterRapport()
+		If $iRapportInsc = 1 Then
+			_FileWriteLog($hLog, "Inscription automatique des changements logiciels et matériels")
+			_SaveChangeToInter()
 		EndIf
 
-		Local $sNomFichier = $sDossierRapport & "\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt"
-		FileMove($sDossierRapport & "\Rapport intervention.txt", $sNomFichier, 1)
+		_FileWriteLog($hLog, "Fermeture des logs")
+		FileClose($hLog)
+
+		_CompleterRapport($iRapport, $sNomRapportComplet)
 
 		Local $iRetour = 0
 
@@ -111,13 +116,20 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		If StringLeft(@ScriptDir, 2) <> "\\" Then
 
 			Do
-				$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierRapports & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.txt")
+				$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomRapportComplet, $sFTPDossierRapports & $sNomFichier)
 			Until $iRetour <> -1
 
+		Else
+			Local $aFileToDel = FileReadToArray(@LocalAppDataDir & "\bao\FichierASupprimer.txt")
+			If @error = 0 Then
+				For $sFileToDel In $aFileToDel
+					FileDelete($sFileToDel)
+				Next
+			EndIf
 		EndIf
 
 		If $iRetour = 0 Then
-			FileCopy($sNomFichier, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
+			FileCopy($sNomRapportComplet, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
 			$iRetour = 1
 		EndIf
 
@@ -136,7 +148,9 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		_Uninstall($iEteindre)
 		SplashOff()
 		Exit
-	Else
+	EndIf
+
+	If $iDeleteGUI Then
 		GUIDelete()
 	EndIf
 EndFunc
@@ -152,7 +166,7 @@ Func _ReiniBAO()
 		DirRemove($envChoco, 1)
 	EndIf
 
-	If(_FichierCacheExist("Autologon") = 1 And GUICtrlRead($iIDAutologon) = $GUI_CHECKED) Then
+	If(_FichierCacheExist("Autologon") = 1 And _FichierCache("Autologon") = 1) Then
 		RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 0)
 		RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword")
 	EndIf
@@ -181,7 +195,7 @@ Func _Uninstall($iRep)
 	Run(@ComSpec & ' /c del "' & @DesktopDir & '\ZHPCleaner*"', "", @SW_HIDE)
 
 	If $sRestauration = 1 Then
-		_Restauration("Fin d'intevervention BAO")
+		_Restauration($sSociete & " - Fin d'intevervention")
 	EndIf
 
     If @Compiled And StringLeft(@ScriptDir, 2) = @HomeDrive Then
