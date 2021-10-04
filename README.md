@@ -20,4 +20,5 @@ https://www.isergues.fr/bao.php
 * 7zip :  GNU LGPL
 * PrivaZer : voir licence sur le site
 * Smartmontools : ​GNU GPL.
+* Proaxive : GNU-GPL
 * Les logiciels personnalisables par l'utilisateur sont soumis à leurs licences respectives
