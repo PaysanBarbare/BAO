@@ -24,7 +24,7 @@ Func _TestsStabilite()
 	_ChangerEtatBouton($iIDAction, "Patienter")
 	GUICtrlSetData($statusbar, "Contrôles en cours, patientez")
 
-	Local $iIDrun, $sStress, $sOutput, $aAssoc, $hAssoc, $iBoutonCombo, $iBoutonAssoc, $sReadCombo, $sReadComboVeille, $sComboDefaut
+	Local $iIDrun, $sStress, $sOutput, $aAssoc, $hAssoc, $iBoutonCombo, $iBoutonAssoc, $sReadCombo, $sReadComboVeille, $sComboDefaut, $sDevProb
 	Local $sConfigassoctxt = @ScriptDir & "\Outils\SetUserFTA\config.txt"
 
 	If(FileExists($sConfigassoctxt)) Then
@@ -57,20 +57,22 @@ Func _TestsStabilite()
 
 	GUICtrlCreateGroup("Etat SMART des disques durs", 400, 10, 390,380)
 	GUICtrlSetFont (-1, 9, 800)
-	GUICtrlSetData($statusbarprogress, 10)
+	_FileWriteLog($hLog, 'Vérification SMART dans le centre de contrôles')
 	Local $sSmart = _GetSmart2(0)
 	GUICtrlCreateEdit(StringReplace($sSmart, "[BR]", @CRLF & @TAB), 410, 30, 370, 350)
 
 	GUICtrlCreateGroup("Alignement SSD", 400, 390, 390,200)
 	GUICtrlSetFont (-1, 9, 800)
 	Local $hRichEdit = _GUICtrlRichEdit_Create($hMat, "", 410, 410, 370, 170,  BitOR($ES_MULTILINE, $WS_VSCROLL))
+	_FileWriteLog($hLog, 'Vérification alignement SSD')
 	_AlignementSSD($hRichEdit)
 
 	GUICtrlCreateGroup("Gestionnaire de périphériques", 800, 10, 390,190)
 	GUICtrlSetFont (-1, 9, 800)
 	Local $iBoutonGest = GUICtrlCreateButton("Ouvrir le gestionnaire de périphériques", 900, 30, 200)
 	GUICtrlSetData($statusbarprogress, 50)
-	Local $sDevProb = _DeviceProblems()
+	_FileWriteLog($hLog, 'Recherche des erreurs du gestionnaire de périphériques')
+	$sDevProb = _DeviceProblems()
 	GUICtrlCreateEdit($sDevProb, 810, 60, 370, 130)
 
 	GUICtrlCreateGroup("Etats de veille", 800, 200, 390,190)
@@ -83,6 +85,7 @@ Func _TestsStabilite()
 	;Local $iBoutonFastOn = GUICtrlCreateButton("Activer démarrage rapide", 810, 250, 180)
 	;Local $iBoutonFastOff = GUICtrlCreateButton("Désactiver démarrage rapide", 1000, 250, 180)
 	GUICtrlSetData($statusbarprogress, 75)
+	_FileWriteLog($hLog, 'Vérification états veille')
 	Local $sHib = _HibernateTest()
 	Local $sEditPower = GUICtrlCreateEdit(_OEMToAnsi($sHib), 810, 280, 370, 100)
 
@@ -117,6 +120,7 @@ Func _TestsStabilite()
 		Switch $idMsgInst
 
 			Case $iButtonMemoire
+				_FileWriteLog($hLog, 'Test de mémoire vive demandé')
 				_TestsMemoire()
 
 			Case $iButtonRess
@@ -150,6 +154,7 @@ Func _TestsStabilite()
 
 			Case $iBoutonAssocALL
 				GUICtrlSetState($iBoutonAssocALL, $GUI_DISABLE)
+				_FileWriteLog($hLog, 'Association avec fichier config')
 				Run( @ComSpec & ' /c ""' & @ScriptDir & '\Outils\SetUserFTA\SetUserFTA.exe" "' & $sConfigassoctxt & '""', "", @SW_HIDE)
 				_GetConfigAssoc($aAssoc, $sEditAssoc)
 				GUICtrlSetState($iBoutonAssocALL, $GUI_ENABLE)
@@ -158,6 +163,7 @@ Func _TestsStabilite()
 				$sReadCombo = GUICtrlRead($iBoutonCombo)
 				if $sReadCombo <> "" Then
 					GUICtrlSetState($iBoutonAssoc, $GUI_DISABLE)
+					_FileWriteLog($hLog, 'Association : ' & StringReplace($sReadCombo, " = ", " "))
 					Run( @ComSpec & ' /c "' & @ScriptDir & '\Outils\SetUserFTA\SetUserFTA.exe" ' & StringReplace($sReadCombo, " = ", " "), "", @SW_HIDE)
 					_GetConfigAssoc($aAssoc, $sEditAssoc)
 					GUICtrlSetState($iBoutonAssoc, $GUI_ENABLE)
@@ -173,6 +179,7 @@ Func _TestsStabilite()
 			Case $iBoutonVeille
 				GUICtrlSetState($iBoutonVeille, $GUI_DISABLE)
 				$sReadComboVeille = GUICtrlRead($iBoutonComboVeille)
+				_FileWriteLog($hLog, 'Changement veille')
 				Switch $sReadComboVeille
 					Case "Activer veille prolongée AVEC démarrage rapide"
 						$iIDrun = Run( @ComSpec & ' /c powercfg /hibernate On', "",@SW_HIDE)
@@ -205,6 +212,7 @@ Func _TestsStabilite()
 				GUICtrlSetState($iBoutonVeille, $GUI_ENABLE)
 
 			Case $iBoutonCalc
+				_FileWriteLog($hLog, 'Calcul des indices de performance')
 				GUICtrlSetState($iBoutonCalc, $GUI_DISABLE)
 				$iIDrun = Run( @ComSpec & ' /c winsat prepop')
 				ProcessWaitClose($iIDrun)
@@ -380,37 +388,40 @@ Func _AlignementSSD($iIDEditAlign)
 
 	local $aDisk[0][2]
 	Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\Microsoft\Windows\Storage")
-	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from MSFT_PhysicalDisk")
+	If @error = 0 Then
+		Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from MSFT_PhysicalDisk")
 
-	Local $Obj_Item, $sColor = "0x006600", $sOffset = "Aligné", $y = 410, $j = 0, $isize
+		Local $sColor = "0x006600", $sOffset = "Aligné", $y = 410, $j = 0, $isize
 
-	For $Obj_Item In $Obj_Services
-		If $Obj_Item.MediaType=4 Then
-			ReDim $aDisk[$j + 1][2]
-			$aDisk[$j][0] = $Obj_Item.DeviceId
-			$aDisk[$j][1] = $Obj_Item.FriendlyName
-			$j+=1
-		EndIf
-	Next
-
-	If UBound($aDisk) > 0 Then
-		For $i=0 To UBound($aDisk)-1
-			_GUICtrlRichEdit_WriteLine($iIDEditAlign, "Disque " & $aDisk[$i][0] & " : " & $aDisk[$i][1], 0, "", "0x000000")
-			Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from MSFT_Partition where DiskNumber = " & $aDisk[$i][0])
-			Local $Obj_Item
-			For $Obj_Item In $Obj_Services
-				$isize = Round($Obj_Item.Size / (1024 * 1024 * 1024))
-				If $isize > 1 Then
-					If IsFloat($Obj_Item.Offset / 1024) Then
-						$sOffset = "Non aligné"
-						$sColor = "0xff0000"
-					EndIf
-
-					_GUICtrlRichEdit_WriteLine($iIDEditAlign, @TAB & "Partition " & $Obj_Item.PartitionNumber & " (" & Round($Obj_Item.Size / (1024 * 1024 * 1024)) & " Go) : " & $sOffset, 0, "", $sColor)
-				EndIf
-			Next
-			_GUICtrlRichEdit_AppendText($iIDEditAlign, @CRLF)
+		For $Obj_Item In $Obj_Services
+			If $Obj_Item.MediaType=4 Then
+				ReDim $aDisk[$j + 1][2]
+				$aDisk[$j][0] = $Obj_Item.DeviceId
+				$aDisk[$j][1] = $Obj_Item.FriendlyName
+				$j+=1
+			EndIf
 		Next
-	EndIf
 
+		If UBound($aDisk) > 0 Then
+			For $i=0 To UBound($aDisk)-1
+				_GUICtrlRichEdit_WriteLine($iIDEditAlign, "Disque " & $aDisk[$i][0] & " : " & $aDisk[$i][1], 0, "", "0x000000")
+				Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from MSFT_Partition where DiskNumber = " & $aDisk[$i][0])
+				Local $Obj_Item
+				For $Obj_Item In $Obj_Services
+					$isize = Round($Obj_Item.Size / (1024 * 1024 * 1024))
+					If $isize > 1 Then
+						If IsFloat($Obj_Item.Offset / 1024) Then
+							$sOffset = "Non aligné"
+							$sColor = "0xff0000"
+						EndIf
+
+						_GUICtrlRichEdit_WriteLine($iIDEditAlign, @TAB & "Partition " & $Obj_Item.PartitionNumber & " (" & Round($Obj_Item.Size / (1024 * 1024 * 1024)) & " Go) : " & $sOffset, 0, "", $sColor)
+					EndIf
+				Next
+				_GUICtrlRichEdit_AppendText($iIDEditAlign, @CRLF)
+			Next
+		EndIf
+	Else
+		_GUICtrlRichEdit_AppendText($iIDEditAlign, "Erreur : ne peut être vérifié avec cet outil")
+	EndIf
 EndFunc

@@ -23,14 +23,15 @@ Func _InstallationPilotes()
 	If(StringLeft($sNom, 4) = "Tech") Then
 		_FileWriteLog($hLog, 'Téléchargement de la base de données de pilotes')
 		_UpdEdit($iIDEditLog, $hLog)
-		_Telecharger("SDI.zip", ($aMenu["SDI.zip"])[2])
-		Local $sDocexe = _Executer("SDI.zip", "", 1)
-		Run(@ComSpec & ' /c autoupdate.bat', $sDocexe)
+		_Telecharger($aMenu["SDI"])
+		Local $sDocexe = _Executer("SDI", "", 1)
+		Run(@ComSpec & ' /c "' & $sDocexe & '\autoupdate.bat"', $sDocexe)
+		;_Debug(@ComSpec & ' /c "' & $sDocexe & 'autoupdate.bat"')
 	Else
 		_FileWriteLog($hLog, 'Recherche et installation de pilotes manquants')
 		_UpdEdit($iIDEditLog, $hLog)
-		_Telecharger("SDI.zip", ($aMenu["SDI.zip"])[2])
-		_Executer("SDI.zip")
+		_Telecharger($aMenu["SDI"])
+		_Executer("SDI")
 	EndIf
 	_ChangerEtatBouton($iIDAction, "Desactiver")
 EndFunc

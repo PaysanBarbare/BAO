@@ -61,7 +61,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "0.7.2" ; 28/09/21
+Global $sVersion = "1.0.0" ; 28/09/21
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -90,7 +90,7 @@ Global $sVersion = "0.7.2" ; 28/09/21
 #include <Process.au3>
 #include <ProgressConstants.au3>
 #include <SQLite.au3>
-#include <SQLite.dll.au3>
+;#include <SQLite.dll.au3>
 #include <StaticConstants.au3>
 #include <String.au3>
 #include <StringConstants.au3>
@@ -167,6 +167,7 @@ Const $sConfig = @ScriptDir & "\config.ini"
 #include "UDF\_FTP.au3"
 #include "UDF\_Infosys.au3"
 #include "UDF\_Installation.au3"
+#include "UDF\_Menu.au3"
 #include "UDF\_Mdp.au3"
 #include "UDF\_MiseAJour.au3"
 #include "UDF\_PowerKeepAlive.au3"
@@ -269,7 +270,7 @@ Else
 ;~ 	EndIf
 EndIf
 
-If(FileExists(@ScriptDir & "\Liens\") = 0) Then _Erreur('Dossier "Liens" manquant')
+If(FileExists(@ScriptDir & "\Logiciels\") = 0) Then _Erreur('Dossier "Logiciels" manquant')
 
 ; initialisation désinfection
 $sListeProgdes = _StringExplode(IniRead($sConfig, "Desinfection", "Programmes de desinfection", "Privazer RogueKiller AdwCleaner MalwareByte ZHPCleaner"), " ")
@@ -294,13 +295,15 @@ Local $iIDButtonScripts
 ; Soit :
 Local $iFonctions = 7
 
-$hGUIBAO = GUICreate($sSociete & " - Boîte A Outils (bêta) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+$hGUIBAO = GUICreate($sSociete & " - Boîte A Outils (alpha) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 
 $statusbar = GUICtrlCreateLabel("", 10, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 410, 20, $SS_CENTERIMAGE)
 $statusbarprogress = GUICtrlCreateProgress(440, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 250, 20)
 $iIDCancelDL = GUICtrlCreateButton("Passer / Annuler", 700, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 150, 20)
 GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
 GUICtrlSetFont($statusbar, 11)
+
+Local $iIDMenu1clearcache, $iIDMenu1update, $iIDMenu1copier, $iIDMenu1sfx, $iIDMenu2index
 
 Local $iIDMenu1 = GUICtrlCreateMenu("&Configuration")
 Local $iIDMenu1config = GUICtrlCreateMenuItem("Editer config.ini", $iIDMenu1)
@@ -309,10 +312,13 @@ Local $iIDMenu1dossier = GUICtrlCreateMenuItem("Ouvrir dossier du programme", $i
 Local $iIDMenu1dossierAppdata = GUICtrlCreateMenuItem("Ouvrir dossier AppData", $iIDMenu1)
 Local $iIDMenu1reini = GUICtrlCreateMenuItem("Reinitialiser BAO", $iIDMenu1)
 Local $iIDMenu1tech = GUICtrlCreateMenuItem("Passer en mode Tech/Client", $iIDMenu1)
-Local $iIDMenu1clearcache = GUICtrlCreateMenuItem("Effacer le cache installation (Tech)", $iIDMenu1)
-Local $iIDMenu1update = GUICtrlCreateMenuItem("Tout mettre à jour (Tech)", $iIDMenu1)
-Local $iIDMenu1copier = GUICtrlCreateMenuItem("Copier BAO sur support externe (Tech)", $iIDMenu1)
-Local $iIDMenu1sfx = GUICtrlCreateMenuItem("Créer archive SFX (Tech)", $iIDMenu1)
+
+If(StringLeft($sNom, 4) = "Tech") Then
+	$iIDMenu1clearcache = GUICtrlCreateMenuItem("Effacer le cache installation", $iIDMenu1)
+	$iIDMenu1update = GUICtrlCreateMenuItem("Tout mettre à jour", $iIDMenu1)
+	$iIDMenu1copier = GUICtrlCreateMenuItem("Copier BAO sur support externe", $iIDMenu1)
+	$iIDMenu1sfx = GUICtrlCreateMenuItem("Créer archive SFX", $iIDMenu1)
+EndIf
 
 Local $iIDMenu2 = GUICtrlCreateMenu("&Suivi")
 Local $iIDMenu2ajout = GUICtrlCreateMenuItem("Nouveau code de suivi", $iIDMenu2)
@@ -325,69 +331,103 @@ Else
 	$iIDMenu2supp = GUICtrlCreateMenuItem("Supprimer un code de suivi", $iIDMenu2)
 EndIf
 
-Local $iIDMenu2index = GUICtrlCreateMenuItem("Créer index.php sur le serveur FTP (Tech)", $iIDMenu2)
+If(StringLeft($sNom, 4) = "Tech") Then
+	$iIDMenu2index = GUICtrlCreateMenuItem("Créer index.php sur le serveur FTP", $iIDMenu2)
+EndIf
 
 If(_FichierCacheExist("Suivi") = 0) Then
 	GUICtrlSetState($iIDMenu2, $GUI_DISABLE)
 EndIf
 
-
-If(StringLeft($sNom, 4) <> "Tech") Then
-	GUICtrlSetState($iIDMenu1clearcache, $GUI_DISABLE)
-	GUICtrlSetState($iIDMenu1update, $GUI_DISABLE)
-	GUICtrlSetState($iIDMenu1copier, $GUI_DISABLE)
-	GUICtrlSetState($iIDMenu1sfx, $GUI_DISABLE)
-	GUICtrlSetState($iIDMenu2index, $GUI_DISABLE)
-EndIf
-
-Local $aDoc = _FileListToArray(@ScriptDir & "\Liens\", "*", 2)
+Local $aDoc = _FileListToArrayRec(@ScriptDir & "\Logiciels\", "*.ini", 1, 0, 1)
 Local $sHeure, $iMin = @MIN
 Local $i, $j, $iPremElement, $iDernElement, $x = 70
 
 Local $iIDMenuLog = GUICtrlCreateMenu("Logiciels")
 
 $iPremElement = $iIDMenuLog + 1
-Local $aTemp, $iIDMenuDoc, $aTempLog[3], $sNomLog, $sURL, $sIDSM, $aShortcut
+Local $aTemp, $iIDMenuDoc, $aTempLog[12], $sNomLog, $aShortcut, $aLogMenu, $sIDSM, $iToDel, $iToOpen, $iToRen
 
 For $i = 1 To $aDoc[0]
 
-	If @OSArch = "X64" Then
-		$aTemp = _FileListToArrayRec(@ScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x86.url")
-	Else
-		$aTemp = _FileListToArrayRec(@ScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x64.url")
-	EndIf
+;~ 	If @OSArch = "X64" Then
+;~ 		$aTemp = _FileListToArrayRec(@ScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x86.url")
+;~ 	Else
+;~ 		$aTemp = _FileListToArrayRec(@ScriptDir & "\Liens\" & $aDoc[$i], "*.url;*.txt;*.lnk|*-x64.url")
+;~ 	EndIf
 
-	If	@error <> 1 Then
-		If $aDoc[$i] <> "Favoris" Then
-			$iIDMenuDoc = GUICtrlCreateMenu($aDoc[$i], $iIDMenuLog)
-		EndIf
+	$iIDMenuDoc = GUICtrlCreateMenu(StringTrimRight($aDoc[$i], 4), $iIDMenuLog)
 
-		For $j = 1 To $aTemp[0]
-			$sNomLog = StringTrimRight($aTemp[$j], 4)
-			If(StringRight($aTemp[$j], 3) = "url") Then
-				$sURL = IniRead( @ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j], "InternetShortcut","URL", "ERROR")
-			ElseIf(StringRight($aTemp[$j], 3) = "lnk") Then
-				$aShortcut = FileGetShortcut(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
-				$sURL = $aShortcut[0]
-			Else
-				$sURL = FileReadLine(@ScriptDir & "\Liens\" & $aDoc[$i] & "\" & $aTemp[$j])
-			EndIf
-			If $aDoc[$i] <> "Favoris" Then
-				$sIDSM = GUICtrlCreateMenuItem($sNomLog, $iIDMenuDoc)
-			Else
-				$sIDSM = GUICtrlCreateButton($sNomLog, 700, $x, 150, 25)
-				$x = $x + 25
-			EndIf
+	$aLogMenu = IniReadSectionNames(@ScriptDir & "\Logiciels\" & $aDoc[$i])
+
+	If IsArray($aLogMenu) Then
+		For $j = 1 To $aLogMenu[0]
+			$sNomLog = $aLogMenu[$j]
+
+			$sIDSM = GUICtrlCreateMenuItem($sNomLog, $iIDMenuDoc)
+
 			$aTempLog[0] = $sIDSM
 			$aTempLog[1] = $sNomLog
-			$aTempLog[2] = $sURL
-			; on stocke dans le tableau l'id du menu et l'url
+			$aTempLog[2] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "lien", "0" )
+			$aTempLog[3] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "site", "0" )
+			$aTempLog[4] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "forcedl", "0" )
+			$aTempLog[5] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "headers", "0" )
+			$aTempLog[6] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "motdepasse", "0" )
+			$aTempLog[7] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "favoris", "0" )
+			$aTempLog[8] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "extension", "" )
+			$aTempLog[9] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "domaine", "" )
+			$aTempLog[10] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "nepasmaj", "0" )
+			$aTempLog[11] = $aDoc[$i]
+
+			; Construction de deux Maps (un trié par nom et l'autre par ID menu
 			$aMenu[$sNomLog] = $aTempLog
 			$aMenuID[$sIDSM] = $aTempLog
 
+			If $aTempLog[7] = 1 Then
+				$sIDSM = GUICtrlCreateButton($sNomLog, 700, $x, 150, 25)
+				$x = $x + 25
+				$aTempLog[11] = -1
+				$aMenuID[$sIDSM] = $aTempLog
+			EndIf
+
 		Next
+ 	EndIf
+	If(StringLeft($sNom, 4) = "Tech") Then
+		GUICtrlCreateMenuItem("", $iIDMenuDoc)
+		$iToOpen = GUICtrlCreateMenuItem("Modifier les logiciels", $iIDMenuDoc)
+		$aTempLog[0] = "Open"
+		$aTempLog[1] = $aDoc[$i]
+		$aMenuID[$iToOpen] = $aTempLog
+		$iToRen = GUICtrlCreateMenuItem("Renommer ce dossier", $iIDMenuDoc)
+		$aTempLog[0] = "Rename"
+		$aTempLog[1] = $aDoc[$i]
+		$aMenuID[$iToRen] = $aTempLog
+		$iToDel = GUICtrlCreateMenuItem("Supprimer ce dossier", $iIDMenuDoc)
+		$aTempLog[0] = "Delete"
+		$aTempLog[1] = $aDoc[$i]
+		$aMenuID[$iToDel] = $aTempLog
+	Else
+		GUICtrlCreateDummy()
+		GUICtrlCreateDummy()
+		GUICtrlCreateDummy()
+		GUICtrlCreateDummy()
 	EndIf
 Next
+
+Local $iIDMenuAddDoc, $iIDMenuAdd, $iIDMenuManu
+
+If(StringLeft($sNom, 4) = "Tech") Then
+	GUICtrlCreateMenuItem("", $iIDMenuLog)
+	$iIDMenuAdd = GUICtrlCreateMenuItem("Ajouter un lien/logiciel", $iIDMenuLog)
+	$iIDMenuAddDoc = GUICtrlCreateMenuItem("Ajouter un dossier", $iIDMenuLog)
+	$iIDMenuManu = GUICtrlCreateMenuItem("Modifier manuellement", $iIDMenuLog)
+Else
+	GUICtrlCreateDummy()
+	GUICtrlCreateDummy()
+	GUICtrlCreateDummy()
+	GUICtrlCreateDummy()
+EndIf
+
 
 $iDernElement = $sIDSM
 Local $iIDMenuVar = GUICtrlCreateMenu("Var. env.")
@@ -469,7 +509,7 @@ GUICtrlSetFont(-1, Default, 600)
 
 $iIDButtonBureaudistant = GUICtrlCreateButton("Bureau distant", 10, 50, 150, 25)
 $iIDButtonInstallation = GUICtrlCreateButton("Installation", 10, 80, 150, 25)
-$iIDButtonSauvegarde = GUICtrlCreateButton("Sauvegarde", 10, 110, 150, 25)
+$iIDButtonSauvegarde = GUICtrlCreateButton("Sauvegarde et restauration", 10, 110, 150, 25)
 $iIDButtonWU = GUICtrlCreateButton("Windows et Office", 10, 140, 150, 25)
 $iIDButtonPilotes = GUICtrlCreateButton("Pilotes", 10, 170, 150, 25)
 $iIDButtonStabilite = GUICtrlCreateButton("Centre de contrôles", 10, 200, 150, 25)
@@ -542,13 +582,26 @@ _GUICtrlListView_SetColumnWidth($idListInfosys, 0, 130)
 _GUICtrlListView_SetColumnWidth($idListInfosys, 1, 360)
 Local $iIDTABInstall = GUICtrlCreateTabItem("Intervention")
 $iIDEditInter = GUICtrlCreateEdit("", 180, 80, 300, 190)
-GUICtrlCreateGroup("Modèles", 490, 80, 190, 160)
-Local $idSampleMessage = GUICtrlCreateTreeView(490, 100, 170, 130)
+GUICtrlCreateGroup("Modèles", 490, 80, 190, 130)
+Local $idSampleMessage = GUICtrlCreateTreeView(490, 100, 170, 90)
 Local $aModele = _FileListToArray(@ScriptDir & '\Config\Modeles\', "*.txt")
 Local $iIDTVModele[$aModele[0]]
 For $i = 1 To $aModele[0]
 	$iIDTVModele[$i-1] = GUICtrlCreateTreeViewItem(StringTrimRight($aModele[$i], 4), $idSampleMessage)
 Next
+Local $iNumRapport = 0, $iIDBoutonVoirOld
+Local $aRapportsOld = _FileListToArray(@AppDataCommonDir & "\BAO\", "*.bao")
+If @error = 0 Then
+	$iNumRapport = $aRapportsOld[0]
+Else
+	$iNumRapport = 0
+EndIf
+
+$iIDBoutonVoirOld = GUICtrlCreateButton("Consulter anciens rapports (" & $iNumRapport & ")", 490, 215, 190)
+If $iNumRapport = 0 Then
+	GUICtrlSetState(-1, $GUI_DISABLE)
+EndIf
+
 $iIDBoutonInscMat = GUICtrlCreateButton("Inscrire changements log/mat", 490, 245, 190)
 GUICtrlSetTip(-1, "Enregistre les changements logiciels et matériels dans le rapport")
 GUICtrlCreateLabel("Logiciels installés :", 180, 280)
@@ -593,7 +646,7 @@ If _FichierCacheExist("Restauration") = 0 Then
 	EndIf
 EndIf
 
-Local $stdoutwu, $datawu, $iFreeSpacech
+Local $stdoutwu, $datawu, $iFreeSpacech, $tmpSearch, $sRepDF
 
 SplashOff()
 
@@ -630,222 +683,271 @@ While 1
 
 	EndIf
 
-	Switch $iIDAction
+	if $iIDAction <> 0 Then
 
-		Case $iIDCheckboxwu
-			If(GUICtrlRead($iIDCheckboxwu) = $GUI_CHECKED) Then
-				_FileWriteLog($hLog, 'Arrêt de WU')
-				_UpdEdit($iIDEditLog, $hLog)
-				RunWait(@ComSpec & ' /c net stop wuauserv & net stop bits & net stop dosvc', '', @SW_HIDE)
-				_FichierCache("WUInactif", 1)
-			Else
-				_FileWriteLog($hLog, 'Démarrage de WU')
-				_UpdEdit($iIDEditLog, $hLog)
-				RunWait(@ComSpec & ' /c net start wuauserv & net start bits & net start dosvc', '', @SW_HIDE)
-				_FichierCache("WUInactif", -1)
-			EndIf
+		Switch $iIDAction
 
-		Case $iIDRestau
-			_Restauration()
-
-		Case $iIDAutologon
-
-			Local $sDomaine
-			If(GUICtrlRead($iIDAutologon) = $GUI_CHECKED) Then
-				_FileWriteLog($hLog, 'Activation Autologon')
-				_UpdEdit($iIDEditLog, $hLog)
-				$sSubKey = RegEnumKey("HKEY_USERS\.DEFAULT\Software\Microsoft\IdentityCRL\StoredIdentities", 1)
-				If $sSubKey = "" Then
-					$sAutoUser = @UserName
+			Case $iIDCheckboxwu
+				If(GUICtrlRead($iIDCheckboxwu) = $GUI_CHECKED) Then
+					_FileWriteLog($hLog, 'Arrêt de WU')
+					_UpdEdit($iIDEditLog, $hLog)
+					RunWait(@ComSpec & ' /c net stop wuauserv & net stop bits & net stop dosvc', '', @SW_HIDE)
+					_FichierCache("WUInactif", 1)
 				Else
-					$sAutoUser = "MicrosoftAccount\" & $sSubKey
+					_FileWriteLog($hLog, 'Démarrage de WU')
+					_UpdEdit($iIDEditLog, $hLog)
+					RunWait(@ComSpec & ' /c net start wuauserv & net start bits & net start dosvc', '', @SW_HIDE)
+					_FichierCache("WUInactif", -1)
 				EndIf
 
-				$sMdps = InputBox("Mot de passe de session", "Entrez votre mot de passe de session pour" & @CRLF & '"' & $sAutoUser & '"', "", "*")
+			Case $iIDRestau
+				_Restauration()
 
-				If $sMdps <> "" Then
-					$sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
-					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 1)
-					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName","REG_SZ", @UserName)
-					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword","REG_SZ", $sMdps)
-					If($sDomaine <> "") Then
-						RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain","REG_SZ", $sDomaine)
+			Case $iIDAutologon
+
+				Local $sDomaine
+				If(GUICtrlRead($iIDAutologon) = $GUI_CHECKED) Then
+					_FileWriteLog($hLog, 'Activation Autologon')
+					_UpdEdit($iIDEditLog, $hLog)
+					$sSubKey = RegEnumKey("HKEY_USERS\.DEFAULT\Software\Microsoft\IdentityCRL\StoredIdentities", 1)
+					If $sSubKey = "" Then
+						$sAutoUser = @UserName
+					Else
+						$sAutoUser = "MicrosoftAccount\" & $sSubKey
 					EndIf
-					_FichierCache("Autologon", 1)
-				Else
-					GUICtrlSetState($iIDAutologon, $GUI_UNCHECKED)
+
+					$sMdps = InputBox("Mot de passe de session", "Entrez votre mot de passe de session pour" & @CRLF & '"' & $sAutoUser & '"', "", "*")
+
+					If $sMdps <> "" Then
+						$sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
+						RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 1)
+						RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName","REG_SZ", @UserName)
+						RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword","REG_SZ", $sMdps)
+						If($sDomaine <> "") Then
+							RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain","REG_SZ", $sDomaine)
+						EndIf
+						_FichierCache("Autologon", 1)
+					Else
+						GUICtrlSetState($iIDAutologon, $GUI_UNCHECKED)
+						_FichierCache("Autologon", 2)
+					EndIf
+				ElseIf(GUICtrlRead($iIDAutologon) = $GUI_UNCHECKED) Then
+					_FileWriteLog($hLog, 'Désactivation Autologon')
+					$sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
+					_UpdEdit($iIDEditLog, $hLog)
+					RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 0)
+					RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName")
+					RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword")
+					If($sDomaine <> "") Then
+						RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain")
+					EndIf
 					_FichierCache("Autologon", 2)
 				EndIf
-			ElseIf(GUICtrlRead($iIDAutologon) = $GUI_UNCHECKED) Then
-				_FileWriteLog($hLog, 'Désactivation Autologon')
-				$sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
+
+			Case $GUI_EVENT_CLOSE
+				_SaveInter()
+				RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")
+				Exit
+
+			Case $iIDButtonQuit
+				_SaveInter()
+				RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")
+				Exit
+
+			Case $iIDMenu1config
+				ShellExecuteWait($sConfig)
+
+			Case $iIDMenu1dossier
+				Run("explorer.exe " & @ScriptDir)
+
+			Case $iIDMenu1dossierAppdata
+				ShellExecute(@LocalAppDataDir & "\bao")
+
+			Case $iIDMenu1dossierRapport
+				ShellExecute($sDossierRapport)
+
+			Case $iIDMenu1clearcache
+
+				_FileWriteLog($hLog, 'Suppression du Cache')
 				_UpdEdit($iIDEditLog, $hLog)
-				RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 0)
-				RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName")
-				RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword")
-				If($sDomaine <> "") Then
-					RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain")
+				_ClearCache()
+
+			Case $iIDMenu1update
+
+				_FileWriteLog($hLog, 'Mise à jour de tous les logiciels')
+				_UpdEdit($iIDEditLog, $hLog)
+				_UpdateProg()
+
+			Case $iIDMenu1copier
+
+				_CopierSur()
+
+			Case $iIDMenu1sfx
+
+				_CreerSfx($sFTPAdresse, $sFTPUser, $sFTPPort)
+
+			Case $iIDMenu1reini
+
+				_ReiniBAO()
+				_Restart()
+
+			Case $iIDMenu1tech
+
+				_ChangerMode()
+				_Restart()
+
+			Case $iIDMenu2ajout
+
+				_CreerIDSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
+
+			Case $iIDMenu2completer
+
+				_CompleterSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
+
+			Case $iIDMenu2supp
+
+				_SupprimerSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
+
+			Case $iIDMenu2index
+
+				_CreerIndex($sFTPAdresse, $sFTPUser, $sFTPPort)
+
+			Case $iIDMenuAdd
+				_MenuAdd()
+
+			Case $iIDMenuAddDoc
+				_MenuAddDoc()
+
+			Case $iIDMenuManu
+				Run("explorer.exe " & @ScriptDir & "\Logiciels\")
+				_Attention("Merci de relancer BAO après avoir terminé vos changements")
+				Exit
+
+			Case $sIDVarALLUSERSPROFILE, $sIDVarAPPDATA, $sIDVarLOCALAPPDATA, $sIDVarProgramData, $sIDVarProgramFiles, $sIDVarProgramFiles86, $sIDVarPUBLIC, $sIDVarTEMP, $sIDVarTMP, $sIDVarUSERPROFILE, $sIDVarwindir
+
+				Local $sVarValue = EnvGet(GUICtrlRead($iIDAction, 1))
+
+				If($sVarValue and StringInStr($sVarValue, "\")) Then
+					ShellExecute($sVarValue)
+				Else
+					_Attention("Cette variable d'environnement n'exite pas ou n'est pas un dossier")
 				EndIf
-				_FichierCache("Autologon", 2)
-			EndIf
 
-		Case $GUI_EVENT_CLOSE
-			_SaveInter()
-			RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")
-			Exit
+			Case $iIDTAB
+				_SaveInter()
+				If GUICtrlRead($iIDTAB, 1) = $iIDTABInstall Then
+					_CalculProgDesinstallation()
+					_UpdEdit($iIDEditLogDesinst, $sFileDesinstallation)
+				EndIf
 
-		Case $iIDButtonQuit
-			_SaveInter()
-			RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")
-			Exit
+			Case $iIDTVModele[0] To $iIDTVModele[$aModele[0] - 1]
+				_SaveInter()
+				_GetModele(GUICtrlRead($idSampleMessage, 1))
 
-		Case $iIDMenu1config
-			ShellExecuteWait($sConfig)
+			Case $iIDBoutonInscMat
+				_SaveChangeToInter()
 
-		Case $iIDMenu1dossier
-			Run("explorer.exe " & @ScriptDir)
+			Case $iIDBoutonVoirOld
+				ShellExecute(@AppDataCommonDir & "\BAO\")
 
-		Case $iIDMenu1dossierAppdata
-			ShellExecute(@LocalAppDataDir & "\bao")
+			Case $iIDButtonClear
+				FileClose($hLog)
+				FileDelete($sFileLog)
+				FileOpen($sFileLog, 1)
+				_UpdEdit($iIDEditLog, $hLog)
 
-		Case $iIDMenu1dossierRapport
-			ShellExecute($sDossierRapport)
+			Case $iIDButtonBureaudistant
 
-		Case $iIDMenu1clearcache
+				_BureauDistant()
 
-			_FileWriteLog($hLog, 'Suppression du Cache')
-			_UpdEdit($iIDEditLog, $hLog)
-			_ClearCache()
+			Case $iIDButtonInstallation
 
-		Case $iIDMenu1update
+				_InstallationAutomatique()
 
-			_FileWriteLog($hLog, 'Mise à jour de tous les logiciels')
-			_UpdEdit($iIDEditLog, $hLog)
-			_UpdateProg()
+			Case $iIDButtonSauvegarde
 
-		Case $iIDMenu1copier
+				_SauvegardeAutomatique()
 
-			_CopierSur()
+			Case $iIDButtonWU
 
-		Case $iIDMenu1sfx
+				_MiseAJourOS()
 
-			_CreerSfx($sFTPAdresse, $sFTPUser, $sFTPPort)
+			Case $iIDButtonPilotes
 
-		Case $iIDMenu1reini
+				_InstallationPilotes()
 
-			_ReiniBAO()
-			Exit
+			Case $iIDButtonStabilite
 
-		Case $iIDMenu1tech
+				_TestsStabilite()
 
-			_ChangerMode()
-			Exit
+			Case $iIDButtonScripts
 
-		Case $iIDMenu2ajout
+				_Scripts()
 
-			_CreerIDSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
+			Case $iIDButtonNettoyage
 
-		Case $iIDMenu2completer
+				_Nettoyage()
+				GUICtrlSetState($iIDTABInstall, $GUI_SHOW)
 
-			_CompleterSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
+			Case $iIDButtonNettoyage + 1 to $iIDButtonResetBrowser -1 ; Désinfection
 
-		Case $iIDMenu2supp
+				_NettoyageProg($aButtonDes)
 
-			_SupprimerSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
+			Case $iIDButtonResetBrowser
 
-		Case $iIDMenu2index
+				_ResetBrowser()
 
-			_CreerIndex($sFTPAdresse, $sFTPUser, $sFTPPort)
+			Case $iIDButtonEnvoi
 
-		Case $sIDVarALLUSERSPROFILE, $sIDVarAPPDATA, $sIDVarLOCALAPPDATA, $sIDVarProgramData, $sIDVarProgramFiles, $sIDVarProgramFiles86, $sIDVarPUBLIC, $sIDVarTEMP, $sIDVarTMP, $sIDVarUSERPROFILE, $sIDVarwindir
+				_ExporterRapport()
 
-			Local $sVarValue = EnvGet(GUICtrlRead($iIDAction, 1))
+			Case $iPremElement To $iDernElement
 
-			If($sVarValue and StringInStr($sVarValue, "\")) Then
-				ShellExecute($sVarValue)
-			Else
-				_Attention("Cette variable d'environnement n'exite pas ou n'est pas un dossier")
-			EndIf
+				If ($aMenuID[$iIDAction])[0] = "Open" Then
+					ShellExecuteWait(@ScriptDir & "\Logiciels\" & ($aMenuID[$iIDAction])[1])
+					_Restart()
+				ElseIf ($aMenuID[$iIDAction])[0] = "Rename" Then
+					$sRepDF = InputBox("Renommer le dossier " & StringTrimRight(($aMenuID[$iIDAction])[1], 4), 'Choisissez un nouveau nom pour "' & StringTrimRight(($aMenuID[$iIDAction])[1], 4) & '" :')
+					If $sRepDF <> "" Then
+						If FileExists(@ScriptDir & "\Logiciels\" & $sRepDF & ".ini") = 0 Then
+							If FileMove(@ScriptDir & "\Logiciels\" & ($aMenuID[$iIDAction])[1], @ScriptDir & "\Logiciels\" & $sRepDF & ".ini") Then
+								_FileWriteLog($hLog, 'Le fichier "' & ($aMenuID[$iIDAction])[1] & '" a été renommé en "' & $sRepDF & '.ini"')
+								_Restart()
+							Else
+								_Attention("Le dossier n'a pas pu être renommé")
+							EndIf
+						Else
+							_Attention('Le dossier "' & $sRepDF & '" existe déjà')
+						EndIf
+					Else
+						_Attention("Erreur : Merci de rentrer un nom")
+					EndIf
+				ElseIf ($aMenuID[$iIDAction])[0] = "Delete" Then
+					$sRepDF = MsgBox($MB_YESNO, "Suppression ...", 'Etes vous sûr de vouloir supprimer le dossier "' & StringTrimRight(($aMenuID[$iIDAction])[1], 4) & '" ainsi que son contenu ?')
+					If ($sRepDF = 6) Then
+						FileDelete(@ScriptDir & "\Logiciels\" & ($aMenuID[$iIDAction])[1])
+						_Restart()
+					EndIf
+				Else
+					If StringLeft($sNom, 4) = "Tech" And ($aMenuID[$iIDAction])[11] <> -1 Then
+						_MenuMod($aMenuID[$iIDAction])
+					Else
+						_ExecuteProg()
+					EndIf
+				EndIf
 
-		Case $iIDTAB
-			If GUICtrlRead($iIDTAB, 1) = $iIDTABInstall Then
-				_CalculProgDesinstallation()
-				_UpdEdit($iIDEditLogDesinst, $sFileDesinstallation)
-			EndIf
+			Case $iIDButtonUninstall
 
-		Case $iIDTVModele[0] To $iIDTVModele[$aModele[0] - 1]
-			_SaveInter()
-			_GetModele(GUICtrlRead($idSampleMessage, 1))
+				_DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 
-		case $iIDBoutonInscMat
-			_SaveChangeToInter()
+			Case $sIDHelp
 
-		Case $iIDButtonClear
-			FileClose($hLog)
-			FileDelete($sFileLog)
-			FileOpen($sFileLog, 1)
-			_UpdEdit($iIDEditLog, $hLog)
+				ShellExecute("https://boiteaoutils.notion.site/boiteaoutils/Bo-te-A-Outils-BAO-a8530d0ca7834f36b2a8ea856deba06b")
 
-		Case $iIDButtonBureaudistant
+			Case $sIDapropos
 
-			_BureauDistant()
+				_APropos()
 
-		Case $iIDButtonInstallation
-
-			_InstallationAutomatique()
-
-		Case $iIDButtonSauvegarde
-
-			_SauvegardeAutomatique()
-
-		Case $iIDButtonWU
-
-			_MiseAJourOS()
-
-		Case $iIDButtonPilotes
-
-			_InstallationPilotes()
-
-		Case $iIDButtonStabilite
-
-			_TestsStabilite()
-
-		Case $iIDButtonScripts
-
-			_Scripts()
-
-		Case $iIDButtonNettoyage
-
-			_Nettoyage()
-			GUICtrlSetState($iIDTABInstall, $GUI_SHOW)
-
- 		Case $iIDButtonNettoyage + 1 to $iIDButtonResetBrowser -1 ; Désinfection
-
-			_NettoyageProg($aButtonDes)
-
-		Case $iIDButtonResetBrowser
-
-			_ResetBrowser()
-
- 		Case $iIDButtonEnvoi
-
-			_ExporterRapport()
-
- 		Case $iPremElement To $iDernElement
-
-			_ExecuteProg()
-
-		Case $iIDButtonUninstall
-
-			_DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
-
-		Case $sIDHelp
-
-			ShellExecute("https://boiteaoutils.notion.site/boiteaoutils/Bo-te-A-Outils-BAO-a8530d0ca7834f36b2a8ea856deba06b")
-
-		Case $sIDapropos
-
-			_APropos()
-
-	EndSwitch
+		EndSwitch
+	EndIf
 WEnd

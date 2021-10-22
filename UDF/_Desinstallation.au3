@@ -128,6 +128,9 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 			EndIf
 		EndIf
 
+		; Sauvegarde du rapport complet sur le pc
+		FileCopy($sNomRapportComplet, @AppDataCommonDir & "\BAO\" & $sNomFichier, 9)
+
 		If $iRetour = 0 Then
 			FileCopy($sNomRapportComplet, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
 			$iRetour = 1
@@ -169,6 +172,16 @@ Func _ReiniBAO()
 	If(_FichierCacheExist("Autologon") = 1 And _FichierCache("Autologon") = 1) Then
 		RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 0)
 		RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword")
+	EndIf
+
+	If(_FichierCacheExist("Partage") = 1) Then
+		RunWait(@ComSpec & ' /C net share SAUV /delete', "", @SW_HIDE)
+		If _FichierCacheExist("PartageProtege1") Then
+			RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa\","everyoneincludeanonymous","REG_DWORD", 0)
+		EndIf
+		If _FichierCacheExist("PartageProtege2") Then
+			RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess", "REG_DWORD", 1)
+		EndIf
 	EndIf
 
 	DirRemove(@LocalAppDataDir & "\bao", 1)

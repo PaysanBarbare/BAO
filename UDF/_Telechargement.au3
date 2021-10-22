@@ -29,132 +29,129 @@ This file is part of "Boîte A Outils"
 ; Author.........: Bastien
 ; Modified ......:
 ; ===============================================================================================================================
-Func _Telecharger($sNom, $sChemin)
+Func _Telecharger($aLogToDL, $test = 0)
 
 	Local $dl = 0
-	Local $ext
+	Local $lognom = $aLogToDL[1]
+	Local $url = $aLogToDL[2]
+	Local $logforcedl = $aLogToDL[4]
+	Local $logheaders = $aLogToDL[5]
+	Local $bPWD =$aLogToDL[6]
+	Local $ext = $aLogToDL[8]
+	Local $logdomaine = $aLogToDL[9]
+	Local $lognepasmaj = $aLogToDL[10]
 	Local $lastModified
 	Local $FileName
 	Local $FileNameUrl
 	Local $FileNameExe
 	Local $dlFileSize
 	Local $FileSize
-	Local $aLien = [$sNom, $sChemin]
 	Local $hDownload
 	Local $bOK = False
-	Local $url
 	Local $iInternet = 1
 	Local $sec, $TotalSize, $Bytes, $CalBytes, $Percentage
 	Local $oHTTP, $oReceived, $oStatusCode, $file
-	Local $bPWD=0
+	Local $source
+	Local $aPWD
 
 	If _isInternetConnected() = 0 Then
 		$iInternet = 0
 	Else
-		_FileWriteLog($hLog, "Téléchargement de " & $sNom)
-		DirCreate(@ScriptDir & "\Cache\Download\")
+		If $test = 0 Then
+			_FileWriteLog($hLog, "Téléchargement de " & $lognom )
+		Else
+			_FileWriteLog($hLog, "Test de téléchargement de " & $lognom )
+		EndIf
 		$dl = 0
 
-		$url = $sChemin
-
 		; Téléchargement indirect
-		If (StringLeft(StringRight($sNom, 4), 1)) = "." Or (StringLeft(StringRight($sNom, 3), 1)) = "." Then
+		If $logforcedl = 0 And $ext <> "" Then
 
 			_FileWriteLog($hLog, "Recherche du lien de téléchargement dans le code source de la page")
 
-			if(StringLeft($sNom, 1) = "&") Then
-				$sNom = StringTrimLeft($sNom, 1)
-				$bPWD = 1
-			EndIf
-			If (StringLeft(StringRight($sNom, 4), 1) = ".") Then
-				$ext = StringRight($sNom, 4)
-				$aLien[0] = StringTrimRight($sNom, 4)
-			Else
-				$ext = StringRight($sNom, 3)
-				$aLien[0] = StringTrimRight($sNom, 3)
-			EndIf
+			$source = BinaryToString(InetRead($url), 4)
+			;_Debug($source)
+			$url = StringRegExp($source, ' href="(.*?).' & $ext & '"', 3)
 
-			Local $source = BinaryToString(InetRead($url), 4)
-			$url = StringRegExp($source, ' href="(.*?)' & $ext & '"', 3)
 			If $bPWD = 1 Then
-				Local $aPWD = StringRegExp($source, "copyTextToClipboard\(\'(.*?)\'\);", 1)
+				$aPWD = StringRegExp($source, "copyTextToClipboard\(\'(.*?)\'\);", 1)
 				$sPWDZip = $aPWD[0]
 			EndIf
 
 
 			If(IsArray($url)) Then
-				$url = $url[0] & $ext
+				$url = $url[0] & "." & $ext
 
 				; le lien récupéré dans la page est un lien relatif (surement à améliorer)
 				If(StringLeft($url,4) <> "http") Then
-					_FileWriteLog($hLog, "Recherche du lien absolu")
-					_IEErrorHandlerRegister()
-					Local $oIE=_IECreate($sChemin,0,0)
-					Local $oLinks = _IELinkGetCollection($oIE)
-
-					For $oLink In $oLinks
-						If(StringRight($oLink.href, 4) = $ext Or StringRight($oLink.href, 3) = $ext) Then
-							$url = $oLink.href
-						EndIf
-						if(StringLeft($url,4) = "http") Then
-							ExitLoop
-						EndIf
-					Next
-					_IEQuit($oIE)
-
-					If StringLeft($url,4) <> "http" Then
-						; le lien absolu n'a pas pu être récupéré, ouverture du lien d'origine
-						_FileWriteLog($hLog, "Lien non trouvé")
-						_Attention("Le logiciel n'a pas pu être télécharger automatiquement. Enregistrez " & $sNom & " dans le dossier " & @ScriptDir & "\Cache\Download\")
-						ShellExecute($sChemin)
-						Return True
+					If $logdomaine <> "" Then
+						$url = $logdomaine & $url
+					Else
+						_FileWriteLog($hLog, 'Erreur : Lien relatif pour "' & $lognom & '" : "' & $url & '"')
+						_Attention('Le lien récupéré est un lien relatif ("' & $url & '"). Merci de compléter la valeur "Domaine"')
+						Return False
 					EndIf
 				EndIf
 			Else
 				; Pas de lien trouvé dans la page
 				_FileWriteLog($hLog, "Lien non trouvé")
-				_Attention("Le logiciel n'a pas pu être télécharger automatiquement. Enregistrez " & $sNom & " dans le dossier " & @ScriptDir & "\Cache\Download\")
-				ShellExecute($sChemin)
-				Return True
+				If $test = 1 Then
+					_Attention("Pas de lien trouvé")
+				Else
+					_Attention("Le logiciel n'a pas pu être télécharger automatiquement. Enregistrez " & $lognom & " dans le dossier " & @ScriptDir & "\Cache\Download\")
+					ShellExecute($url)
+				EndIf
+				Return False
 			EndIf
 
 		Else
-			$ext = StringRight($url, 4)
-			If StringLeft($ext, 1) <> "." Then
-				_FileWriteLog($hLog, "Extension inconnue. Essai avec .exe")
-				; Pas d'extension défini, on pari sur .exe. Il faudrait faire une recherche MIME sur fichier, mais normalement c'est un cas rare
-				$ext = ".exe"
+			If $ext = "" Then
+				If (StringLeft(StringRight($url, 4), 1) = ".") Then
+					$ext = StringRight($url, 3)
+				ElseIf(StringLeft(StringRight($url, 3), 1) = ".") Then
+					$ext = StringRight($url, 2)
+				Else
+					_FileWriteLog($hLog, "Extension non précisée. Essai avec .exe")
+					; Pas d'extension défini, on pari sur .exe. Il faudrait faire une recherche MIME sur fichier, mais normalement c'est un cas rare
+					$ext = "exe"
+				EndIf
 			EndIf
 		EndIf
 
-		$sProgrun = @ScriptDir & "\Cache\Download\" & $aLien[0] & $ext
-
+		If $test = 0 Then
+			$sProgrun = @ScriptDir & "\Cache\Download\" & $lognom & "." & $ext
+		Else
+			$sProgrun = @TempDir & "\" & $lognom & "." & $ext
+		EndIf
+		_FileWriteLog($hLog, "Destination : " & $sProgrun)
 ;~ 		If(StringInStr(@ScriptDir, "\\") And $ext = ".zip") Then ;UNC
 ;~ 			;@ScriptDir = DriveMapAdd("*", @ScriptDir)
 ;~ 			$sProgrunUNC = @ScriptDir & "\Cache\Download\" & $aLien[0] & $ext
 ;~ 		EndIf
 
 		If($iInternet = 0) Then
-			If(FileExists($sProgrun)) Then
+			If $test = 1 Then
+				_Attention("Il n'y a pas Internet, le téléchargement ne peut être testé")
+				Return False
+			ElseIf(FileExists($sProgrun)) Then
 				; Le script continue même sans Internet
 				$bOK = True
 			EndIf
-
 		Else
 
 			$dlFileSize = InetGetSize($url)
 
-			If(FileExists($sProgrun)) Then
+			If(FileExists($sProgrun) And $test = 0 And $lognepasmaj = 0) Then
 
 				$FileSize = FileGetSize($sProgrun)
 
-				If($dlFileSize <> 0 And $dlFileSize <> $FileSize And $sNom <> "SDI.zip") Then
+				If($dlFileSize <> 0 And $dlFileSize <> $FileSize) Then
 					$dl = 1
 					FileMove($sProgrun, @ScriptDir & "\Cache\Download\Old\", 1 + 8)
-					If(StringRight($sProgrun, 4) = ".zip") Then
+					If($ext = "zip") Then
 						If(FileExists(StringTrimRight($sProgrun, 4))) Then
 							If(DirGetSize(StringTrimRight($sProgrun, 4))/1048576 > 500) Then
-								Local $sRepdln = MsgBox($MB_YESNO, "Télécharger à nouveau", 'Le dossier "' & StringTrimRight($sProgrun, 4) & '" dépasse 500 Mo, êtes vous sûr de vouloir télécharger "' & $sNom & '" à nouveau ?')
+								Local $sRepdln = MsgBox($MB_YESNO, "Télécharger à nouveau", 'Le dossier "' & StringTrimRight($sProgrun, 4) & '" dépasse 500 Mo, êtes vous sûr de vouloir télécharger "' & $lognom & '" à nouveau ?')
 								If ($sRepdln = 6) Then
 									DirRemove(StringTrimRight($sProgrun, 4), 1)
 								Else
@@ -165,12 +162,12 @@ Func _Telecharger($sNom, $sChemin)
 							EndIf
 						EndIf
 					EndIf
-				ElseIf($dlFileSize = 0 And $sNom <> "SDI.zip") Then
+				ElseIf($dlFileSize = 0) Then
 					Local $sDate = FileGetTime ($sProgrun)
-					If(_DateDiff( "D" ,$sDate[0] & "/" & $sDate[1] & "/" & $sDate[2], _NowCalcDate ( )) > 5) Then
+					If(_DateDiff( "D" ,$sDate[0] & "/" & $sDate[1] & "/" & $sDate[2], _NowCalcDate ( )) > 5) Then ; le log a plus de 5 jours
 						$dl = 1
 						FileMove($sProgrun, @ScriptDir & "\Cache\Download\Old\", 1 + 8)
-						If(StringRight($sProgrun, 4) = ".zip") Then
+						If($ext = "zip") Then
 							If(FileExists(StringTrimRight($sProgrun, 4))) Then
 								DirRemove(StringTrimRight($sProgrun, 4), 1)
 							EndIf
@@ -183,52 +180,57 @@ Func _Telecharger($sNom, $sChemin)
 					_FileWriteLog($hLog, "Logiciel à jour, téléchargement ignoré")
 					$bOK = True
 				EndIf
-			Else
+			ElseIf FileExists($sProgrun) = 0 Or $test = 1 Then
 				$dl = 1
 			EndIf
 
-			if $dl = 1 Then
+			if $dl = 1 And $logheaders = 0 Then
 				_FileWriteLog($hLog, "Démarrage du téléchargement")
 
 				; Téléchargement direct
 				$hDownload = InetGet($url, $sProgrun, 1, 1)
 				$TotalSize = Round($dlFileSize / 1024)
-				GUICtrlSetData($statusbar, " Téléchargement de " & $aLien[0])
-				GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
+				GUICtrlSetData($statusbar, " Téléchargement de " & $lognom)
+				If $test = 0 Then
+					GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
+				EndIf
 				GUISetState()
 				Do
-				$sec = @SEC
-				$Bytes = Round(InetGetInfo($hDownload,0))
-				While @SEC = $sec
-				Sleep(10)
-				If GUIGetMsg() = $iIDCancelDL Then
-					GUICtrlSetData($statusbar, "")
-					GUICtrlSetData($statusbarprogress, 0)
-					GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
-					FileDelete($sProgrun)
-					InetClose($hDownload)
-					If(FileExists(@ScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext)) Then FileMove(@ScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext, @ScriptDir & "\Cache\Download\", 1 + 8)
-					Return False
-				EndIf
-				WEnd
-				$CalBytes = Round(InetGetInfo($hDownload,0))
-				$TotalSize = $TotalSize - (($CalBytes - $Bytes) /1024)
-				$Percentage = Round($TotalSize / $dlFileSize * 100000)
-				$Percentage = 100 - $Percentage
-				GUICtrlSetData($statusbarprogress,$Percentage)
+					$sec = @SEC
+					$Bytes = Round(InetGetInfo($hDownload,0))
+					While @SEC = $sec
+						Sleep(10)
+						If GUIGetMsg() = $iIDCancelDL Then
+							GUICtrlSetData($statusbar, "")
+							GUICtrlSetData($statusbarprogress, 0)
+							GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
+							FileDelete($sProgrun)
+							InetClose($hDownload)
+							If(FileExists(@ScriptDir & "\Cache\Download\Old\" & $lognom & "." & $ext)) Then FileMove(@ScriptDir & "\Cache\Download\Old\" & $lognom & "." & $ext, @ScriptDir & "\Cache\Download\", 1 + 8)
+							Return False
+						EndIf
+					WEnd
+					$CalBytes = Round(InetGetInfo($hDownload,0))
+					$TotalSize = $TotalSize - (($CalBytes - $Bytes) /1024)
+					$Percentage = Round($TotalSize / $dlFileSize * 100000)
+					$Percentage = 100 - $Percentage
+					GUICtrlSetData($statusbarprogress,$Percentage)
 				Until InetGetInfo($hDownload,2)
+
 				GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
 				GUICtrlSetData($statusbar, "")
 				GUICtrlSetData($statusbarprogress, 0)
 
 				Local $aData = InetGetInfo($hDownload)
 				If @error Then
-					If(FileExists(@ScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext)) Then
-						FileMove(@ScriptDir & "\Cache\Download\Old\" & $aLien[0] & $ext, @ScriptDir & "\Cache\Download\", 1 + 8)
-						_Attention("Erreur lors du téléchargement de " & $aLien[0] & ". La version précédente sera exécutée")
+					_FileWriteLog($hLog, "Erreur de téléchargement " & @error)
+					If($test = 0 And FileExists(@ScriptDir & "\Cache\Download\Old\" & $lognom & "." & $ext)) Then
+						FileMove(@ScriptDir & "\Cache\Download\Old\" & $lognom & "." & $ext, @ScriptDir & "\Cache\Download\", 1 + 8)
+						_Attention("Erreur lors du téléchargement de " & $lognom & ". La version précédente sera exécutée")
 						$bOK = True
 					Else
-						_Attention("Erreur lors du téléchargement de " & $aLien[0])
+						_Attention("Erreur lors du téléchargement de " & $lognom)
+						FileDelete($sProgrun)
 					EndIf
 				Else
 					Sleep(100)
@@ -237,37 +239,80 @@ Func _Telecharger($sNom, $sChemin)
 					ElseIf FileExists($sProgrun) And $dlFileSize = 0 And FileGetSize($sProgrun) > 5000  Then
 						$bOK =True
 					Else
-						; Essai de téléchargement avec headers, certains log Nirsoft nécessite cela
-						$oHTTP = ObjCreate("winhttp.winhttprequest.5.1")
-						$oHTTP.Open("POST", $url)
-						$oHTTP.SetRequestHeader("referer", "http://www.google.com")
-						$oHTTP.SetRequestHeader("user-agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
-						$oHTTP.SetRequestHeader("Accept", "text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5")
-						$oHTTP.SetRequestHeader("Accept-Language", "en-us,en;q=0.5")
-						$oHTTP.SetRequestHeader("Accept-Encoding", "gzip,deflate")
-						$oHTTP.SetRequestHeader("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7")
-						$oHTTP.SetRequestHeader("Keep-Alive", "300")
-						$oHTTP.Send()
-
-						$oStatusCode = $oHTTP.Status
-						$oReceived = $oHTTP.ResponseBody
-
-						If $oStatusCode == 200 then
-							$file = FileOpen($sProgrun, 2) ; The value of 2 overwrites the file if it already exists
-							FileWrite($file, $oReceived)
-							FileClose($file)
-							$bOK = True
-						EndIf
+						_FileWriteLog($hLog, 'Erreur de téléchargement, "' & $sProgrun & '" fait seulement ' & FileGetSize($sProgrun) & ' octets')
+						_Attention('Erreur lors du téléchargement de "' & $lognom & '". Vérifier le paramétrage')
+					EndIf
+					If $test = 1 Then
+						FileDelete($sProgrun)
 					EndIf
 				EndIf
 
 				InetClose($hDownload)
+
+			ElseIf $dl = 1 And $logheaders = 1 Then
+				$oHTTP = ObjCreate("winhttp.winhttprequest.5.1")
+				$oHTTP.Open("POST", $url)
+				$oHTTP.SetRequestHeader("referer", "http://www.google.com")
+				$oHTTP.SetRequestHeader("user-agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
+				$oHTTP.SetRequestHeader("Accept", "text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5")
+				$oHTTP.SetRequestHeader("Accept-Language", "en-us,en;q=0.5")
+				$oHTTP.SetRequestHeader("Accept-Encoding", "gzip,deflate")
+				$oHTTP.SetRequestHeader("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7")
+				$oHTTP.SetRequestHeader("Keep-Alive", "300")
+				$oHTTP.Send()
+
+				$oStatusCode = $oHTTP.Status
+				$oReceived = $oHTTP.ResponseBody
+
+				If $oStatusCode == 200 then
+					If $test = 0 Then
+						$file = FileOpen($sProgrun, 2) ; The value of 2 overwrites the file if it already exists
+						FileWrite($file, $oReceived)
+						FileClose($file)
+					EndIf
+					$bOK = True
+				Else
+					_FileWriteLog($hLog, 'Erreur de téléchargement, "' & $sProgrun & '" avec headers. Code de retour : ' & $oStatusCode)
+					_Attention('Erreur lors du téléchargement de "' & $lognom & '" (headers activés). Vérifier le paramétrage')
+				EndIf
 			EndIf
 		EndIf
 	EndIf
 
 	Return $bOK
 EndFunc   ;==>_Telecharger
+
+Func _TryDL($aEnr)
+	Local $iRetour = 0
+	; $aEnr[1] = NomDuLogiciel
+	; $aEnr[2] = Lien
+	; $aEnr[3] = Site
+	; $aEnr[4] = ForceDL
+	; $aEnr[5] = Headers
+	; $aEnr[6] = Mdp
+	; $aEnr[7] = Favoris
+	; $aEnr[8] = Extension
+	; $aEnr[9] = Domaine
+	; $aEnr[10] = Nepasmaj
+	If StringLeft($aEnr[2], 2) = "\\" Then
+		If FileExists($aEnr[2]) Then
+			$iRetour = 1
+		Else
+			_FileWriteLog($hLog, $aEnr[2] & ' : dossier inexistant')
+		EndIf
+	ElseIf $aEnr[3] = 1 Then
+		If __checkConn($aEnr[2]) Then
+			$iRetour = 1
+		Else
+			_FileWriteLog($hLog, $aEnr[1] & ' : site inaccessible')
+			_Attention("Impossible d'ouvrir le lien " & $aEnr[1])
+		EndIf
+	Else
+		$iRetour = _Telecharger($aEnr, 1)
+	EndIf
+
+	Return $iRetour
+EndFunc
 
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _Executer
@@ -280,12 +325,7 @@ EndFunc   ;==>_Telecharger
 ; ===============================================================================================================================
 Func _Executer($sNom, $arg = "", $norun = 0)
 
-	Local $sDocp, $iPid = 0, $sProgruntmp = $sProgrun, $bPWD=0
-
-	if(StringLeft($sNom, 1) = "&") Then
-		$sNom = StringTrimLeft($sNom, 1)
-		$bPWD = 1
-	EndIf
+	Local $sDocp, $iPid = 0, $sProgruntmp = $sProgrun
 
 	GUICtrlSetData($statusbar, "Exécution de " & $sNom)
 
@@ -304,7 +344,7 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 		$sDocp = @ScriptDir & "\Cache\Download\" & $sNom & "\"
 
 		If FileExists($sDocp) = 0 Then
-			If($bPWD = 1) Then
+			If($sPWDZip <> "") Then
 				_FileWriteLog($hLog, "Décompression de l'archive avec mot de passe")
 				RunWait(@ComSpec & ' /c ""' & @ScriptDir & '\Outils\7z\7z.exe" x "' & $sProgruntmp & '" -o"' & $sDocp & '" -p"' & $sPWDZip&'""', @ScriptDir & '\Cache\Download\', @SW_HIDE)
 			Else
@@ -334,7 +374,6 @@ Func _Executer($sNom, $arg = "", $norun = 0)
 			FileCopy($sDocOutil & "*", @ScriptDir & "\Cache\Download\")
 		EndIf
 	EndIf
-
 	If($norun = 0) Then
 
 		_FileWriteLog($hLog, "Exécution de " & $sProgrun)
@@ -449,8 +488,8 @@ Func _UpdateProg()
 	Local $bReturn
 
 	For $sNomLogk in $aListeLiens
-		If(StringLeft($sNomLogk, 1) <> "#" And StringLeft($sNomLogk, 1) <> "&" And StringLeft(($aMenu[$sNomLogk])[2], 4) = "http") Then
-			$bReturn = _Telecharger($sNomLogk, ($aMenu[$sNomLogk])[2])
+		If(($aMenu[$sNomLogk])[3] <> 1 And ($aMenu[$sNomLogk])[6] <> 1 And StringLeft(($aMenu[$sNomLogk])[2], 4) = "http") Then
+			$bReturn = _Telecharger($aMenu[$sNomLogk])
 			If ($bReturn = False) Then
 				_Attention("Echec du téléchargement de " & $sNomLogk, 1)
 			EndIf
@@ -461,8 +500,8 @@ EndFunc
 
 
 Func _ExecuteProg()
-	If StringLeft(($aMenuID[$iIDAction])[1], 1) <> "#" And StringLeft(($aMenuID[$iIDAction])[2], 4) = "http"  Then
-		If(_Telecharger(($aMenuID[$iIDAction])[1], ($aMenuID[$iIDAction])[2])) Then
+	If StringLeft(($aMenuID[$iIDAction])[2], 4) = "http" And ($aMenuID[$iIDAction])[3] = "0" Then
+		If(_Telecharger($aMenuID[$iIDAction])) Then
 			$iPidt[($aMenuID[$iIDAction])[1]] = _Executer(($aMenuID[$iIDAction])[1])
 		EndIf
 	Else

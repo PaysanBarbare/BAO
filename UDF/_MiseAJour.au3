@@ -126,14 +126,14 @@ Func _MiseAJourOS()
 
 				Case $iIDMCT
 					GUIDelete($hGUImaj)
-					If(_Telecharger("MediaCreationTool", ($aMenu["MediaCreationTool"])[2])) Then
+					If(_Telecharger($aMenu["MediaCreationTool"])) Then
 						_Executer("MediaCreationTool")
 					EndIf
 					ExitLoop
 
 				Case $iIDUSB
 					GUIDelete($hGUImaj)
-					If(_Telecharger("WindowsUSBDVDDownloadTool", ($aMenu["WindowsUSBDVDDownloadTool"])[2])) Then
+					If(_Telecharger($aMenu["WindowsUSBDVDDownloadTool"])) Then
 						_Executer("WindowsUSBDVDDownloadTool")
 					EndIf
 					ExitLoop
@@ -231,7 +231,7 @@ Func _DlISO()
 	ClipPut("")
 
 	If MapExists($aMenu, "Windows-ISO-Downloader") Then
-		If(_Telecharger("Windows-ISO-Downloader", ($aMenu["Windows-ISO-Downloader"])[2])) Then
+		If(_Telecharger($aMenu["Windows-ISO-Downloader"])) Then
 			$iPIDIsoD = _Executer("Windows-ISO-Downloader")
 
 			 Local $hGUIISOd = GUICreate("En attente", 300, 110, 0, 0)

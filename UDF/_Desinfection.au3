@@ -379,7 +379,7 @@ Func _NettoyageProg($aButtonDes)
 
 	If IsString($sNomProgDes) And MapExists($aMenu, $sNomProgDes) Then
 		_ChangerEtatBouton($iIDAction, "Patienter")
-		If(_Telecharger($sNomProgDes, ($aMenu[$sNomProgDes])[2])) Then
+		If(_Telecharger($aMenu[$sNomProgDes])) Then
 			$iPidret = _Executer($sNomProgDes)
 			If $iPidret = 0 Then
 				_ChangerEtatBouton($iIDAction, "Desactiver")
@@ -392,7 +392,8 @@ Func _NettoyageProg($aButtonDes)
 			Else
 				_ChangerEtatBouton($iIDAction, "Activer")
 			EndIf
-
+		Else
+			_ChangerEtatBouton($iIDAction, "Desactiver")
 		EndIf
 	ElseIf(FileExists(@ScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & ".bat")) Then
 		RunWait(@ComSpec & ' /c ""' & @ScriptDir & "\Cache\Download\" & $aButtonDes[$iIDAction + 1] & '.bat" uninstall"')

@@ -68,8 +68,6 @@ Func _InitialisationBAO($sConfig)
 		ShellExecuteWait($sConfig)
 	EndIf
 
-	If(FileExists(@ScriptDir & "\Liens\") = 0) Then _Erreur('Dossier "Liens" manquant')
-
 EndFunc
 
 Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
@@ -141,6 +139,8 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		$sNom = ""
 		_DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	EndIf
+
+	DirCreate(@ScriptDir & "\Cache\Download\")
 
 	If($iFreeSpace < 30) Then
 		Local $sRepnet = MsgBox($MB_YESNOCANCEL, "Nettoyage", "L'espace libre sur le disque " & @HomeDrive & " est seulement de " & $iFreeSpace & " Go." & @CR & "Voulez vous supprimer les fichiers temporaires et les anciennes installations de Windows ?")
@@ -370,9 +370,9 @@ Func _Debug($message)
 	ElseIf(IsArray($message)) Then
 		_ArrayDisplay($message)
 	Else
+		ClipPut($message)
 		Local $ret = MsgBox(36, "Continuer ?", $message)
 		If($ret = 7) Then Exit
-		ClipPut($message)
 	EndIf
 EndFunc
 
@@ -415,6 +415,10 @@ Func _IsInternetConnected()
 	EndIf
 
 EndFunc   ;==>_IsInternetConnected
+
+Func __checkConn($url)
+    Return (StringLen(InetRead($url, 1)) > 0)
+EndFunc
 
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _ChaineSansAccents($sString)
@@ -503,6 +507,11 @@ Func _UACEnable()
 			EndIf
 		EndIf
 	EndIf
+EndFunc
+
+Func _Restart()
+	run(@ScriptDir & "\run.bat", "", @SW_HIDE)
+	Exit
 EndFunc
 
 Func _APropos()

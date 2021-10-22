@@ -1,5 +1,12 @@
 @echo off
 
+if "%1"=="wait" GOTO wait
+GOTO run
+
+:wait
+timeout 2
+
+:run
 Echo Demarrage de BAO en cours
 IF %PROCESSOR_ARCHITECTURE% == x86 (IF NOT DEFINED PROCESSOR_ARCHITEW6432 goto bit32)
 goto bit64

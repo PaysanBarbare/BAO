@@ -105,7 +105,6 @@ EndFunc
 Func _RapportParseur($iIDTABInfossys)
 
 	Local $aArrayRapport, $aArrayRapportupd, $aCat, $aCatTmp, $aCatUpd[0][2], $sCateg, $bFind = false, $iFindUpd, $iPosBR, $sDD, $aDDSmart
-	_FileWriteLog($hLog, "Affichage des infos système")
 
 	If _FileReadToArray($sFileInfosys, $aArrayRapport, 0) = 0 Then
 		_FileWriteLog($hLog, "Regénération de " & $sFileInfosys)

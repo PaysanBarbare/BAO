@@ -172,7 +172,7 @@ Func _SupprimerSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 			Return
 		EndIf
 
-		Local $iIDValider = GUICtrlCreateButton("Enregistrer", 40, 110, 150, 25, $BS_DEFPUSHBUTTON)
+		Local $iIDValider = GUICtrlCreateButton("Supprimer", 40, 110, 150, 25, $BS_DEFPUSHBUTTON)
 		Local $iIDAnnuler = GUICtrlCreateButton("Annuler", 210, 110, 150, 25)
 
 		GUISetState(@SW_SHOW)

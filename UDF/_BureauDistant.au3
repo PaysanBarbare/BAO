@@ -40,7 +40,7 @@ Func _BureauDistant()
 		Else
 			If(StringLeft($sNom, 4) <> "Tech") Then
 				_ChangerEtatBouton($iIDAction, "Patienter")
-				If(_Telecharger("DWAgent", $sAgent)) Then
+				If(_Telecharger($aMenu["DWAgent"])) Then
 					Local $sMdp, $bSVGMdp = 0, $iIdDWS
 					If(FileExists(@ScriptDir & '\Cache\Pwd\dws.sha')) Then
 						$sMdp = BinaryToString(_Crypt_DecryptData(FileReadLine(@ScriptDir & '\Cache\Pwd\dws.sha'), $sMailBD, $CALG_AES_256))
