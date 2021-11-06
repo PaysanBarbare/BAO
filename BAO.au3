@@ -61,7 +61,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "1.0.0" ; 28/09/21
+Global $sVersion = "1.0.1" ; 06/11/21
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -295,7 +295,7 @@ Local $iIDButtonScripts
 ; Soit :
 Local $iFonctions = 7
 
-$hGUIBAO = GUICreate($sSociete & " - Boîte A Outils (alpha) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+$hGUIBAO = GUICreate($sSociete & " - Boîte A Outils (bêta) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 
 $statusbar = GUICtrlCreateLabel("", 10, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 410, 20, $SS_CENTERIMAGE)
 $statusbarprogress = GUICtrlCreateProgress(440, 135 + ($iFonctions * 30) + UBound($sListeProgdes) * 25, 250, 20)
@@ -314,11 +314,16 @@ Local $iIDMenu1reini = GUICtrlCreateMenuItem("Reinitialiser BAO", $iIDMenu1)
 Local $iIDMenu1tech = GUICtrlCreateMenuItem("Passer en mode Tech/Client", $iIDMenu1)
 
 If(StringLeft($sNom, 4) = "Tech") Then
+	GUICtrlCreateMenuItem("", $iIDMenu1)
 	$iIDMenu1clearcache = GUICtrlCreateMenuItem("Effacer le cache installation", $iIDMenu1)
 	$iIDMenu1update = GUICtrlCreateMenuItem("Tout mettre à jour", $iIDMenu1)
 	$iIDMenu1copier = GUICtrlCreateMenuItem("Copier BAO sur support externe", $iIDMenu1)
 	$iIDMenu1sfx = GUICtrlCreateMenuItem("Créer archive SFX", $iIDMenu1)
 EndIf
+GUICtrlCreateMenuItem("", $iIDMenu1)
+
+Local $iIDMenu1redemarrer = GUICtrlCreateMenuItem("Redémarrer BAO", $iIDMenu1)
+Local $iIDMenu1quitter = GUICtrlCreateMenuItem("Quitter", $iIDMenu1)
 
 Local $iIDMenu2 = GUICtrlCreateMenu("&Suivi")
 Local $iIDMenu2ajout = GUICtrlCreateMenuItem("Nouveau code de suivi", $iIDMenu2)
@@ -421,15 +426,16 @@ If(StringLeft($sNom, 4) = "Tech") Then
 	$iIDMenuAdd = GUICtrlCreateMenuItem("Ajouter un lien/logiciel", $iIDMenuLog)
 	$iIDMenuAddDoc = GUICtrlCreateMenuItem("Ajouter un dossier", $iIDMenuLog)
 	$iIDMenuManu = GUICtrlCreateMenuItem("Modifier manuellement", $iIDMenuLog)
+	$iDernElement = $iIDMenuManu
 Else
 	GUICtrlCreateDummy()
 	GUICtrlCreateDummy()
 	GUICtrlCreateDummy()
-	GUICtrlCreateDummy()
+	$iDernElement = GUICtrlCreateDummy()
 EndIf
 
 
-$iDernElement = $sIDSM
+
 Local $iIDMenuVar = GUICtrlCreateMenu("Var. env.")
 Local $sIDVarALLUSERSPROFILE = GUICtrlCreateMenuItem("ALLUSERSPROFILE", $iIDMenuVar)
 Local $sIDVarAPPDATA = GUICtrlCreateMenuItem("APPDATA", $iIDMenuVar)
@@ -754,6 +760,14 @@ While 1
 				RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")
 				Exit
 
+			Case $iIDMenu1quitter
+				_SaveInter()
+				RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")
+				Exit
+
+			Case $iIDMenu1redemarrer
+				_Restart()
+
 			Case $iIDMenu1config
 				ShellExecuteWait($sConfig)
 
@@ -820,8 +834,7 @@ While 1
 
 			Case $iIDMenuManu
 				Run("explorer.exe " & @ScriptDir & "\Logiciels\")
-				_Attention("Merci de relancer BAO après avoir terminé vos changements")
-				Exit
+				WinSetTitle($hGUIBAO, "", $sSociete & " - Boîte A Outils (bêta) " & $sVersion & " - Redémarrage nécessaire *")
 
 			Case $sIDVarALLUSERSPROFILE, $sIDVarAPPDATA, $sIDVarLOCALAPPDATA, $sIDVarProgramData, $sIDVarProgramFiles, $sIDVarProgramFiles86, $sIDVarPUBLIC, $sIDVarTEMP, $sIDVarTMP, $sIDVarUSERPROFILE, $sIDVarwindir
 
@@ -905,14 +918,14 @@ While 1
 
 				If ($aMenuID[$iIDAction])[0] = "Open" Then
 					ShellExecuteWait(@ScriptDir & "\Logiciels\" & ($aMenuID[$iIDAction])[1])
-					_Restart()
+					WinSetTitle($hGUIBAO, "", $sSociete & " - Boîte A Outils (bêta) " & $sVersion & " - Redémarrage nécessaire *")
 				ElseIf ($aMenuID[$iIDAction])[0] = "Rename" Then
 					$sRepDF = InputBox("Renommer le dossier " & StringTrimRight(($aMenuID[$iIDAction])[1], 4), 'Choisissez un nouveau nom pour "' & StringTrimRight(($aMenuID[$iIDAction])[1], 4) & '" :')
 					If $sRepDF <> "" Then
 						If FileExists(@ScriptDir & "\Logiciels\" & $sRepDF & ".ini") = 0 Then
 							If FileMove(@ScriptDir & "\Logiciels\" & ($aMenuID[$iIDAction])[1], @ScriptDir & "\Logiciels\" & $sRepDF & ".ini") Then
 								_FileWriteLog($hLog, 'Le fichier "' & ($aMenuID[$iIDAction])[1] & '" a été renommé en "' & $sRepDF & '.ini"')
-								_Restart()
+								WinSetTitle($hGUIBAO, "", $sSociete & " - Boîte A Outils (bêta) " & $sVersion & " - Redémarrage nécessaire *")
 							Else
 								_Attention("Le dossier n'a pas pu être renommé")
 							EndIf
@@ -926,11 +939,16 @@ While 1
 					$sRepDF = MsgBox($MB_YESNO, "Suppression ...", 'Etes vous sûr de vouloir supprimer le dossier "' & StringTrimRight(($aMenuID[$iIDAction])[1], 4) & '" ainsi que son contenu ?')
 					If ($sRepDF = 6) Then
 						FileDelete(@ScriptDir & "\Logiciels\" & ($aMenuID[$iIDAction])[1])
-						_Restart()
+						WinSetTitle($hGUIBAO, "", $sSociete & " - Boîte A Outils (bêta) " & $sVersion & " - Redémarrage nécessaire *")
 					EndIf
 				Else
 					If StringLeft($sNom, 4) = "Tech" And ($aMenuID[$iIDAction])[11] <> -1 Then
-						_MenuMod($aMenuID[$iIDAction])
+						Local $hDLL = DllOpen("user32.dll")
+						If _IsPressed("10", $hDLL) Then
+							_ExecuteProg()
+						Else
+							_MenuMod($aMenuID[$iIDAction])
+						EndIf
 					Else
 						_ExecuteProg()
 					EndIf

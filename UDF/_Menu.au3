@@ -128,6 +128,8 @@ Func _MenuAdd()
 						_Attention($aEnr[1] & " existe déjà, merci de choisir un autre nom")
 					ElseIf $aEnr[1] = "" Then
 						_Attention("Le nom du logiciel ne peut être vide")
+					ElseIf StringInStr($aEnr[1], "\") Then
+						_Attention('Le nom du logiciel ne peut contenir le caractère "\"')
 					ElseIf $aEnr[2] = "" Then
 						_Attention("Le lien ne peut être vide")
 					Else
@@ -193,8 +195,8 @@ Func _MenuAdd()
 		If($eGet = $iIDButtonDemarrer) Then
 			_SauvToIni($aEnr, GUICtrlRead($iCombo) & ".ini")
 			GUIDelete()
-			_Attention("Nouveau logiciel ajouté. BAO va maintenant être redémarré")
-			_Restart()
+			_Attention("Nouveau logiciel ajouté" & @CRLF & "Redémarrer BAO quand vous aurez terminé les modifications")
+			WinSetTitle($hGUIBAO, "", $sSociete & " - Boîte A Outils (bêta) " & $sVersion & " - Redémarrage nécessaire *")
 		Else
 			GUIDelete()
 		EndIf
@@ -215,7 +217,7 @@ Func _MenuMod($aEnr)
 	; $aEnr[11] = Dossier
 	Local $iCombo, $sCombo, $btmpmod = False, $sRepTest, $sTmpdom
 	Local $aListDoc = _FileListToArrayRec(@ScriptDir & "\Logiciels\", "*.ini|" & $aEnr[11], 1, 0, 1)
-	Local $hGUIMenuMod = GUICreate("Modification de logiciel", 600, 240)
+	Local $hGUIMenuMod = GUICreate('Modification de logiciel (maintenez la touche "MAJ" pour ouvrir directement)', 600, 240)
 	GUICtrlCreateLabel("Lien :", 10, 10)
 	GUICtrlCreateLabel("Nom du logiciel :", 10, 40)
 	Local $iNomLogiciel = GUICtrlCreateInput($aEnr[1], 140, 38, 140)
@@ -442,11 +444,11 @@ Func _MenuMod($aEnr)
 			_SauvToIni($aEnr, GUICtrlRead($iCombo) & ".ini", $aEnr[11])
 		EndIf
 		GUIDelete()
-		_Attention("Modifications enregistrées. BAO va maintenant être redémarré")
-		_Restart()
+		_Attention("Modifications enregistrées" & @CRLF & "Redémarrer BAO quand vous aurez terminé les modifications")
+		WinSetTitle($hGUIBAO, "", $sSociete & " - Boîte A Outils (bêta) " & $sVersion & " - Redémarrage nécessaire *")
 	ElseIf($eGet = $iIDButtonSupprimer) Then
 		GUIDelete()
-		_Restart()
+		WinSetTitle($hGUIBAO, "", $sSociete & " - Boîte A Outils (bêta) " & $sVersion & " - Redémarrage nécessaire *")
 	Else
 		GUIDelete()
 	EndIf
@@ -490,8 +492,8 @@ Func _MenuAddDoc()
 		 Else
 			FileWrite($hFileIni, '; Exemple' & @CRLF & ';' & @CRLF & '; [Nom Du Logiciel]' & @CRLF & '; lien=https://lelogiciel.fr/logiciel.exe' & @CRLF & '; site=1 # ouvre le lien dans le navigateur par défaut' & @CRLF & "; forcedl=1 # télécharge directement, même si ce n'est pas un lien direct. Préciser l'extension" & @CRLF & '; headers=1 # télécharge en envoyant des entêtes http (nécessaire pour Nirsoft)' & @CRLF & '; motdepasse=1 # toujours pour nirsoft, récupère le mot de passe sur la page' & @CRLF & '; extension=.exe # extension du fichier si forcedl=1 ou téléchargement indirect' & @CRLF & "; domaine=https://nirsoft.fr # complète l'url en cas de lien relatif dans le code source de la page" & @CRLF & '; nepasmaj=1 # ne pas mettre à jour si le logiciel est déjà téléchargé (SDI par exemple)' & @CRLF & @CRLF)
 			FileClose($hFileIni)
-			_Attention($sInput & " a été créé. BAO va maintenant être redémarré")
-			_Restart()
+			_Attention($sInput & " a été créé." & @CRLF & "Redémarrer BAO quand vous aurez terminé les modifications")
+			WinSetTitle($hGUIBAO, "", $sSociete & " - Boîte A Outils (bêta) " & $sVersion & " - Redémarrage nécessaire *")
 		EndIf
 	EndIf
 EndFunc
@@ -556,12 +558,13 @@ EndFunc
 Func _IniClasserAlpa($sfichierini)
 	local $aSections = IniReadSectionNames(@ScriptDir & "\Logiciels\" & $sfichierini)
 	Local $aTmpSection[$aSections[0]]
-	_ArraySort($aSections)
+	_ArraySort($aSections, 0, 1)
 
 	For $i = 1 To $aSections[0]
 		$aTmpSection[$i - 1] = IniReadSection(@ScriptDir & "\Logiciels\" & $sfichierini, $aSections[$i])
 	Next
 	Local $hIni = FileOpen(@ScriptDir & "\Logiciels\" & $sfichierini, 514)
+	FileWrite($hIni, "; Exemple" & @CRLF & ";" & @CRLF & "; [Nom Du Logiciel] " & @CRLF & "; lien=https://lelogiciel.fr/logiciel.exe" & @CRLF & "; site=1 # ouvre le lien dans le navigateur par défaut" & @CRLF & "; forcedl=1 # télécharge directement, même si ce n'est pas un lien direct. Préciser l'extension" & @CRLF & "; headers=1 # télécharge en envoyant des entêtes http (nécessaire pour Nirsoft)" & @CRLF & "; motdepasse=1 # toujours pour nirsoft, récupère le mot de passe sur la page" & @CRLF & "; extension=.exe # extension du fichier si forcedl=1 ou téléchargement indirect" & @CRLF & "; domaine=https://nirsoft.fr # complète l'url en cas de lien relatif dans le code source de la page" & @CRLF & "; nepasmaj=1 # ne pas mettre à jour si le logiciel est déjà téléchargé (SDI par exemple)" & @CRLF & @CRLF)
 	FileClose($hIni)
 
 	For $i = 1 To $aSections[0]

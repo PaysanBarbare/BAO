@@ -27,9 +27,9 @@ Fonction : Liste des fonctions utiles pour le fonctionnement de I² - BAO
 
 Func _RapportInfos($iReset = 0)
 	If $iReset = 1 Then
-		$hEntete = FileOpen($sFileEntete, 2)
+		$hEntete = FileOpen($sFileEntete, 2) ; overwrite
 	Else
-		$hEntete = FileOpen($sFileEntete, 1)
+		$hEntete = FileOpen($sFileEntete, 1) ; append
 	EndIf
 	FileWriteLine($hEntete, "[CUSTOMER]" & $sNom & "[/CUSTOMER]")
 	FileWriteLine($hEntete, "")
