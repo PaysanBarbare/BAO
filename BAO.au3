@@ -61,7 +61,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "1.0.1" ; 06/11/21
+Global $sVersion = "1.0.2" ; 19/11/21
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -132,10 +132,12 @@ Else
     $HKLM = "HKLM"
 EndIf
 
-; Si BAO est sur un partage, création d'un lecteur réseau (créé par run.bat)
-;~ If(StringInStr(@ScriptDir, "\\")) Then ;UNC
-;~ 	@ScriptDir = DriveMapAdd("*", @ScriptDir)
-;~ EndIf
+Local $hDLL = DllOpen("user32.dll")
+Local $iFastStart = False
+If _IsPressed("10", $hDLL) Then
+	$iFastStart = True
+	_FileWriteLog($hLog, 'Démarrage rapide activé')
+EndIf
 
 ; Création du raccourci sur le bureau
 ;$sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
@@ -144,20 +146,19 @@ Local $iSplashWidth = 300
 Local $iSplashHeigh = 160
 Local $iSplashX = @DesktopWidth - 400
 Local $iSplashY = @DesktopHeight - 250
-Local $iSplashOpt = 21
+Local $iSplashOpt = 4
 Local $iSplashFontSize = 10
 
-SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+SplashTextOn("Initialisation de BAO", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
 	$sSplashTxt = $sSplashTxt & @LF & "Création du raccourci sur le bureau"
-	SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
-	Sleep(2000)
+	ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
 	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", "", "", "Boîte à Outils", @ScriptDir & "\Outils\bao.ico")
 EndIf
 
 $sSplashTxt = $sSplashTxt & @LF & "Chargement des dépendances"
-SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
 
 Const $sConfig = @ScriptDir & "\config.ini"
 
@@ -185,7 +186,7 @@ Const $sConfig = @ScriptDir & "\config.ini"
 ; Désactivation de la mise en veille https://www.autoitscript.com/forum/topic/152381-screensaver-sleep-lock-and-power-save-disabling/
 
 $sSplashTxt = $sSplashTxt & @LF & "Désactivation de la mise en veille"
-SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
 
 _PowerKeepAlive()
 
@@ -196,7 +197,7 @@ OnAutoItExitRegister("_ProcessExit")
 ;OnAutoItExitRegister("_StartWU")
 
 $sSplashTxt = $sSplashTxt & @LF & "Lecture du fichier de configuration"
-SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
 
 _InitialisationBAO($sConfig)
 
@@ -217,7 +218,7 @@ Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
 _CalculFS()
 
 $sSplashTxt = $sSplashTxt & @LF & "Vérification version et licence Windows"
-SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
 
 If(@OSVersion = "WIN_7") Then
 	$releaseid = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "CSDVersion")
@@ -228,28 +229,33 @@ ElseIf(@OSVersion = "WIN_10") Then
 	EndIf
 EndIf
 
-; Système d'exploitation
-Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
-Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_OperatingSystem")
-Local $Obj_Item
-For $Obj_Item In $Obj_Services
-	$sOSv = $Obj_Item.Caption & " " & @OSArch & " " & $releaseid
-Next
+If $iFastStart = False Then
+	; Système d'exploitation
+	Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
+	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_OperatingSystem")
+	Local $Obj_Item
+	For $Obj_Item In $Obj_Services
+		$sOSv = $Obj_Item.Caption & " " & @OSArch & " " & $releaseid
+	Next
 
-;$sOSv = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "ProductName") & " " & @OSArch & " " & $releaseid
+	;$sOSv = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "ProductName") & " " & @OSArch & " " & $releaseid
 
-Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
-Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from SoftwareLicensingProduct where PartialProductKey <> null")
-Local $Obj_Item
-For $Obj_Item In $Obj_Services
-	if $Obj_Item.LicenseStatus = 1 And $Obj_Item.ApplicationId = "55c92734-d682-4d71-983e-d6ec3f16059f" And $Obj_Item.LicenseIsAddon = False Then
-		$sOSv = $sOSv & " (activé)";
-		$bActiv = 1
+	Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
+	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from SoftwareLicensingProduct where PartialProductKey <> null")
+	Local $Obj_Item
+	For $Obj_Item In $Obj_Services
+		if $Obj_Item.LicenseStatus = 1 And $Obj_Item.ApplicationId = "55c92734-d682-4d71-983e-d6ec3f16059f" And $Obj_Item.LicenseIsAddon = False Then
+			$sOSv = $sOSv & " (activé)"
+			$bActiv = 1
+			ExitLoop
+		EndIf
+	Next
+	If $bActiv = 2 Then
+		$sOSv = $sOSv & " (non activé)"
 	EndIf
-Next
-
-If $bActiv = 2 Then
-	$sOSv = $sOSv & " (non activé)";
+Else
+	$sOSv = "(non vérifié en démarrage rapide)"
+	$bActiv = 1
 EndIf
 
 if(_FichierCacheExist("Client") = 0) Then
@@ -262,12 +268,11 @@ if(_FichierCacheExist("Client") = 0) Then
 Else
 	$bNonPremierDemarrage = True
 	$sNom = _FichierCache("Client")
-	$sSplashTxt = $sSplashTxt & @LF & "Recherche des modifications sur le matériel"
-	SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
-	_GetInfoSysteme()
-;~ 	If FileGetPos($hFichierRapport) = 0 Then
-;~ 		_RapportInfos($bActiv)
-;~ 	EndIf
+	If $iFastStart = False Then
+		$sSplashTxt = $sSplashTxt & @LF & "Recherche des modifications sur le matériel"
+		ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+		_GetInfoSysteme()
+	EndIf
 EndIf
 
 If(FileExists(@ScriptDir & "\Logiciels\") = 0) Then _Erreur('Dossier "Logiciels" manquant')
@@ -505,7 +510,7 @@ GUICtrlCreateLabel("Nom du PC : " & @ComputerName, 450, 2)
 GUICtrlCreateLabel("OS : " & $sOSv, 450, 18, 400)
 If($bActiv = 2) Then
 	GUICtrlSetColor(-1, $COLOR_RED)
-Else
+Elseif $iFastStart = False Then
 	GUICtrlSetColor(-1, $COLOR_GREEN)
 EndIf
 GUICtrlSetFont(-1, Default, 600)
@@ -589,7 +594,7 @@ _GUICtrlListView_SetColumnWidth($idListInfosys, 1, 360)
 Local $iIDTABInstall = GUICtrlCreateTabItem("Intervention")
 $iIDEditInter = GUICtrlCreateEdit("", 180, 80, 300, 190)
 GUICtrlCreateGroup("Modèles", 490, 80, 190, 130)
-Local $idSampleMessage = GUICtrlCreateTreeView(490, 100, 170, 90)
+Local $idSampleMessage = GUICtrlCreateTreeView(491, 100, 188, 108)
 Local $aModele = _FileListToArray(@ScriptDir & '\Config\Modeles\', "*.txt")
 Local $iIDTVModele[$aModele[0]]
 For $i = 1 To $aModele[0]
@@ -632,7 +637,7 @@ _UpdEdit($iIDEditInter, $sFileRapport)
 ;_RemplirListInfosys($iIDTABInfossys)
 
 $sSplashTxt = $sSplashTxt & @LF & "Ouverture de BAO"
-SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
 
 GUISetState(@SW_SHOW)
 
@@ -641,12 +646,11 @@ If $bNonPremierDemarrage Then
 EndIf
 
 If _FichierCacheExist("Restauration") = 0 Then
-
 	$sRestauration = IniRead($sConfig, "Parametrages", "Restauration", 0)
 	If $sRestauration = 1 Then
 		_FileWriteLog($hLog, 'Création point de restauration "' & $sSociete & ' - Debut Intervention"')
 		$sSplashTxt = $sSplashTxt & @LF & "Création d'un point de restauration"
-		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+		ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
 		_Restauration($sSociete & ' - Debut Intervention')
 		_FichierCache("Restauration", 1)
 	EndIf
@@ -943,7 +947,6 @@ While 1
 					EndIf
 				Else
 					If StringLeft($sNom, 4) = "Tech" And ($aMenuID[$iIDAction])[11] <> -1 Then
-						Local $hDLL = DllOpen("user32.dll")
 						If _IsPressed("10", $hDLL) Then
 							_ExecuteProg()
 						Else
@@ -960,7 +963,7 @@ While 1
 
 			Case $sIDHelp
 
-				ShellExecute("https://boiteaoutils.notion.site/boiteaoutils/Bo-te-A-Outils-BAO-a8530d0ca7834f36b2a8ea856deba06b")
+				ShellExecute("https://boiteaoutils.xyz")
 
 			Case $sIDapropos
 

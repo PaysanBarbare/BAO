@@ -170,6 +170,7 @@ EndFunc
 
 Func _SaveChangeToInter()
 	_ChangerEtatBouton($iIDBoutonInscMat, "Patienter")
+	_SaveInter()
 	Local $aUpd, $sToadd, $aArrayRapportupd, $bOKch = False
 	$hRapport = FileOpen($sFileRapport, 1)
 	If FileExists($sFileInfosysupd) Then

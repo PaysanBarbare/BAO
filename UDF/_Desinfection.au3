@@ -210,9 +210,9 @@ Func _Desinstalleur()
 							if(StringLeft($aListeProgInst[$b-1][3], 7) = "MsiExec") Then
 								$aListeProgInst[$b-1][3] = StringReplace($aListeProgInst[$b-1][3], "/i", "/x")
 								If (StringLeft($aListeProgInst[$b-1][3], 1) = '"') Then
-									$aListeProgInst[$b-1][3] = $aListeProgInst[$b-1][3] & ' /passive'
+									$aListeProgInst[$b-1][3] = $aListeProgInst[$b-1][3] & ' /passive /norestart'
 								Else
-									$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /passive'
+									$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /passive /norestart'
 								EndIf
 							ElseIf(StringRight($aListeProgInst[$b-1][3], 10)="/uninstall" Or StringRegExp($aListeProgInst[$b-1][3], "unins00[0-9]{1}.exe")) Then
 								If (StringLeft($aListeProgInst[$b-1][3], 1) = '"') Then

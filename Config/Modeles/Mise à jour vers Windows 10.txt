@@ -1,0 +1,8 @@
+### Mise à jour vers Windows 10 ###
+- Suppression des logiciels incompatibles
+- Installation de la dernière version de Windows compatible avec l'ordinateur
+- Installation des logiciels recommandés et des pilotes de périphériques
+- Configuration des navigateurs Internet
+- Installation des mises à jour de Windows
+- Tests de bon fonctionnement
+

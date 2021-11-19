@@ -39,7 +39,7 @@ Func _MenuAdd()
 		Local $iLien = GUICtrlCreateInput($sLien, 140, 8, 450)
 
 		GUICtrlCreateLabel("Ajouter au dossier :", 310, 40)
-		$iCombo = GUICtrlCreateCombo(StringTrimRight($aListDoc[1], 4), 440, 38, 150)
+		$iCombo = GUICtrlCreateCombo(StringTrimRight($aListDoc[1], 4), 440, 38, 150, default, $CBS_DROPDOWNLIST)
 		If $aListDoc[0] > 1 Then
 			$sCombo = _ArrayToString($aListDoc, "|", 2)
 			$sCombo = StringReplace($sCombo, ".ini", "")
@@ -225,7 +225,7 @@ Func _MenuMod($aEnr)
 	Local $iLien = GUICtrlCreateInput($aEnr[2], 140, 8, 450)
 
 	GUICtrlCreateLabel("Déplacer dans le dossier :", 310, 40)
-	$iCombo = GUICtrlCreateCombo("-----------", 440, 38, 150)
+	$iCombo = GUICtrlCreateCombo("-----------", 440, 38, 150, default, $CBS_DROPDOWNLIST)
 	If $aListDoc[0] > 1 Then
 		$sCombo = _ArrayToString($aListDoc, "|", 1)
 		$sCombo = StringReplace($sCombo, ".ini", "")

@@ -266,7 +266,7 @@ Func _ResultatStabilite()
 	Local $aEvent = _EventLog__Read($hEventLog, False, True, $iOffset)
 
 	$sSplashTxt = $sSplashTxt & @LF & "Recherche résultat du test de mémoire vive"
-	SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+	ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
 
 	If IsArray($aEvent) Then
 		Do

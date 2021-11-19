@@ -125,7 +125,7 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	_FileWriteLog($hLog, "Client : " & $sNom & " - PC : " & @ComputerName)
 
 	$sSplashTxt = $sSplashTxt & @LF & "Génération des informations système"
-	SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+	ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
 
 	 _RapportInfos()
 
@@ -518,17 +518,17 @@ Func _APropos()
 
 	Local $iVersion = 0;
 
-	If(_IsInternetConnected() = 1) Then
+;~ 	If(_IsInternetConnected() = 1) Then
 
-		Local $SSource = BinaryToString(InetRead("https://isergues.fr/bao.php", 1), 4)
-		Local $aVersion = StringRegExp($SSource, 'Version (.*?)]', 3)
+;~ 		Local $SSource = BinaryToString(InetRead("https://isergues.fr/bao.php", 1), 4)
+;~ 		Local $aVersion = StringRegExp($SSource, 'Version (.*?)]', 3)
 
-		If IsArray($aVersion) Then
-			If(_ArraySearch($aVersion, $sVersion) > 0) Then
-				$iVersion = 1;
-			EndIf
-		EndIf
-	EndIf
+;~ 		If IsArray($aVersion) Then
+;~ 			If(_ArraySearch($aVersion, $sVersion) > 0) Then
+;~ 				$iVersion = 1;
+;~ 			EndIf
+;~ 		EndIf
+;~ 	EndIf
 
 	Local $hGUIapropos = GUICreate("A propos")
 
@@ -539,11 +539,11 @@ Func _APropos()
 		GUICtrlCreateLabel("Nouvelle version disponible !",220, 45)
 		GUICtrlSetColor(-1, $COLOR_RED)
 	EndIf
-	GUICtrlCreateLabel('"Boîte A Outils" est un logiciel d' & "'" & 'aide au dépannage informatique'&@CRLF&"Auteur : Bastien Rouchès""Licence : GPL-3.0-or-later"&@CRLF&"https://www.isergues.fr"&@CRLF&"Copyright 2019 - 2021 Bastien Rouches", 10, 75)
+	GUICtrlCreateLabel('"Boîte A Outils" est un logiciel d' & "'" & 'aide au dépannage informatique'&@CRLF&"Licence : GPL-3.0-or-later"&@CRLF&"https://www.isergues.fr"&@CRLF&"Copyright 2019 - 2021 Bastien Rouches", 10, 75)
  	GUICtrlCreateLabel("Aller sur le site du logiciel : ", 40, 145)
-	local $iIdLien = GUICtrlCreateButton("GitHub", 200, 140, 100)
+	local $iIdLien = GUICtrlCreateButton("https://boiteaoutils.xyz", 200, 140, 190)
 	GUICtrlCreateLabel("Encourager le développeur : ", 40, 170)
-	local $iIdDon = GUICtrlCreateButton("Faire un don", 200, 165, 100)
+	local $iIdDon = GUICtrlCreateButton("Faire un don", 200, 165, 190)
 
  	GUICtrlCreateLabel("Licences des logiciels :"&@CRLF&""&@CRLF&"DWService Agent : MPLv2"&@CRLF&"Chocolatey Open Source : Apache 2.0"&@CRLF&"Snappy Driver Installer Origin : GNU General Public License"&@CRLF&"Windows-ISO-Downloader : Heidoc"&@CRLF&"PrivaZer : Licence jointe avec le logiciel"&@CRLF&"7zip :  GNU LGPL"&@CRLF&"Smartmontools :  GNU GPL"&@CRLF&"SetUserFTA : Freeware"&@CRLF&"Proaxive : GNU-GPL"&@CRLF&""&@CRLF&""&@CRLF&"Les logiciels personnalisables par l'utilisateur sont soumis à leurs licences"&@CRLF&"respectives", 10, 195)
 	GUISetState(@SW_SHOW)
@@ -558,10 +558,10 @@ Func _APropos()
 				ExitLoop
 
 			Case $iIdLien
-				ShellExecute("https://github.com/PaysanBarbare/BAO")
+				ShellExecute("https://boiteaoutils.xyz")
 
 			Case $iIdDon
-				ShellExecute("https://www.paypal.com/biz/fund?id=9DCB6M93TUS3C")
+				ShellExecute("https://www.paypal.com/biz/fund?id=9DCB6M93TUS3C&locale.x=fr_FR")
 
 		EndSwitch
 	WEnd

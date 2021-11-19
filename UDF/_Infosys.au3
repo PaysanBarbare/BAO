@@ -324,7 +324,7 @@ Func _CalculFSGain()
 
 	$iGain = _FichierCache("FS_START") - $iFreeSpaceNow
 	If ($iGain > 1) Then
-		$iRetour = $iGain
+		$iRetour = Round($iGain, 2)
 	EndIf
 
 	return $iRetour

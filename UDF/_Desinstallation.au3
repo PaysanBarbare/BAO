@@ -92,7 +92,7 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		_FileWriteLog($hLog, "Désinstallation de BAO")
 
 		$sSplashTxt = "Enregistrement des changements apportés"
-		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+		SplashTextOn("Désinstallation de BAO", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 		_FileWriteLog($hLog, "Enregistrement des changements saisi dans le champs intervention")
 
@@ -111,7 +111,7 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		Local $iRetour = 0
 
 		$sSplashTxt = $sSplashTxt & @LF & "Sauvegarde du rapport"
-		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+		ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
 
 		If StringLeft(@ScriptDir, 2) <> "\\" Then
 
@@ -144,10 +144,10 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		EndIf
 
 		$sSplashTxt = $sSplashTxt & @LF & "Suppression des dépendances de BAO"
-		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+		ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
 		_ReiniBAO()
 		$sSplashTxt = $sSplashTxt & @LF & "Suppression de BAO"
-		SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+		ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
 		_Uninstall($iEteindre)
 		SplashOff()
 		Exit

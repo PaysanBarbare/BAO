@@ -299,6 +299,7 @@ Func _TryDL($aEnr)
 			$iRetour = 1
 		Else
 			_FileWriteLog($hLog, $aEnr[2] & ' : dossier inexistant')
+			_Attention('Le dossier "' & $aEnr[2] & '"' & " n'existe pas")
 		EndIf
 	ElseIf $aEnr[3] = 1 Then
 		If __checkConn($aEnr[2]) Then
