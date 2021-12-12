@@ -29,7 +29,7 @@ This file is part of "Boîte A Outils"
 ; Author.........: Bastien
 ; Modified ......:
 ; ===============================================================================================================================
-Func _Telecharger($aLogToDL, $test = 0)
+Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 
 	Local $dl = 0
 	Local $lognom = $aLogToDL[1]
@@ -38,6 +38,8 @@ Func _Telecharger($aLogToDL, $test = 0)
 	Local $logheaders = $aLogToDL[5]
 	Local $bPWD =$aLogToDL[6]
 	Local $ext = $aLogToDL[8]
+	Local $expression = $aLogToDL[11]
+	Local $expressionnonincluse = $aLogToDL[12]
 	Local $logdomaine = $aLogToDL[9]
 	Local $lognepasmaj = $aLogToDL[10]
 	Local $lastModified
@@ -58,7 +60,7 @@ Func _Telecharger($aLogToDL, $test = 0)
 		$iInternet = 0
 	Else
 		If $test = 0 Then
-			_FileWriteLog($hLog, "Téléchargement de " & $lognom )
+			_FileWriteLog($hLog, $sProgression & "Téléchargement de " & $lognom )
 		Else
 			_FileWriteLog($hLog, "Test de téléchargement de " & $lognom )
 		EndIf
@@ -71,7 +73,7 @@ Func _Telecharger($aLogToDL, $test = 0)
 
 			$source = BinaryToString(InetRead($url), 4)
 			;_Debug($source)
-			$url = StringRegExp($source, ' href="(.*?).' & $ext & '"', 3)
+			$url = StringRegExp($source, ' href="(.*?' & $expression & '.*?).' & $ext & '"', 3)
 
 			If $bPWD = 1 Then
 				$aPWD = StringRegExp($source, "copyTextToClipboard\(\'(.*?)\'\);", 1)
@@ -80,7 +82,27 @@ Func _Telecharger($aLogToDL, $test = 0)
 
 
 			If(IsArray($url)) Then
-				$url = $url[0] & "." & $ext
+				If $expressionnonincluse <> "" Then
+					For $urltotest In $url
+						If StringInStr($urltotest, $expressionnonincluse) Then
+							_FileWriteLog($hLog, "lien ignoré (contient " & $expressionnonincluse & " : " & $urltotest)
+						Else
+							$url = $urltotest & "." & $ext
+							ExitLoop
+						EndIf
+					Next
+				Else
+					$url = $url[0] & "." & $ext
+				EndIf
+
+				If IsArray($url) Then
+					If $test = 1 Then
+						_Attention("Pas de lien trouvé")
+					Else
+						_Attention("Le logiciel n'a pas pu être téléchargé." & 'Vérifiez les réglages (lien contenant "' & $expressionnonincluse & '" ignoré)')
+					EndIf
+					Return False
+				EndIf
 
 				; le lien récupéré dans la page est un lien relatif (surement à améliorer)
 				If(StringLeft($url,4) <> "http") Then
@@ -128,6 +150,7 @@ Func _Telecharger($aLogToDL, $test = 0)
 ;~ 			;@ScriptDir = DriveMapAdd("*", @ScriptDir)
 ;~ 			$sProgrunUNC = @ScriptDir & "\Cache\Download\" & $aLien[0] & $ext
 ;~ 		EndIf
+		;_Debug($url)
 
 		If($iInternet = 0) Then
 			If $test = 1 Then
@@ -190,7 +213,7 @@ Func _Telecharger($aLogToDL, $test = 0)
 				; Téléchargement direct
 				$hDownload = InetGet($url, $sProgrun, 1, 1)
 				$TotalSize = Round($dlFileSize / 1024)
-				GUICtrlSetData($statusbar, " Téléchargement de " & $lognom)
+				GUICtrlSetData($statusbar, $sProgression & "Téléchargement de " & $lognom)
 				If $test = 0 Then
 					GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
 				EndIf
@@ -294,6 +317,8 @@ Func _TryDL($aEnr)
 	; $aEnr[8] = Extension
 	; $aEnr[9] = Domaine
 	; $aEnr[10] = Nepasmaj
+	; $aEnr[11] = Expression
+	; $aEnr[12] = ExpressionNonIncluse
 	If StringLeft($aEnr[2], 2) = "\\" Then
 		If FileExists($aEnr[2]) Then
 			$iRetour = 1
@@ -486,16 +511,28 @@ Func _UpdateProg()
 
 	Local $sNomLogk
 	Local $aListeLiens = MapKeys($aMenu)
+	Local $iCountEle = 0, $i = 1
 	Local $bReturn
 
+	For $sLogCount in $aMenu
+		If $sLogCount[3] <> 1 And $sLogCount[6] <> 1 And $sLogCount[10] <> 1 And StringLeft($sLogCount[2], 4) = "http" Then
+			$iCountEle+=1
+		EndIf
+	Next
+
+
 	For $sNomLogk in $aListeLiens
-		If(($aMenu[$sNomLogk])[3] <> 1 And ($aMenu[$sNomLogk])[6] <> 1 And StringLeft(($aMenu[$sNomLogk])[2], 4) = "http") Then
-			$bReturn = _Telecharger($aMenu[$sNomLogk])
+		If(($aMenu[$sNomLogk])[3] <> 1 And ($aMenu[$sNomLogk])[6] <> 1 And ($aMenu[$sNomLogk])[10] <> 1 And StringLeft(($aMenu[$sNomLogk])[2], 4) = "http") Then
+			GUICtrlSetData($statusbar, "Patientez ...")
+			$bReturn = _Telecharger($aMenu[$sNomLogk], 0, "(" & $i & "/" & $iCountEle & ") ")
+			$i+=1
 			If ($bReturn = False) Then
 				_Attention("Echec du téléchargement de " & $sNomLogk, 1)
 			EndIf
 		EndIf
 	Next
+	GUICtrlSetData($statusbar, "")
+	_Attention("Téléchargement des logiciels terminé")
 	;_UpdEdit($iIDEditRapport, $hFichierRapport)
 EndFunc
 

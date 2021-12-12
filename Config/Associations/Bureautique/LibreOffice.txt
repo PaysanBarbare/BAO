@@ -1,0 +1,4 @@
+.doc, LibreOffice.Doc
+.docx, LibreOffice.Docx
+.xls, LibreOffice.Xls
+.xlsx, LibreOffice.Xlsx

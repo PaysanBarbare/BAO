@@ -1,0 +1,4 @@
+.doc, OpenOffice.Doc
+.docx, OpenOffice.Docx
+.xls, OpenOffice.Xls
+.xlsx, OpenOffice.Xlsx

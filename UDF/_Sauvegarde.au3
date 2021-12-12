@@ -45,7 +45,7 @@ Func _SauvegardeAutomatique()
 	Local $aDrive = DriveGetDrive ($DT_ALL)
 	If @error = 0 Then
 		For $i = 1 To $aDrive[0]
-			If (StringUpper($aDrive[$i]) <> @HomeDrive AND DriveGetType($aDrive[$i]) = "Fixed") Then
+			If (StringUpper($aDrive[$i]) <> $HomeDrive AND DriveGetType($aDrive[$i]) = "Fixed") Then
 				If(FileExists($aDrive[$i] & "\Users")) Then
 					Local $aUsers = _FileListToArrayRec($aDrive[$i] & "\Users", "*|Default*;All Users;Public", 2)
 					If @error = 0 Then
@@ -159,6 +159,7 @@ Func _SauvegardeAutomatique()
 		ElseIf $eGet = $iIDPCSource Then
 			If _FichierCacheExist("Partage") And _FichierCache("Partage") = 1 Then
 				_FileWriteLog($hLog, 'Désactivation du partage')
+				RunWait(@ComSpec & ' /C net user bao_share /delete', "", @SW_HIDE)
 				RunWait(@ComSpec & ' /C net share SAUV /delete', "", @SW_HIDE)
 				_ChangerEtatBouton($iIDPCSource, "Desactiver")
 				_FichierCache("Partage",2)
@@ -175,20 +176,22 @@ Func _SauvegardeAutomatique()
 
 				if $sEverybody <> "" Then
 					; Désactivation du partage protégé par mot de passe
-					_FileWriteLog($hLog, 'Désactivation du partage protégé par mot de passe')
-					Local $iProtectShare = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa", "everyoneincludeanonymous")
-					If $iProtectShare = 0 Then
-						RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa\","everyoneincludeanonymous","REG_DWORD", 1)
-						_FichierCache("PartageProtege1",1)
-					EndIf
-					Local $iProtectShare2 = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess")
-					If $iProtectShare2 = 1 Then
-						RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess", "REG_DWORD", 0)
-						_FichierCache("PartageProtege2",1)
-					EndIf
+;~ 					_FileWriteLog($hLog, 'Désactivation du partage protégé par mot de passe')
+;~ 					Local $iProtectShare = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa", "everyoneincludesanonymous")
+;~ 					If $iProtectShare = 0 Then
+;~ 						RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa\","everyoneincludesanonymous","REG_DWORD", 1)
+;~ 						_FichierCache("PartageProtege1",1)
+;~ 					EndIf
+;~ 					Local $iProtectShare2 = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess")
+;~ 					If $iProtectShare2 = 1 Then
+;~ 						RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess", "REG_DWORD", 0)
+;~ 						_FichierCache("PartageProtege2",1)
+;~ 					EndIf
 
 					DirCreate($sDossierRapport & "\Sauvegarde réseau")
-					RunWait(@ComSpec & ' /C net share SAUV /delete&net share SAUV="' & $sDossierRapport & "\Sauvegarde réseau" & '" /GRANT:"' & $sEverybody & '",FULL&CACLS "' & $sDossierRapport & "\Sauvegarde réseau" & '" /e /p "' & $sEverybody & '":f"', "", @SW_HIDE)
+					; Création d'un user pour le partage
+					RunWait(@ComSpec & ' /C net user bao_share bao /add', "", @SW_HIDE)
+					RunWait(@ComSpec & ' /C net share SAUV /delete&net share SAUV="' & $sDossierRapport & "\Sauvegarde réseau" & '" /GRANT:"bao_share",FULL&CACLS "' & $sDossierRapport & "\Sauvegarde réseau" & '" /e /p "' & $sEverybody & '":f"', "", @SW_HIDE)
 					_ChangerEtatBouton($iIDPCSource, "Activer")
 					_FichierCache("Partage",1)
 				Else
@@ -199,6 +202,7 @@ Func _SauvegardeAutomatique()
 			If GUICtrlRead($iIDInputNameComput) = "" Then
 				_Attention("Merci d'indiquer le nom de l'ordinateur de destination")
 			Else
+				RunWait(@ComSpec & ' /C net use \\' & GUICtrlRead($iIDInputNameComput) & '\SAUV /USER:bao_share bao', "", @SW_HIDE)
 				If FileExists("\\" & GUICtrlRead($iIDInputNameComput) & "\SAUV") Then
 					$bNet = True
 					ExitLoop
@@ -355,7 +359,7 @@ Func _SauvegardeAutomatique()
 						_Attention("Espace sur le disque " & $sLetter & " insuffisant")
 						_FileWriteLog($hLog, 'Dossier "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" non sauvegardé : espace disque insuffisant')
 					Else
-						RunWait(@ComSpec & ' /c robocopy "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" "' &  $sDossierDesti & '\' & $mListeSVG[$sKeys] & '" /E')
+						RunWait(@ComSpec & ' /c robocopy "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" "' &  $sDossierDesti & '\' & $mListeSVG[$sKeys] & '" /E /B /R:1 /W:1')
 						_FileWriteLog($hLog, 'Dossier "' & $mListeSVG[$sKeys] & '" : ' & Round(DirGetSize($sDossierDesti & "\" & $mListeSVG[$sKeys]) / (1024 * 1024 * 1024), 2) & " sur " & Round(DirGetSize(_WinAPI_ShellGetKnownFolderPath($sKeys)) / (1024 * 1024 * 1024), 2) & " Go copiés")
 					EndIf
 
@@ -481,7 +485,7 @@ Func _SauvegardeAutomatique()
 					_Attention("Espace sur le disque " & $sLetter & " insuffisant")
 					_FileWriteLog($hLog, '  Dossier "' & $sSource & '" non sauvegardé : espace disque insuffisant')
 				Else
-					RunWait(@ComSpec & ' /c robocopy "' & $sSource & '" "' &  $sDossierDesti & '" /E /XD "' & $sSource & '\Appdata"')
+					RunWait(@ComSpec & ' /c robocopy "' & $sSource & '" "' &  $sDossierDesti & '" /E /B /R:1 /W:1 /XJ /XD "' & $sSource & '\Appdata"')
 					_FileWriteLog($hLog, 'Dossier "' & $sSource & '" : ' & Round(DirGetSize($sDossierDesti) / (1024 * 1024 * 1024), 2) & " sur " & Round((DirGetSize($sSource) - DirGetSize($sSource & "\Appdata")) / (1024 * 1024 * 1024), 2) & " Go copiés")
 				EndIf
 
@@ -560,13 +564,13 @@ Func _SauvegardeAutomatique()
 
 		If($iUtil = 0) Then
 			_FileWriteLog($hLog, 'Restauration de données dans le dossier rapport')
-			If(DriveSpaceFree(@HomeDrive) < DirGetSize($sDossierSourceRestau) / 1048576) Then
-				_Attention("Espace sur le disque " & @HomeDrive & " insuffisant")
+			If(DriveSpaceFree($HomeDrive) < DirGetSize($sDossierSourceRestau) / 1048576) Then
+				_Attention("Espace sur le disque " & $HomeDrive & " insuffisant")
 				_FileWriteLog($hLog, '  Dossier "' & $sDossierSourceRestau & '" non restauré : espace disque insuffisant')
 				_UpdEdit($iIDEditLog, $hLog)
 				_ChangerEtatBouton($iIDAction, "Desactiver")
 			Else
-				RunWait(@ComSpec & ' /c robocopy "' & $sDossierSourceRestau & '" "' &  $sDossierRestau & '" /E')
+				RunWait(@ComSpec & ' /c robocopy "' & $sDossierSourceRestau & '" "' &  $sDossierRestau & '" /E /B /R:1 /W:1')
 				_FileWriteLog($hLog, 'Restauration du dossier "' & $sDossierSourceRestau & '" dans "' & $sDossierRestau & '" : ')
 				_FileWriteLog($hLog, @TAB & Round(DirGetSize($sDossierRestau) / (1024 * 1024 * 1024), 2) & " sur " & Round((DirGetSize($sDossierSourceRestau)) / (1024 * 1024 * 1024), 2) & " Go copiés")
 				_UpdEdit($iIDEditLog, $hLog)
@@ -586,8 +590,8 @@ Func _SauvegardeAutomatique()
 				GUICtrlSetData($statusbar, " Copie " & _WinAPI_ShellGetKnownFolderPath($sKeys))
 				GUICtrlSetData($statusbarprogress, $iInc)
 				$iInc = $iInc + Round(100/8)
-				If(DriveSpaceFree(@HomeDrive) < DirGetSize($sDossierSourceRestau) / 1048576) Then
-					_Attention("Espace sur le disque " & @HomeDrive & " insuffisant")
+				If(DriveSpaceFree($HomeDrive) < DirGetSize($sDossierSourceRestau) / 1048576) Then
+					_Attention("Espace sur le disque " & $HomeDrive & " insuffisant")
 					_FileWriteLog($hLog, '  Dossier "' & $sDossierSourceRestau & '" non restauré : espace disque insuffisant')
 				Else
 					If $iBureau = 1 And $mListeSVG[$sKeys] = "Desktop" Then
@@ -596,7 +600,7 @@ Func _SauvegardeAutomatique()
 						;DirCreate(_WinAPI_ShellGetKnownFolderPath($sKeys) & '\Sauvegarde du bureau')
 						RunWait(@ComSpec & ' /c xcopy "' & $sDossierSourceRestau & '\' & $mListeSVG[$sKeys] & '" "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '\Sauvegarde du bureau\" /E /Y /C')
 					Else
-						RunWait(@ComSpec & ' /c robocopy "' & $sDossierSourceRestau & '\' & $mListeSVG[$sKeys] & '" "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" /E')
+						RunWait(@ComSpec & ' /c robocopy "' & $sDossierSourceRestau & '\' & $mListeSVG[$sKeys] & '" "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" /E /B /R:1 /W:1')
 					EndIf
 					_FileWriteLog($hLog, 'Dossier "' & $mListeSVG[$sKeys] & '" : ' & Round(DirGetSize(_WinAPI_ShellGetKnownFolderPath($sKeys)) / (1024 * 1024 * 1024), 2) & " sur " & Round(DirGetSize($sDossierSourceRestau & "\" & $mListeSVG[$sKeys]) / (1024 * 1024 * 1024), 2) & " Go copiés")
 				EndIf
@@ -680,7 +684,7 @@ Func _CopierSur()
 
 	For $i = 1 To $aDrive[0]
 		If (DriveGetType($aDrive[$i]) = "Removable" Or DriveGetType($aDrive[$i]) = "Fixed") Then
-			If StringUpper($aDrive[$i]) <> @HomeDrive Then
+			If StringUpper($aDrive[$i]) <> $HomeDrive Then
 				GUICtrlSetData($iIDCombo, StringUpper($aDrive[$i]) & " [" & DriveGetLabel($aDrive[$i]) & "] - Espace libre : " & Round((DriveSpaceFree($aDrive[$i]) / 1024), 2) & " Go")
 			EndIf
 		EndIf

@@ -61,7 +61,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "1.0.2" ; 19/11/21
+Global $sVersion = "1.0.4" ; 07/12/21
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -76,6 +76,7 @@ Global $sVersion = "1.0.2" ; 19/11/21
 #include <EventLog.au3>
 #include <File.au3>
 #include <FTPEx.au3>
+#include <GuiComboBox.au3>
 #include <GUIConstantsEx.au3>
 #include <GuiEdit.au3>
 #include <GuiListView.au3>
@@ -103,7 +104,7 @@ Global $sVersion = "1.0.2" ; 19/11/21
 _Singleton(@ScriptName, 0)
 
 Local $sDossierRapport, $sNom, $bNonPremierDemarrage = False, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $sSubKey, $sMdps, $sAutoUser
-Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin
+Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2)
 
 ; déclaration des fichiers rapport
 Global $hLog, $sFileLog
@@ -154,7 +155,8 @@ SplashTextOn("Initialisation de BAO", $sSplashTxt, $iSplashWidth, $iSplashHeigh,
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
 	$sSplashTxt = $sSplashTxt & @LF & "Création du raccourci sur le bureau"
 	ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
-	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", "", "", "Boîte à Outils", @ScriptDir & "\Outils\bao.ico")
+	FileCopy(@ScriptDir & "\Outils\bao.ico", @LocalAppDataDir & "\bao\bao.ico")
+	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", "", "", "Boîte à Outils", @LocalAppDataDir & "\bao\bao.ico")
 EndIf
 
 $sSplashTxt = $sSplashTxt & @LF & "Chargement des dépendances"
@@ -182,6 +184,7 @@ Const $sConfig = @ScriptDir & "\config.ini"
 #include "UDF\_Stabilite.au3"
 #include "UDF\_Suivi.au3"
 #include "UDF\_Telechargement.au3"
+#include "UDF\SFTPEx.au3"
 
 ; Désactivation de la mise en veille https://www.autoitscript.com/forum/topic/152381-screensaver-sleep-lock-and-power-save-disabling/
 
@@ -208,7 +211,10 @@ $sSociete = IniRead($sConfig, "Parametrages", "Societe", "NomSociete")
 $sDossierRapport = @DesktopDir & "\" & IniRead($sConfig, "Parametrages", "Dossier", "Rapports")
 If DirCreate($sDossierRapport) = 0 Then	_Erreur("Impossible de créer le dossier '" & $sDossierRapport & "' sur le bureau")
 
+DirCreate(@ScriptDir & "\Cache\Download\")
+
 ; intialisation des variables FTP
+$sFTPProtocol = IniRead($sConfig, "FTP", "Protocol", "ftp")
 Local $sFTPAdresse = IniRead($sConfig, "FTP", "Adresse", "")
 Local $sFTPUser = IniRead($sConfig, "FTP", "Utilisateur", "")
 Local $sFTPPort = IniRead($sConfig, "FTP", "Port", "")
@@ -356,7 +362,7 @@ Local $i, $j, $iPremElement, $iDernElement, $x = 70
 Local $iIDMenuLog = GUICtrlCreateMenu("Logiciels")
 
 $iPremElement = $iIDMenuLog + 1
-Local $aTemp, $iIDMenuDoc, $aTempLog[12], $sNomLog, $aShortcut, $aLogMenu, $sIDSM, $iToDel, $iToOpen, $iToRen
+Local $aTemp, $iIDMenuDoc, $aTempLog[14], $sNomLog, $aShortcut, $aLogMenu, $sIDSM, $iToDel, $iToOpen, $iToRen
 
 For $i = 1 To $aDoc[0]
 
@@ -387,7 +393,9 @@ For $i = 1 To $aDoc[0]
 			$aTempLog[8] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "extension", "" )
 			$aTempLog[9] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "domaine", "" )
 			$aTempLog[10] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "nepasmaj", "0" )
-			$aTempLog[11] = $aDoc[$i]
+			$aTempLog[11] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expression", "" )
+			$aTempLog[12] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expressionnonincluse", "" )
+			$aTempLog[13] = $aDoc[$i]
 
 			; Construction de deux Maps (un trié par nom et l'autre par ID menu
 			$aMenu[$sNomLog] = $aTempLog
@@ -396,7 +404,7 @@ For $i = 1 To $aDoc[0]
 			If $aTempLog[7] = 1 Then
 				$sIDSM = GUICtrlCreateButton($sNomLog, 700, $x, 150, 25)
 				$x = $x + 25
-				$aTempLog[11] = -1
+				$aTempLog[13] = -1
 				$aMenuID[$sIDSM] = $aTempLog
 			EndIf
 
@@ -498,7 +506,7 @@ Else
 	_RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 EndIf
 
-Local $iIDespacelibre = GUICtrlCreateLabel(@HomeDrive & " " & $iFreeSpace & " Go libre", 620, 164 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
+Local $iIDespacelibre = GUICtrlCreateLabel($HomeDrive & " " & $iFreeSpace & " Go libre", 620, 164 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 Local $aMemStats = MemGetStats()
 Local $iIDRAMlibre = GUICtrlCreateLabel("RAM : " & $aMemStats[$MEM_LOAD] & '% utilisée', 720, 164 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 
@@ -682,9 +690,9 @@ While 1
 			Run(@ComSpec & ' /c net stop wuauserv & net stop bits & net stop dosvc', '', @SW_HIDE)
 		EndIf
 
-		$iFreeSpacech = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
+		$iFreeSpacech = Round(DriveSpaceFree($HomeDrive & "\") / 1024, 2)
 		If($iFreeSpacech <> $iFreeSpace) Then
-			GUICtrlSetData($iIDespacelibre, @HomeDrive & " " & $iFreeSpacech & " Go libre")
+			GUICtrlSetData($iIDespacelibre, $HomeDrive & " " & $iFreeSpacech & " Go libre")
 			$iFreeSpace = $iFreeSpacech
 		EndIf
 

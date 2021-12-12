@@ -123,7 +123,7 @@ EndFunc
 
 Func _Desinstalleur()
 
-	Local $retour = 0, $ipid, $iLabelProg, $iPerc, $sOutput, $iErreur = 0, $sEchecs, $sRepReg
+	Local $retour = 0, $ipid, $iLabelProg, $iPerc, $sOutput, $iErreur = 0, $sEchecs, $sRepReg, $iPosExe
 	Local $aListeProgInst = _ListeProgrammes()
 	Local $sBlacklist = @ScriptDir & "\Config\Blacklist.txt", $aBList, $hBlack
 	Local $aItems[0][5], $iIDBDes, $iIDBSupp, $iIDBAdd, $iIDBMod, $iIDBAct, $iIDBQuit
@@ -226,6 +226,9 @@ Func _Desinstalleur()
 								Else
 									$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /S'
 								EndIf
+							ElseIf(StringLeft($aListeProgInst[$b-1][3], 1) <> '"') Then
+								$iPosExe = StringInStr($aListeProgInst[$b-1][3], ".exe")
+								$aListeProgInst[$b-1][3] = '"' & _StringInsert($aListeProgInst[$b-1][3], '"', $iPosExe + 3)
 							EndIf
 							_FileWriteLog($hLog, 'Désinstallation de ' & $aListeProgInst[$b-1][0])
 							_FileWriteLog($hLog, 'CMD : ' & $aListeProgInst[$b-1][3])
@@ -254,6 +257,7 @@ Func _Desinstalleur()
 						ElseIf $sOutput <> "" Then
 							$sEchecs = $sEchecs & $aListeProgInst[$b-1][0] & " : " &  _OEMToAnsi($sOutput) & @LF
 						EndIf
+						$iErreur = 0
 						Sleep(1000)
 					Next
 					$retour = 1
@@ -310,6 +314,10 @@ Func _Desinstalleur()
 
 				For $i = 0 To $iNBProginst - 1
 					If $idMsgDes = $aItems[$i][2] Then
+						If(StringLeft($aListeProgInst[$i][3], 1) <> '"') Then
+							$iPosExe = StringInStr($aListeProgInst[$i][3], ".exe")
+							$aListeProgInst[$i][3] = '"' & _StringInsert($aListeProgInst[$i][3], '"', $iPosExe + 3)
+						EndIf
 						_FileWriteLog($hLog, 'Désinstallation de ' & $aListeProgInst[$i][0])
 						_FileWriteLog($hLog, 'CMD : ' & $aListeProgInst[$i][3])
 						$ipid = RunWait(@ComSpec & ' /c "' & $aListeProgInst[$i][3] & '"',"", @SW_HIDE)

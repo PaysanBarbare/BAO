@@ -26,43 +26,28 @@ Fonction : Liste des fonctions utiles pour le fonctionnement de I² - BAO
 ; Traitement du fichier config.ini
 
 Func _InitialisationBAO($sConfig)
+	Local $aSections
 	If(FileExists($sConfig)) Then
 
-		Local $aSections = IniReadSectionNames($sConfig)
+		$aSections = IniReadSectionNames($sConfig)
 		if @error Then
 			_Erreur("Fichier 'config.ini' erroné")
-		EndIf
-
-		If $aSections[1]<>"Parametrages" Then
-			_Erreur("Section 'Parametrages' absente dans le fichier 'config.ini'")
-		EndIf
-
-		If $aSections[2]<>"Installation" Then
-			_Erreur("Section 'Installation' absente dans le fichier 'config.ini'")
-		EndIf
-
-		If $aSections[3]<>"BureauDistant" Then
-			_Erreur("Section 'BureauDistant' absente dans le fichier 'config.ini'")
-		EndIf
-
-		If $aSections[4]<>"Desinfection" Then
-			_Erreur("Section 'Desinfection' absente dans le fichier 'config.ini'")
-		EndIf
-
-		If $aSections[5]<>"FTP" Then
-			_Erreur("Section 'FTP' absente dans le fichier 'config.ini'")
+		ElseIf(UBound($aSections) < 7) Then
+			_Erreur("Le fichier 'config.ini' doit comporter 6 sections : " & @CRLF & "    - Parametrages" & @CRLF & "    - Installation" & @CRLF & "    - BureauDistant" & @CRLF & "    - Desinfection" & @CRLF & "    - Associations" & @CRLF & "    - FTP" & @CRLF & @CRLF & "Merci de rajouter la section manquante ou de le supprimer afin que BAO en génère un nouveau.")
 		EndIf
 	Else
 		; Création du fichier config.ini
 		IniWriteSection($sConfig,"Parametrages", "Societe=MyBigCorporation"&@LF&"Dossier=Rapport"&@LF&"Icones=1"&@LF&"Restauration=0"&@CRLF)
 
-		IniWriteSection($sConfig,"Installation", "Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Safari Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler ImgBurn JavaRuntime TeamViewer"&@CRLF)
+		IniWriteSection($sConfig,"Installation", "Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Safari Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh OnlyOffice"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler FoxitReader ImgBurn JavaRuntime TeamViewer"&@CRLF)
 
 		IniWriteSection($sConfig,"BureauDistant", "Agent=https://www.dwservice.net/download/dwagent_x86.exe"&@LF&"Mail=votreadressemail@domaine.fr"&@CRLF)
 
 		IniWriteSection($sConfig,"Desinfection", "Programmes de desinfection=Privazer RogueKiller AdwCleaner MalwareByte ZHPCleaner EsetOnlineScanner"&@CRLF)
 
-		IniWriteSection($sConfig, "FTP", "Adresse="&@LF&"Utilisateur="&@LF&"Port=21"&@LF&"DossierRapports=/www/rapports/"&@LF&"DossierSFX=/www/dl/"&@LF&"DossierSuivi=/www/suivi/"&@CRLF)
+		IniWriteSection($sConfig, "Associations", "Defaut=0,0,0,0"&@CRLF)
+
+		IniWriteSection($sConfig, "FTP", "Protocol=sftp"&@LF&"Adresse="&@LF&"Utilisateur="&@LF&"Port=22"&@LF&"DossierRapports=/www/rapports/"&@LF&"DossierSFX=/www/dl/"&@LF&"DossierSuivi=/www/suivi/"&@CRLF)
 
 		TrayTip("Premier lancement", "Merci de compléter le fichier de configuration", 30)
 		ShellExecuteWait($sConfig)
@@ -130,7 +115,9 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	 _RapportInfos()
 
 	 If StringLeft(@ScriptDir, 2) = "\\" Then
-		FileCopy($sFileInfosys, @ScriptDir & "\Proaxive\" & $sNom & " - " & @ComputerName & " - Informations systeme.bao", 9)
+		If FileCopy($sFileInfosys, @ScriptDir & "\Proaxive\" & $sNom & " - " & @ComputerName & " - Informations systeme.bao", 9) = 0 Then
+			_FileWriteLog($hLog, 'Impossible de copier "' & $sFileInfosys & '" dans "' & @ScriptDir & '\Proaxive\"')
+		EndIf
 		_FichierCache("FichierASupprimer", @ScriptDir & "\Proaxive\" & $sNom & " - " & @ComputerName & " - Informations systeme.bao")
 	EndIf
 
@@ -140,12 +127,10 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		_DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	EndIf
 
-	DirCreate(@ScriptDir & "\Cache\Download\")
-
 	If($iFreeSpace < 30) Then
-		Local $sRepnet = MsgBox($MB_YESNOCANCEL, "Nettoyage", "L'espace libre sur le disque " & @HomeDrive & " est seulement de " & $iFreeSpace & " Go." & @CR & "Voulez vous supprimer les fichiers temporaires et les anciennes installations de Windows ?")
+		Local $sRepnet = MsgBox($MB_YESNOCANCEL, "Nettoyage", "L'espace libre sur le disque " & $HomeDrive & " est seulement de " & $iFreeSpace & " Go." & @CR & "Voulez vous supprimer les fichiers temporaires et les anciennes installations de Windows ?")
 		If($sRepnet = 6) Then
-			RunWait(@ComSpec & ' /C cleanmgr.exe /LOWDISK /D ' & @HomeDrive, "", @SW_HIDE)
+			RunWait(@ComSpec & ' /C cleanmgr.exe /LOWDISK /D ' & $HomeDrive, "", @SW_HIDE)
 		EndIf
 
 		If @OSVersion = "WIN_10" Or @OSVersion = "WIN_8" Then
@@ -155,7 +140,7 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 				RunWait(@ComSpec & ' /C sc stop msiserver & sc stop TrustedInstaller & sc config msiserver start= disabled & sc config TrustedInstaller start= disabled & icacls "%WINDIR%\WinSxS" /save "%WINDIR%\WinSxS_NTFS.acl" /t & takeown /f "%WINDIR%\WinSxS" /r & icacls "%WINDIR%\WinSxS" /grant "%USERDOMAIN%\%USERNAME%":(F) /t & compact /s:"%WINDIR%\WinSxS" /c /a /i * & icacls "%WINDIR%\WinSxS" /setowner "NT SERVICE\TrustedInstaller" /t & icacls "%WINDIR%" /restore "%WINDIR%\WinSxS_NTFS.acl" & sc config msiserver start= demand & sc config TrustedInstaller start= demand')
 			EndIf
 		EndIf
-		_Attention((Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2) - $iFreeSpace) & " Go libérés")
+		_Attention((Round(DriveSpaceFree($HomeDrive & "\") / 1024, 2) - $iFreeSpace) & " Go libérés")
 	EndIf
 
 	Local $iIcones = IniRead($sConfig, "Parametrages", "Icones", 1)

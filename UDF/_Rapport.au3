@@ -49,7 +49,7 @@ Func _ExporterRapport()
 	$sData &= @CRLF & "[LOGS]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\logs.txt") & "[/LOGS]" & @CRLF
 
     ; Display a save dialog to select a file.
-	Local $sFileSaveDialog = FileSaveDialog("Choisissez un répertoire", @DesktopDir, "Text files (*.txt)", 0, "Rapport intervention.txt")
+	Local $sFileSaveDialog = FileSaveDialog("Choisissez un répertoire", @DesktopDir, "Fichiers Boite à Outils (*.bao)", 0, "Rapport intervention.bao")
     If @error = 0 Then
         ; Retrieve the filename from the filepath e.g. Example.au3.
         Local $sFileName = StringTrimLeft($sFileSaveDialog, StringInStr($sFileSaveDialog, "\", $STR_NOCASESENSEBASIC, -1))
@@ -60,10 +60,10 @@ Func _ExporterRapport()
         ; If a period (dot) is found then check whether or not the extension is equal to .au3.
         If $iExtension Then
             ; If the extension isn't equal to .au3 then append to the end of the filepath.
-            If Not (StringTrimLeft($sFileName, $iExtension - 1) = ".txt") Then $sFileSaveDialog &= ".txt"
+            If Not (StringTrimLeft($sFileName, $iExtension - 1) = ".bao") Then $sFileSaveDialog &= ".bao"
         Else
             ; If no period (dot) was found then append to the end of the file.
-            $sFileSaveDialog &= ".txt"
+            $sFileSaveDialog &= ".bao"
         EndIf
 		If(FileExists($sFileSaveDialog)) Then
 			_Attention("Le fichier existe déjà, merci de choisir un nom différent")
@@ -89,6 +89,7 @@ Func _CompleterRapport($iRapport, $sNomRapportComplet)
 	$sData &= @CRLF & "[UNINSTALL]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\uninstall.bao") &  @CRLF & "[/UNINSTALL]" & @CRLF
 	_CalculFS()
 	$sData &= @CRLF & "[FREESPACE_END]" & $iFreeSpace & " Go[/FREESPACE_END]" & @CRLF
+	$sData &= @CRLF & "[END]" & _Now() & "[/END]" & @CRLF
 	$sData &= @CRLF & "[RAPPORT]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\rapport.bao") & "[/RAPPORT]" & @CRLF
 	$sData &= @CRLF & "[LOGS]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\logs.txt") & "[/LOGS]" & @CRLF
 
@@ -134,7 +135,7 @@ Func _RapportParseur($iIDTABInfossys)
 			If($bFind) Then
 				$iFindUpd = _ArraySearch($aCatUpd, $aCat[0], 0, 0, 0, 0, 1, 0)
 				If $iFindUpd <> -1 Then
-					_FileWriteLog($hLog, "Mise à jour détectée : " & $aCatUpd[$iFindUpd][1])
+					;_FileWriteLog($hLog, "Mise à jour détectée : " & $aCatUpd[$iFindUpd][1])
 					$aCat[1] = " ** MAJ ** " & $aCatUpd[$iFindUpd][1]
 				EndIf
 			EndIf
@@ -147,15 +148,15 @@ Func _RapportParseur($iIDTABInfossys)
 			$iPosBR = StringInStr($aCat[1], "[BR]")
 
 			If $iPosBR Then
-				GUICtrlCreateListViewItem("", $iIDTABInfossys)
+				GUICtrlCreateListViewItem("", $idListInfosys)
 				$sDD = StringLeft($aCat[1], $iPosBR - 1)
 				$aDDSmart = StringSplit(StringMid($aCat[1], $iPosBR + 4), "[BR]", 3)
-				GUICtrlCreateListViewItem($sCateg & "|" & $sDD, $iIDTABInfossys)
+				GUICtrlCreateListViewItem($sCateg & "|" & $sDD, $idListInfosys)
 				For $sDDSmart In $aDDSmart
-					GUICtrlCreateListViewItem("|" & $sDDSmart, $iIDTABInfossys)
+					GUICtrlCreateListViewItem("|" & $sDDSmart, $idListInfosys)
 				Next
 			Else
-				GUICtrlCreateListViewItem($sCateg & "|" & $aCat[1], $iIDTABInfossys)
+				GUICtrlCreateListViewItem($sCateg & "|" & $aCat[1], $idListInfosys)
 			EndIf
 		EndIf
 	Next
@@ -203,7 +204,7 @@ Func _SaveChangeToInter()
 	Local $iGainSpace = _CalculFSGain()
 	If $iGainSpace <> 0 Then
 		_FileWriteLog($hLog, "Espace libéré : " & $iGainSpace)
-		FileWrite($hRapport, "### Espace libéré sur le disque " & @HomeDrive & " ###" & @CRLF & $iGainSpace & " Go" & @CRLF & @CRLF)
+		FileWrite($hRapport, "### Espace libéré sur le disque " & $HomeDrive & " ###" & @CRLF & $iGainSpace & " Go" & @CRLF & @CRLF)
 	EndIf
 
 	_UpdEdit($iIDEditInter, $hRapport)

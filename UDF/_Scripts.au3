@@ -22,126 +22,127 @@ Func _Scripts()
 
 	_ChangerEtatBouton($iIDAction, "Patienter")
 
-	If(StringLeft($sNom, 4) = "Tech") Then
-		DirCreate(@ScriptDir & "\Scripts\")
-		ShellExecute(@ScriptDir & "\Scripts\")
-	Else
+	Local $eGet, $aButton[], $aBut[0], $sTmp, $sScriptname, $sDocscript, $iFilenbr = false
+	Local $hGUIscripts = GUICreate("Scripts et outils", 500, 540)
 
-		Local $eGet, $aButton[], $aBut[0], $sTmp, $sScriptname, $sDocscript, $iFilenbr = false
-		Local $hGUIscripts = GUICreate("Scripts et outils", 500, 500)
+	Local $aTab = _FileListToArray(@ScriptDir & "\Scripts\", "*", 2)
 
-		Local $aTab = _FileListToArray(@ScriptDir & "\Scripts\", "*", 2)
+	If @error = 4 Then
+
+		Local $aFiles = _FileListToArray(@ScriptDir & "\Scripts\", "*", 1)
 
 		If @error = 4 Then
 
-			Local $aFiles = _FileListToArray(@ScriptDir & "\Scripts\", "*", 1)
+			GUICtrlCreateLabel('Il n' & "'" & 'y a pas de script dans le dossier "scripts"', 20, 20)
+
+		Else
+			If $aFiles[0] > 18 Then
+				$iFilenbr = True
+			EndIf
+
+			For $k = 1 To $aFiles[0]
+				$sTmp = GUICtrlCreateButton($aFiles[$k], 10, $k* 25, 480, 20)
+				$aButton[$sTmp] = "root"
+				_ArrayAdd($aBut, $sTmp)
+			Next
+		EndIf
+
+	Else
+
+		Local $hTab = GUICtrlCreateTab(10, 10, 480, 480)
+
+		For $i = 1 To $aTab[0]
+
+			GUICtrlCreateTabItem($aTab[$i])
+
+			Local $aTmp = _FileListToArray(@ScriptDir & "\Scripts\" & $aTab[$i], "*")
 
 			If @error = 4 Then
-
-				GUICtrlCreateLabel('Il n' & "'" & 'y a pas de script dans le dossier "scripts"', 20, 20)
-
+				GUICtrlCreateLabel("Il n'y a pas de script dans cet onglet", 20, 40)
 			Else
-				If $aFiles[0] > 18 Then
+				If $aTmp[0] > 18 Then
 					$iFilenbr = True
 				EndIf
-
-				For $k = 1 To $aFiles[0]
-					$sTmp = GUICtrlCreateButton($aFiles[$k], 10, $k* 25, 480, 20)
-					$aButton[$sTmp] = "root"
+				For $j = 1 To $aTmp[0]
+					$sTmp = GUICtrlCreateButton($aTmp[$j], 20, ($j * 25) + 10, 460, 20)
+					$aButton[$sTmp]=$aTab[$i]
 					_ArrayAdd($aBut, $sTmp)
 				Next
 			EndIf
 
-		Else
+		Next
 
-			Local $hTab = GUICtrlCreateTab(10, 10, 480, 480)
+		Local $aFilesa = _FileListToArray(@ScriptDir & "\Scripts\", "*", 1)
 
-			For $i = 1 To $aTab[0]
+		If @error = 0 Then
 
-				GUICtrlCreateTabItem($aTab[$i])
+			If $aFilesa[0] > 18 Then
+				$iFilenbr = True
+			EndIf
 
-				Local $aTmp = _FileListToArray(@ScriptDir & "\Scripts\" & $aTab[$i], "*")
+			GUICtrlCreateTabItem("Non classés")
 
-				If @error = 4 Then
-					GUICtrlCreateLabel("Il n'y a pas de script dans cet onglet", 20, 40)
-				Else
-					If $aTmp[0] > 18 Then
-						$iFilenbr = True
-					EndIf
-					For $j = 1 To $aTmp[0]
-						$sTmp = GUICtrlCreateButton($aTmp[$j], 20, ($j * 25) + 10, 460, 20)
-						$aButton[$sTmp]=$aTab[$i]
-						_ArrayAdd($aBut, $sTmp)
-					Next
-				EndIf
-
+			For $l = 1 To $aFilesa[0]
+				$sTmp = GUICtrlCreateButton($aFilesa[$l], 20, ($l* 25) + 10, 460, 20)
+				$aButton[$sTmp] = "root"
+				_ArrayAdd($aBut, $sTmp)
 			Next
+		EndIf
 
-			Local $aFilesa = _FileListToArray(@ScriptDir & "\Scripts\", "*", 1)
+		GUICtrlCreateTabItem("")
 
-			If @error = 0 Then
+	EndIf
 
-				If $aFilesa[0] > 18 Then
-					$iFilenbr = True
+	If UBound($aBut) = 0 Then
+		_ArrayAdd($aBut, 1000)
+	EndIf
+
+	If $iFilenbr Then
+		_Attention("Merci de ne pas dépasser 18 scripts par dossier")
+	EndIf
+
+	Local $iBadd = GUICtrlCreateButton("Ajouter / modifer les scipts", 150, 500, 200, 25)
+
+	GUISetState(@SW_SHOW)
+
+	While 1
+		$eGet = GUIGetMsg()
+		Switch $eGet
+			Case $GUI_EVENT_CLOSE
+				GUIDelete($hGUIscripts)
+				_ChangerEtatBouton($iIDAction, "Desactiver")
+				Return
+
+			Case $aBut[0] To $aBut[UBound($aBut)-1]
+
+				$sScriptname = GUICtrlRead($eGet)
+				If($aButton[$eGet] = "root") Then
+					$sDocscript = @ScriptDir & "\Scripts\"
+				Else
+					$sDocscript = @ScriptDir & "\Scripts\" & $aButton[$eGet] & "\"
 				EndIf
+				ExitLoop
 
-				GUICtrlCreateTabItem("Non classés")
+			Case $iBadd
+				GUIDelete($hGUIscripts)
+				DirCreate(@ScriptDir & "\Scripts\")
+				ShellExecute(@ScriptDir & "\Scripts\")
+				Return
 
-				For $l = 1 To $aFilesa[0]
-					$sTmp = GUICtrlCreateButton($aFilesa[$l], 20, ($l* 25) + 10, 460, 20)
-					$aButton[$sTmp] = "root"
-					_ArrayAdd($aBut, $sTmp)
-				Next
-			EndIf
+		EndSwitch
+	WEnd
 
-			GUICtrlCreateTabItem("")
+	GUIDelete($hGUIscripts)
 
-		EndIf
+	_FileWriteLog($hLog, 'Exécution du script ' & $sScriptname)
+	_UpdEdit($iIDEditLog, $hLog)
 
-		If UBound($aBut) = 0 Then
-			_ArrayAdd($aBut, 1000)
-		EndIf
-
-		If $iFilenbr Then
-			_Attention("Merci de ne pas dépasser 18 scripts par dossier")
-		EndIf
-
-		GUISetState(@SW_SHOW)
-
-		While 1
-			$eGet = GUIGetMsg()
-			Switch $eGet
-				Case $GUI_EVENT_CLOSE
-					GUIDelete($hGUIscripts)
-					_ChangerEtatBouton($iIDAction, "Desactiver")
-					Return
-
- 				Case $aBut[0] To $aBut[UBound($aBut)-1]
-
-					$sScriptname = GUICtrlRead($eGet)
-					If($aButton[$eGet] = "root") Then
-						$sDocscript = @ScriptDir & "\Scripts\"
-					Else
-						$sDocscript = @ScriptDir & "\Scripts\" & $aButton[$eGet] & "\"
- 					EndIf
-					ExitLoop
-
-			EndSwitch
-		WEnd
-
-		GUIDelete($hGUIscripts)
-
-		_FileWriteLog($hLog, 'Exécution du script ' & $sScriptname)
-		_UpdEdit($iIDEditLog, $hLog)
-
-		If(StringRight($sScriptname, 4) = ".bat" Or StringRight($sScriptname, 4) = ".cmd" Or StringRight($sScriptname, 4) = ".reg") Then
-			RunWait(@ComSpec & ' /c "' & $sDocscript & $sScriptname & '"')
-		ElseIf (StringRight($sScriptname, 4) = ".ps1") Then
-			RunWait(@ComSpec & ' /k "powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' & $sDocscript & $sScriptname & '"')
-		Else
-			ShellExecute($sScriptname, "", $sDocscript)
-		EndIf
-
+	If(StringRight($sScriptname, 4) = ".bat" Or StringRight($sScriptname, 4) = ".cmd" Or StringRight($sScriptname, 4) = ".reg") Then
+		RunWait(@ComSpec & ' /c "' & $sDocscript & $sScriptname & '"')
+	ElseIf (StringRight($sScriptname, 4) = ".ps1") Then
+		RunWait(@ComSpec & ' /k "powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' & $sDocscript & $sScriptname & '"')
+	Else
+		ShellExecute($sScriptname, "", $sDocscript)
 	EndIf
 
 	_ChangerEtatBouton($iIDAction, "Desactiver")

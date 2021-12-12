@@ -24,19 +24,9 @@ Func _TestsStabilite()
 	_ChangerEtatBouton($iIDAction, "Patienter")
 	GUICtrlSetData($statusbar, "Contrôles en cours, patientez")
 
-	Local $iIDrun, $sStress, $sOutput, $aAssoc, $hAssoc, $iBoutonCombo, $iBoutonAssoc, $sReadCombo, $sReadComboVeille, $sComboDefaut, $sDevProb
-	Local $sConfigassoctxt = @ScriptDir & "\Outils\SetUserFTA\config.txt"
+	Local $iIDrun, $sStress, $sOutput, $aAssoc[0][2], $hAssoc, $iBoutonInput, $iBoutonAssoc, $sReadComboFile, $sComboDoc, $sReadInput, $sReadComboVeille, $sComboDefaut, $sDevProb, $hFileConfig, $aDefautAsso
 
-	If(FileExists($sConfigassoctxt)) Then
-		_FileReadToArray($sConfigassoctxt, $aAssoc, 0, ",")
-		If UBound($aAssoc) > 0 Then
-			$sComboDefaut = $aAssoc[0][0] & " = " & $aAssoc[0][1]
-		EndIf
-	Else
-		$hAssoc = FileOpen($sConfigassoctxt, 1)
-		FileClose($hAssoc)
-	EndIf
-
+	$aDefautAsso = _ArrayFromString(IniRead($sConfig, "Associations", "Defaut", ""), ",")
 	Local $hMat = GUICreate("Centre de contrôles", 1200, 600)
 	GUICtrlCreateGroup("Choisissez un outil", 10, 10, 380, 190)
 	GUICtrlSetFont (-1, 9, 800)
@@ -46,14 +36,33 @@ Func _TestsStabilite()
 
 	GUICtrlCreateGroup("Association de fichiers", 10, 200, 380,390)
 	GUICtrlSetFont (-1, 9, 800)
-	Local $iBoutonAssocALL = GUICtrlCreateButton("Appliquer la configuration", 20, 220, 180)
-	Local $iBoutonAssocModif = GUICtrlCreateButton("Modifier la configuration", 200, 220, 180)
 	GUICtrlSetData($statusbarprogress, 25)
-	GUICtrlCreateLabel("Configuration actuelle du système: ", 20, 250)
-	Local $sEditAssoc = GUICtrlCreateEdit("", 20, 270, 360, 280)
+	Local $iBoutonAff = GUICtrlCreateButton("Afficher toutes les associations du système", 20, 220, 360)
+	Local $iBoutonMod = GUICtrlCreateButton("Modifier les fichiers de configuration", 20, 250, 360)
 
-	$iBoutonCombo = GUICtrlCreateCombo("", 20, 560, 210, Default,$CBS_DROPDOWNLIST)
-	$iBoutonAssoc = GUICtrlCreateButton("Appliquer cette association", 240, 558, 140)
+	GUICtrlCreateLabel("Choississez vos réglages : ", 20, 280)
+
+	Local $aDossiersAssoc = _FileListToArray(@ScriptDir & "\Config\Associations\", "*", 2)
+	Local $aFichiers
+
+	Local $k, $l, $iCombo[0], $iIndex
+
+	If IsArray($aDossiersAssoc) Then
+		For $k = 1 To $aDossiersAssoc[0]
+
+			$aFichiers = _FileListToArray(@ScriptDir & "\Config\Associations\" & $aDossiersAssoc[$k], "*.txt", 1)
+			_ArrayAdd($iCombo, GUICtrlCreateCombo($aDossiersAssoc[$k], 20, 275 + ($k * 25), 175))
+		Next
+	EndIf
+
+	GUICtrlCreateLabel("Configuration actuelle du système: ", 205, 280)
+	Local $sEditAssoc = GUICtrlCreateEdit("", 205, 300, 175, 240, $ES_READONLY)
+	Local $iBoutonAssocALL = GUICtrlCreateButton("Appliquer", 20, 275 + ($k * 25), 175)
+	$k = 1
+	GUICtrlCreateGraphic(20, 545, 360, 1, $SS_BLACKRECT)
+
+	$iBoutonInput = GUICtrlCreateInput("", 20, 555, 175, 25)
+	$iBoutonAssoc = GUICtrlCreateButton("Appliquer cette association", 205, 555, 175)
 
 	GUICtrlCreateGroup("Etat SMART des disques durs", 400, 10, 390,380)
 	GUICtrlSetFont (-1, 9, 800)
@@ -80,10 +89,7 @@ Func _TestsStabilite()
 	Local $iBoutonComboVeille = GUICtrlCreateCombo("Activer veille prolongée AVEC démarrage rapide", 810, 220, 370, Default,$CBS_DROPDOWNLIST)
 	 GUICtrlSetData($iBoutonComboVeille, "Activer veille prolongée SANS démarrage rapide|Désactiver veille prolongée")
 	Local $iBoutonVeille = GUICtrlCreateButton("Appliquer", 910, 250, 180)
-	;Local $iBoutonHOn = GUICtrlCreateButton("Activer veille prolongée", 810, 220, 180)
-	;Local $iBoutonHOff = GUICtrlCreateButton("Désactiver veille prolongée", 1000, 220, 180)
-	;Local $iBoutonFastOn = GUICtrlCreateButton("Activer démarrage rapide", 810, 250, 180)
-	;Local $iBoutonFastOff = GUICtrlCreateButton("Désactiver démarrage rapide", 1000, 250, 180)
+
 	GUICtrlSetData($statusbarprogress, 75)
 	_FileWriteLog($hLog, 'Vérification états veille')
 	Local $sHib = _HibernateTest()
@@ -97,15 +103,29 @@ Func _TestsStabilite()
 	GUICtrlSetData($statusbarprogress, 100)
 
 	GUISetState(@SW_SHOW)
+	Local $m, $aAssocTMP
+	If IsArray($aDossiersAssoc) Then
+		For $l = 1 To Ubound($iCombo)
 
-	If $iBoutonCombo <> "" And UBound($aAssoc) > 0 Then
-		GUICtrlSetData($iBoutonCombo, $sComboDefaut, $sComboDefaut)
-		If UBound($aAssoc) > 1 Then
-			GUICtrlSetData($iBoutonCombo, _ArrayToString($aAssoc, " = ", 1, -1, "|"))
-		EndIf
-	Else
-		GUICtrlSetState($iBoutonCombo, $GUI_DISABLE)
-		GUICtrlSetState($iBoutonAssoc, $GUI_DISABLE)
+			$aFichiers = _FileListToArray(@ScriptDir & "\Config\Associations\" & $aDossiersAssoc[$l], "*.txt", 1)
+
+			If IsArray($aFichiers) Then
+				GUICtrlSetData($iCombo[$l-1], _ArrayToString($aFichiers, "|", 1))
+
+				If($l-1 < UBound($aDefautAsso) And $aDefautAsso[$l-1] <= $aFichiers[0] And $aDefautAsso[$l-1] <> 0) Then
+					_GUICtrlComboBox_SetCurSel ($iCombo[$l-1], $aDefautAsso[$l-1])
+				EndIf
+				For $m = 1 To $aFichiers[0]
+					_FileReadToArray(@ScriptDir & "\Config\Associations\" & $aDossiersAssoc[$l] & "\" & $aFichiers[$m], $aAssocTMP, 4, ", ")
+					_ArrayAdd($aAssoc, $aAssocTMP)
+					if @error Then
+						_Attention(@error)
+					EndIf
+				Next
+				$m = 1
+			EndIf
+		Next
+
 	EndIf
 
 	_GetConfigAssoc($aAssoc, $sEditAssoc)
@@ -132,48 +152,37 @@ Func _TestsStabilite()
 			Case $iBoutonGest
 				ShellExecute("devmgmt.msc")
 
-			Case $iBoutonAssocModif
-				GUICtrlSetState($iBoutonAssocModif, $GUI_DISABLE)
-				ShellExecuteWait($sConfigassoctxt)
-				_FileReadToArray($sConfigassoctxt, $aAssoc, 0, ",")
-				If IsArray($aAssoc) Then
-					GUICtrlSetState($iBoutonCombo, $GUI_ENABLE)
-					GUICtrlSetState($iBoutonAssoc, $GUI_ENABLE)
-					If UBound($aAssoc) > 0 Then
-						GUICtrlSetData($iBoutonCombo, $aAssoc[0][0] & " = " & $aAssoc[0][1], $aAssoc[0][0] & " = " & $aAssoc[0][1])
-						If UBound($aAssoc) > 1 Then
-							GUICtrlSetData($iBoutonCombo, _ArrayToString($aAssoc, " = ", 1, -1, "|"))
-						EndIf
-					EndIf
-				Else
-					GUICtrlSetData($iBoutonCombo, "")
-					GUICtrlSetState($iBoutonCombo, $GUI_DISABLE)
-					GUICtrlSetState($iBoutonAssoc, $GUI_DISABLE)
-				EndIf
-				GUICtrlSetState($iBoutonAssocModif, $GUI_ENABLE)
+			Case $iBoutonAff
+				Run( @ComSpec & ' /k "' & @ScriptDir & '\Outils\SetUserFTA\SetUserFTA.exe" get')
+
+			Case $iBoutonMod
+				GUICtrlSetState($iBoutonMod, $GUI_DISABLE)
+				ShellExecute(@ScriptDir & "\Config\Associations\")
+				ExitLoop
 
 			Case $iBoutonAssocALL
 				GUICtrlSetState($iBoutonAssocALL, $GUI_DISABLE)
-				_FileWriteLog($hLog, 'Association avec fichier config')
-				Run( @ComSpec & ' /c ""' & @ScriptDir & '\Outils\SetUserFTA\SetUserFTA.exe" "' & $sConfigassoctxt & '""', "", @SW_HIDE)
+				For $combo in $iCombo
+					$sReadComboFile = GUICtrlRead($combo)
+					$sComboDoc = _GUICtrlComboBox_SetCurSel ($combo, 0)
+					If (StringRight($sReadComboFile, 4)  = ".txt") Then
+						_FileWriteLog($hLog, 'Association avec fichier config "' & $sReadComboFile & '"')
+						Run( @ComSpec & ' /c ""' & @ScriptDir & '\Outils\SetUserFTA\SetUserFTA.exe" "' & @ScriptDir & "\Config\Associations\" & GUICtrlRead($combo) & "\" & $sReadComboFile & '""', "", @SW_HIDE)
+					EndIf
+				Next
 				_GetConfigAssoc($aAssoc, $sEditAssoc)
 				GUICtrlSetState($iBoutonAssocALL, $GUI_ENABLE)
 
 			Case $iBoutonAssoc
-				$sReadCombo = GUICtrlRead($iBoutonCombo)
-				if $sReadCombo <> "" Then
+				$sReadInput = GUICtrlRead($iBoutonInput)
+				If $sReadInput <> "" And StringInStr($sReadInput, ",") Then
 					GUICtrlSetState($iBoutonAssoc, $GUI_DISABLE)
-					_FileWriteLog($hLog, 'Association : ' & StringReplace($sReadCombo, " = ", " "))
-					Run( @ComSpec & ' /c "' & @ScriptDir & '\Outils\SetUserFTA\SetUserFTA.exe" ' & StringReplace($sReadCombo, " = ", " "), "", @SW_HIDE)
+					_FileWriteLog($hLog, 'Association manuelle : ' & $sReadInput)
+					Run( @ComSpec & ' /c "' & @ScriptDir & '\Outils\SetUserFTA\SetUserFTA.exe" ' & StringReplace($sReadInput, ", ", " "), "", @SW_HIDE)
 					_GetConfigAssoc($aAssoc, $sEditAssoc)
 					GUICtrlSetState($iBoutonAssoc, $GUI_ENABLE)
-				EndIf
-
-			Case $iBoutonCombo
-				If GUICtrlRead($iBoutonCombo) = "" Then
-					GUICtrlSetState($iBoutonAssoc, $GUI_DISABLE)
 				Else
-					GUICtrlSetState($iBoutonAssoc, $GUI_ENABLE)
+					_Attention("Le format est incorrect")
 				EndIf
 
 			Case $iBoutonVeille
@@ -369,7 +378,7 @@ Func _GetConfigAssoc($aAssoc, $iIDEdit)
 		For $sExt In $aExtToSearch
 			$iPos = _ArraySearch($aAllAssoc, $sExt, 0, 0, 0, 0, 1, 0)
 			If $ipos <> -1 Then
-				$sConfigA &= $aAllAssoc[$iPos][0] & " = " & $aAllAssoc[$iPos][1] & @CRLF
+				$sConfigA &= $aAllAssoc[$iPos][0] & ", " & $aAllAssoc[$iPos][1] & @CRLF
 			EndIf
 		Next
 

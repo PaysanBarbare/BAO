@@ -46,12 +46,13 @@ Func _CreerSFX($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 	Local $sFTPDossierSFX = IniRead($sConfig, "FTP", "DossierSFX", "")
 
-	Local $iRetour
+	Local $iRetour, $nb = 0
 	Do
 		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, @ScriptDir & "\Outils\7z\BAO-sfx.exe", $sFTPDossierSFX & "BAO-sfx.exe")
-	Until $iRetour <> -1
+		$nb+=1
+	Until $iRetour <> -1 Or $nb = 3
 
-	if $iRetour = 0 Then
+	if $iRetour <> 1 Then
 		_FileWriteLog($hLog, 'Copie du fichier SFX sur le bureau')
 		FileMove(@ScriptDir & "\Outils\7z\BAO-sfx.exe", @DesktopDir, 1)
 		_Attention("L'archive BAO-sfx.exe a été enregistrée sur votre bureau")

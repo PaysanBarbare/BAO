@@ -1,0 +1,4 @@
+.doc,      ASC.Document.1
+.docx,      ASC.Document.12
+.xls,      ASC.Sheet.1
+.xlsx,      ASC.Sheet.12

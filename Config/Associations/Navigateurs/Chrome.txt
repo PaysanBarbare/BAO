@@ -1,0 +1,4 @@
+.htm, ChromeHTML
+.html, ChromeHTML
+http, ChromeHTML
+https, ChromeHTML

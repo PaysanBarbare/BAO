@@ -114,10 +114,11 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
 
 		If StringLeft(@ScriptDir, 2) <> "\\" Then
-
+			Local $nb = 0
 			Do
 				$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomRapportComplet, $sFTPDossierRapports & $sNomFichier)
-			Until $iRetour <> -1
+				$nb+=1
+			Until $iRetour <> -1 or $nb = 3
 
 		Else
 			Local $aFileToDel = FileReadToArray(@LocalAppDataDir & "\bao\FichierASupprimer.txt")
@@ -131,7 +132,7 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		; Sauvegarde du rapport complet sur le pc
 		FileCopy($sNomRapportComplet, @AppDataCommonDir & "\BAO\" & $sNomFichier, 9)
 
-		If $iRetour = 0 Then
+		If $iRetour <> 1 Then
 			FileCopy($sNomRapportComplet, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
 			$iRetour = 1
 		EndIf
@@ -177,7 +178,7 @@ Func _ReiniBAO()
 	If(_FichierCacheExist("Partage") = 1) Then
 		RunWait(@ComSpec & ' /C net share SAUV /delete', "", @SW_HIDE)
 		If _FichierCacheExist("PartageProtege1") Then
-			RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa\","everyoneincludeanonymous","REG_DWORD", 0)
+			RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa\","everyoneincludesanonymous","REG_DWORD", 0)
 		EndIf
 		If _FichierCacheExist("PartageProtege2") Then
 			RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess", "REG_DWORD", 1)
@@ -211,7 +212,7 @@ Func _Uninstall($iRep)
 		_Restauration($sSociete & " - Fin d'intevervention")
 	EndIf
 
-    If @Compiled And StringLeft(@ScriptDir, 2) = @HomeDrive Then
+    If @Compiled And StringLeft(@ScriptDir, 2) = $HomeDrive Then
 		ShellExecute ( @ComSpec , ' /c RMDIR /S /Q "' & FileGetShortName(@ScriptDir) & '"', "" , "", @SW_HIDE )
 	EndIf
 

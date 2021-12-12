@@ -1,0 +1,4 @@
+.htm, MSEdgeHTM
+.html, MSEdgeHTM
+http, MSEdgeHTM
+https, MSEdgeHTM

@@ -31,6 +31,8 @@ Func _RapportInfos($iReset = 0)
 	Else
 		$hEntete = FileOpen($sFileEntete, 1) ; append
 	EndIf
+	FileWriteLine($hEntete, '; Ce fichier peut être lu avec "Lecteur-bao.exe" présent dans le dossier "Outils" de BAO')
+	FileWriteLine($hEntete, "")
 	FileWriteLine($hEntete, "[CUSTOMER]" & $sNom & "[/CUSTOMER]")
 	FileWriteLine($hEntete, "")
 	FileWriteLine($hEntete, "[START]" & _Now() & "[/START]")
@@ -200,7 +202,7 @@ EndFunc
 
 Func _GetSmart2($iRapport=1)
 
-	Local $smartctl = @ScriptDir & "\Outils\Smartmontools\smartctl.exe", $iPidSmart, $i = 0, $sOutput, $aArray, $aSearch, $aSearch2, $aSearch3, $aSearch4, $sDisque, $aCapa, $aSearchSMART[], $aKeysSMART, $iValueSMART, $iFind, $aSmartCritique[]
+	Local $smartctl = @ScriptDir & "\Outils\Smartmontools\smartctl.exe", $iPidSmart, $i = 0, $sOutput, $aArray, $aSearch, $aSearch2, $aSearch3, $aSearch4, $sDisque, $aCapa, $aSearchSMART[], $aKeysSMART, $iValueSMART, $iFind, $aSmartCritique[], $iErreurDetecte = False
 	$aSearchSMART["Reallocated_Sector_Ct"] = "Nombre de secteurs réalloués"
 	$aSearchSMART["Power_On_Hours"] = "Heures de fonctionnement"
 	$aSearchSMART["Power_Cycle_Count"] = "Nombre de démarrages"
@@ -237,7 +239,7 @@ Func _GetSmart2($iRapport=1)
 			$sOutput = StdoutRead($iPidSmart)
 			$aArray = StringSplit(StringTrimRight(StringStripCR($sOutput), StringLen(@CRLF)), @CRLF)
 
-			If StringInStr($aArray[4], "Unable to detect device type") Then
+			If UBound($aArray) < 4 Or StringInStr($aArray[4], "Unable to detect device type") Then
 				ExitLoop
 			Else
 				$aSearch = _ArrayFindAll($aArray, "Model", 0, 0, 0, 1)
@@ -279,8 +281,13 @@ Func _GetSmart2($iRapport=1)
 								$iValueSMART = StringStripWS(StringTrimLeft($aArray[$aSearch4], $iFind), 1)
 								$sDisque = $sDisque & "[BR]" & $aSearchSMART[$sSMART] & " : " & $iValueSMART
 
-								If ($iRapport And MapExists($aSmartCritique, $sSMART) And Int($iValueSMART) > $aSmartCritique[$sSMART]) Then
-									_Attention($aSearchSMART[$sSMART] & " du disque " & $i & " : " & $iValueSMART)
+								If MapExists($aSmartCritique, $sSMART) And Int($iValueSMART) > $aSmartCritique[$sSMART] Then
+									If $iRapport Then
+										_Attention($aSearchSMART[$sSMART] & " du disque " & $i & " : " & $iValueSMART)
+									Else
+										$iErreurDetecte = True
+									EndIf
+									$sDisque &= " /!\"
 								EndIf
 							EndIf
 						Next
@@ -306,6 +313,20 @@ Func _GetSmart2($iRapport=1)
 
 		If $iRapport Then
 			FileClose($hInfosys)
+		ElseIf $iErreurDetecte Then
+			Beep(660, 100)
+			Sleep(100)
+			Beep(660, 100)
+			Sleep(200)
+			Beep(660, 100)
+			Sleep(200)
+			Beep(510, 100)
+			Sleep(100)
+			Beep(660, 100)
+			Sleep(200)
+			Beep(770, 100)
+			Sleep(450)
+			Beep(380, 100)
 		EndIf
 
 	Else
@@ -316,11 +337,11 @@ Func _GetSmart2($iRapport=1)
 EndFunc
 
 Func _CalculFS()
-	$iFreeSpace = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
+	$iFreeSpace = Round(DriveSpaceFree($HomeDrive & "\") / 1024, 2)
 EndFunc
 
 Func _CalculFSGain()
-	Local $iRetour = 0, $iGain, $iFreeSpaceNow = Round(DriveSpaceFree(@HomeDrive & "\") / 1024, 2)
+	Local $iRetour = 0, $iGain, $iFreeSpaceNow = Round(DriveSpaceFree($HomeDrive & "\") / 1024, 2)
 
 	$iGain = _FichierCache("FS_START") - $iFreeSpaceNow
 	If ($iGain > 1) Then

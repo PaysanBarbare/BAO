@@ -130,9 +130,11 @@ Func _CompleterSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 		GUIDelete()
 		Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
+		Local $nb = 0
 		Do
 			$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iPIN & '.txt')
-		Until $iRetour <> -1
+			$nb+=1
+		Until $iRetour <> -1 Or $nb=3
 		_UpdEdit($iIDEditLog, $hLog)
 	Else
 		GUIDelete()
@@ -191,9 +193,11 @@ Func _SupprimerSuivi($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 			GUIDelete()
 			Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
+			Local $nb = 0
 			Do
 				$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iPIN & '.txt', 1)
-			Until $iRetour <> -1
+				$nb+=1
+			Until $iRetour <> -1  Or $nb=3
 		Else
 			GUIDelete()
 		EndIf
@@ -205,9 +209,11 @@ Func _DebutIntervention($iCodeSuivi, $sFTPAdresse, $sFTPUser, $sFTPPort)
 	Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iCodeSuivi & '.txt'
 	FileWriteLine($sNomFichier, _FichierCache("PremierLancement") & " - Intervention débutée")
 	Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
+	Local $nb = 0
 	Do
 		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iCodeSuivi & '.txt')
-	Until $iRetour <> -1
+		$nb+=1
+	Until $iRetour <> -1 Or $nb=3
 
 	_FileWriteLog($hLog, 'Intervention débutée sur le suivi')
 	_UpdEdit($iIDEditLog, $hLog)
@@ -217,12 +223,16 @@ EndFunc
 Func _FinIntervention($iCodeSuivi, $sFTPAdresse, $sFTPUser, $sFTPPort, $sInput = "")
 	local $iRetour
 	Local $sNomFichier = @ScriptDir & '\Cache\Suivi\' & $iCodeSuivi & '.txt'
-	FileWriteLine($sNomFichier, $sInput)
+	If $sInput <> "" Then
+		FileWriteLine($sNomFichier, $sInput)
+	EndIf
 	FileWriteLine($sNomFichier, _Now() & " - Intervention terminée")
 	Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
+	Local $nb = 0
 	Do
 		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & $iCodeSuivi & '.txt')
-	Until $iRetour <> -1
+		$nb+=1
+	Until $iRetour <> -1 Or $nb=3
 
 	_FileWriteLog($hLog, 'Intervention cloturée sur le suivi')
 	_UpdEdit($iIDEditLog, $hLog)
@@ -244,9 +254,11 @@ Func _CreerIndex($sFTPAdresse, $sFTPUser, $sFTPPort)
 	Local $iRetour = 0
 
 	Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
+	Local $nb = 0
 	Do
 		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierSuivi & 'index.php')
-	Until $iRetour <> -1
+		$nb+=1
+	Until $iRetour <> -1 Or $nb=3
 
 	if($iRetour <> 1) Then
 		_Attention("Le Fichier n'a pas été envoyé")

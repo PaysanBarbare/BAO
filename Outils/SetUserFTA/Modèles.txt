@@ -1,0 +1,23 @@
+### Avec LibreOffice ###
+.doc, LibreOffice.Doc
+.docx, LibreOffice.Docx
+.htm, ChromeHTML
+.html, ChromeHTML
+.pdf, AcroExch.Document.DC
+.txt, txtfile
+.xls, LibreOffice.Xls
+.xlsx, LibreOffice.Xlsx
+http, ChromeHTML
+https, ChromeHTML
+
+### Avec OnlyOffice ###
+.doc,      ASC.Document.1
+.docx,      ASC.Document.12
+.htm,      ChromeHTML
+.html,      ChromeHTML
+.pdf,      AcroExch.Document.DC
+.txt,      txtfile
+.xls,      ASC.Sheet.1
+.xlsx,      ASC.Sheet.12
+http,      ChromeHTML
+https,      ChromeHTML

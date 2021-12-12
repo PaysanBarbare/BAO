@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+    <settings pass="windowsPE">
+        <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <SetupUILanguage>
+                <UILanguage>fr-FR</UILanguage>
+            </SetupUILanguage>
+            <SystemLocale>fr-FR</SystemLocale>
+            <UILanguage>fr-FR</UILanguage>
+            <UILanguageFallback>fr-FR</UILanguageFallback>
+            <UserLocale>fr-FR</UserLocale>
+            <InputLocale>040c:0000040c</InputLocale>
+        </component>
+        <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <UserData>
+                <ProductKey>
+                    <Key></Key>
+                    <WillShowUI>Never</WillShowUI>
+                </ProductKey>
+            </UserData>
+        </component>
+    </settings>
+    <settings pass="oobeSystem">
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <UserAccounts>
+                <LocalAccounts>
+                    <LocalAccount wcm:action="add">
+                        <Password>
+                            <Value></Value>
+                            <PlainText>True</PlainText>
+                        </Password>
+                        <DisplayName>Utilisateur</DisplayName>
+                        <Group>Administrators</Group>
+                        <Name>Utilisateur</Name>
+                    </LocalAccount>
+                </LocalAccounts>
+            </UserAccounts>
+            <TimeZone>Europe/Paris</TimeZone>
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+                <ProtectYourPC>3</ProtectYourPC>
+                <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+                <UnattendEnableRetailDemo>false</UnattendEnableRetailDemo>
+            </OOBE>
+			<FirstLogonCommands>
+                <SynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <Description>making the magic happen</Description>
+                    <CommandLine>cmd /C wmic useraccount where "name='Utilisateur'" set PasswordExpires=FALSE</CommandLine>
+                </SynchronousCommand>
+			</FirstLogonCommands>
+        </component>
+        <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>040c:0000040c</InputLocale>
+            <SystemLocale>fr-FR</SystemLocale>
+            <UILanguage>fr-FR</UILanguage>
+            <UILanguageFallback>fr-FR</UILanguageFallback>
+            <UserLocale>fr-FR</UserLocale>
+        </component>
+    </settings>
+</unattend>

@@ -24,11 +24,19 @@ Func _MenuAdd()
 	If $aListDoc = "" Then
 		_Attention("Ajoutez d'abord un dossier")
 	Else
-		Local $sLien, $iCombo, $sCombo, $aEnr[11], $sNameL, $sRepTest, $sTmpdom
+		Local $sLien, $iCombo, $sCombo, $aEnr[13], $sNameL, $sRepTest, $sTmpdom
 		Local $hGUIMenu = GUICreate("Ajout de logiciel", 600, 240)
-		GUICtrlCreateLabel("Collez le lien ici :", 10, 10)
-		GUICtrlCreateLabel("Nom du logiciel :", 10, 40)
-		Local $iNomLogiciel = GUICtrlCreateInput("", 140, 38, 140)
+		GUICtrlCreateLabel("Nom du logiciel :", 10, 10)
+		Local $iNomLogiciel = GUICtrlCreateInput("", 160, 8, 140)
+
+		GUICtrlCreateLabel("Ajouter au dossier :", 320, 10)
+		$iCombo = GUICtrlCreateCombo(StringTrimRight($aListDoc[1], 4), 450, 8, 140, default, $CBS_DROPDOWNLIST)
+		If $aListDoc[0] > 1 Then
+			$sCombo = _ArrayToString($aListDoc, "|", 2)
+			$sCombo = StringReplace($sCombo, ".ini", "")
+			GUICtrlSetData($iCombo, $sCombo)
+		EndIf
+
 		If(StringLeft(ClipGet(), 4) = "http") Then
 			$sLien = ClipGet()
 			$sNameL = StringRegExpReplace($sLien, "^.*/", "")
@@ -36,28 +44,25 @@ Func _MenuAdd()
 				GUICtrlSetData($iNomLogiciel, StringLeft($sNameL, StringInStr($sNameL, ".") - 1))
 			EndIf
 		EndIf
-		Local $iLien = GUICtrlCreateInput($sLien, 140, 8, 450)
+		GUICtrlCreateLabel("Lien (direct ou page parente) :", 10, 40)
+		Local $iLien = GUICtrlCreateInput($sLien, 160, 38, 430)
 
-		GUICtrlCreateLabel("Ajouter au dossier :", 310, 40)
-		$iCombo = GUICtrlCreateCombo(StringTrimRight($aListDoc[1], 4), 440, 38, 150, default, $CBS_DROPDOWNLIST)
-		If $aListDoc[0] > 1 Then
-			$sCombo = _ArrayToString($aListDoc, "|", 2)
-			$sCombo = StringReplace($sCombo, ".ini", "")
-			GUICtrlSetData($iCombo, $sCombo)
-		EndIf
-
-		GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 130)
+		GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 135)
 		Local $iFavoris = GUICtrlCreateCheckbox("Ajouter aux favoris", 20, 90)
 		Local $iSite = GUICtrlCreateCheckbox("Ouvrir dans le navigateur", 20, 110)
 		Local $iNepasmaj = GUICtrlCreateCheckbox("Ne pas mettre à jour", 20, 130)
-		Local $iForcedl = GUICtrlCreateCheckbox("Forcer le téléchargement", 20, 150)
-		GUICtrlCreateLabel("Extension (téléchargement indirect ou forcé) :", 20, 175)
-		Local $sExtension = GUICtrlCreateInput("", 240, 172, 25)
-		GUICtrlSetLimit(-1, 3)
+		Local $iDomaine = GUICtrlCreateCheckbox("Domaine pour les liens relatifs :", 20, 150)
+		GUICtrlCreateLabel("Téléchargement indirect : le lien contient ", 20, 180)
+		Local $sExp = GUICtrlCreateInput("", 220, 177, 120)
+		GUICtrlCreateLabel("mais ne contient pas ", 350, 180)
+		Local $sExpnot = GUICtrlCreateInput("", 460, 177, 120)
 		Local $iHeaders = GUICtrlCreateCheckbox("Activer headers HTTP", 300, 90)
 		Local $iMdp = GUICtrlCreateCheckbox("Rechercher mot de passe dans le source", 300, 110)
-		Local $iDomaine = GUICtrlCreateCheckbox("Domaine pour les liens relatifs :", 300, 130)
-		Local $sDomaine = GUICtrlCreateInput("https://", 340, 153, 240)
+		Local $iForcedl = GUICtrlCreateCheckbox("Forcer le téléchargement (précisez l'extension)", 300, 130)
+		GUICtrlCreateLabel("Extension (téléchargement forcé ou indirect) : ", 320, 153)
+		Local $sExtension = GUICtrlCreateInput("", 545, 150, 35)
+		GUICtrlSetLimit(-1, 3)
+		Local $sDomaine = GUICtrlCreateInput("https://", 185, 150, 105)
 		Local $iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 210, 80, 25)
 		Local $iIDButtonDemarrer = GUICtrlCreateButton("Ajouter", 310, 210, 80, 25, $BS_DEFPUSHBUTTON)
 		GUISetState(@SW_SHOW)
@@ -71,6 +76,8 @@ Func _MenuAdd()
 						GUICtrlSetState($iNepasmaj, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 						GUICtrlSetState($iForcedl, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 						GUICtrlSetState($sExtension, $GUI_DISABLE)
+						GUICtrlSetState($sExp, $GUI_DISABLE)
+						GUICtrlSetState($sExpnot, $GUI_DISABLE)
 						GUICtrlSetState($iHeaders, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 						GUICtrlSetState($iMdp, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 						GUICtrlSetState($iDomaine, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
@@ -79,6 +86,8 @@ Func _MenuAdd()
 						GUICtrlSetState($iNepasmaj, $GUI_ENABLE)
 						GUICtrlSetState($iForcedl, $GUI_ENABLE)
 						GUICtrlSetState($sExtension, $GUI_ENABLE)
+						GUICtrlSetState($sExp, $GUI_ENABLE)
+						GUICtrlSetState($sExpnot, $GUI_ENABLE)
 						GUICtrlSetState($iHeaders, $GUI_ENABLE)
 						GUICtrlSetState($iMdp, $GUI_ENABLE)
 						GUICtrlSetState($iDomaine, $GUI_ENABLE)
@@ -163,6 +172,16 @@ Func _MenuAdd()
 						Else
 							$aEnr[8] = ""
 						EndIf
+						If GUICtrlRead($sExp) <> "" Then
+							$aEnr[11] = GUICtrlRead($sExp)
+						Else
+							$aEnr[11] = ""
+						EndIf
+						If GUICtrlRead($sExpnot) <> "" Then
+							$aEnr[12] = GUICtrlRead($sExpnot)
+						Else
+							$aEnr[12] = ""
+						EndIf
 						If GUICtrlRead($iDomaine) = $GUI_CHECKED Then
 							$aEnr[9] = GUICtrlRead($sDomaine)
 						Else
@@ -214,25 +233,28 @@ Func _MenuMod($aEnr)
 	; $aEnr[8] = Extension
 	; $aEnr[9] = Domaine
 	; $aEnr[10] = Nepasmaj
-	; $aEnr[11] = Dossier
+	; $aEnr[11] = Expression
+	; $aEnr[12] = ExpressionNonPresente
+	; $aEnr[13] = Dossier
 	Local $iCombo, $sCombo, $btmpmod = False, $sRepTest, $sTmpdom
 	Local $aListDoc = _FileListToArrayRec(@ScriptDir & "\Logiciels\", "*.ini|" & $aEnr[11], 1, 0, 1)
 	Local $hGUIMenuMod = GUICreate('Modification de logiciel (maintenez la touche "MAJ" pour ouvrir directement)', 600, 240)
-	GUICtrlCreateLabel("Lien :", 10, 10)
-	GUICtrlCreateLabel("Nom du logiciel :", 10, 40)
-	Local $iNomLogiciel = GUICtrlCreateInput($aEnr[1], 140, 38, 140)
+	GUICtrlCreateLabel("Nom du logiciel :", 10, 10)
+	Local $iNomLogiciel = GUICtrlCreateInput($aEnr[1], 160, 8, 140)
 	GUICtrlSetState(-1, $GUI_DISABLE)
-	Local $iLien = GUICtrlCreateInput($aEnr[2], 140, 8, 450)
 
-	GUICtrlCreateLabel("Déplacer dans le dossier :", 310, 40)
-	$iCombo = GUICtrlCreateCombo("-----------", 440, 38, 150, default, $CBS_DROPDOWNLIST)
+	GUICtrlCreateLabel("Déplacer dans le dossier :", 320, 10)
+	$iCombo = GUICtrlCreateCombo("-----------", 450, 8, 140, default, $CBS_DROPDOWNLIST)
 	If $aListDoc[0] > 1 Then
 		$sCombo = _ArrayToString($aListDoc, "|", 1)
 		$sCombo = StringReplace($sCombo, ".ini", "")
 		GUICtrlSetData($iCombo, $sCombo)
 	EndIf
 
-	GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 130)
+	GUICtrlCreateLabel("Lien (direct ou page parente) :", 10, 40)
+	Local $iLien = GUICtrlCreateInput($aEnr[2], 160, 38, 430)
+
+	GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 135)
 	Local $iFavoris = GUICtrlCreateCheckbox("Ajouter aux favoris", 20, 90)
 	If $aEnr[7] = 1 Then
 		GUICtrlSetState(-1, $GUI_CHECKED)
@@ -248,22 +270,12 @@ Func _MenuMod($aEnr)
 		GUICtrlSetState(-1, $GUI_CHECKED)
 		GUICtrlSetState($iSite, $GUI_DISABLE)
 	EndIf
-	Local $iForcedl = GUICtrlCreateCheckbox("Forcer le téléchargement", 20, 150)
-	If $aEnr[3] = 1 Then
-		GUICtrlSetState(-1, $GUI_DISABLE)
-	ElseIf $aEnr[4] = 1 Then
-		GUICtrlSetState(-1, $GUI_CHECKED)
-		GUICtrlSetState($iSite, $GUI_DISABLE)
-	EndIf
-	GUICtrlCreateLabel("Extension (téléchargement indirect ou forcé) :", 20, 175)
-	Local $sExtension = GUICtrlCreateInput("", 240, 172, 25)
-	GUICtrlSetLimit(-1, 3)
-	If $aEnr[3] = 1 Then
-		GUICtrlSetState(-1, $GUI_DISABLE)
-	ElseIf $aEnr[8] <> "" Then
-		GUICtrlSetData(-1, $aEnr[8])
-		GUICtrlSetState($iSite, $GUI_DISABLE)
-	EndIf
+	Local $iDomaine = GUICtrlCreateCheckbox("Domaine pour les liens relatifs :", 20, 150)
+	GUICtrlCreateLabel("Téléchargement indirect : le lien contient ", 20, 180)
+	Local $sExp = GUICtrlCreateInput("", 220, 177, 120)
+	GUICtrlCreateLabel("mais ne contient pas ", 350, 180)
+	Local $sExpnot = GUICtrlCreateInput("", 460, 177, 120)
+
 	Local $iHeaders = GUICtrlCreateCheckbox("Activer headers HTTP", 300, 90)
 	If $aEnr[3] = 1 Then
 		GUICtrlSetState(-1, $GUI_DISABLE)
@@ -278,8 +290,36 @@ Func _MenuMod($aEnr)
 		GUICtrlSetState(-1, $GUI_CHECKED)
 		GUICtrlSetState($iSite, $GUI_DISABLE)
 	EndIf
-	Local $iDomaine = GUICtrlCreateCheckbox("Domaine pour les liens relatifs :", 300, 130)
-	Local $sDomaine = GUICtrlCreateInput("https://", 340, 153, 240)
+
+	Local $iForcedl = GUICtrlCreateCheckbox("Forcer le téléchargement (précisez l'extension)", 300, 130)
+	If $aEnr[3] = 1 Then
+		GUICtrlSetState(-1, $GUI_DISABLE)
+	ElseIf $aEnr[4] = 1 Then
+		GUICtrlSetState(-1, $GUI_CHECKED)
+		GUICtrlSetState($iSite, $GUI_DISABLE)
+	EndIf
+
+	GUICtrlCreateLabel("Extension (téléchargement forcé ou indirect) : ", 320, 153)
+	Local $sExtension = GUICtrlCreateInput("", 545, 150, 35)
+	GUICtrlSetLimit(-1, 3)
+	If $aEnr[3] = 1 Then
+		GUICtrlSetState($sExtension, $GUI_DISABLE)
+		GUICtrlSetState($sExp, $GUI_DISABLE)
+		GUICtrlSetState($sExpnot, $GUI_DISABLE)
+	ElseIf $aEnr[8] <> "" Or $aEnr[11] <> "" Or $aEnr[12] <> "" Then
+		If $aEnr[8] <> "" Then
+			GUICtrlSetData($sExtension, $aEnr[8])
+		EndIf
+		If $aEnr[11] <> "" Then
+			GUICtrlSetData($sExp, $aEnr[11])
+		EndIf
+		If $aEnr[12] <> "" Then
+			GUICtrlSetData($sExpnot, $aEnr[12])
+		EndIf
+		GUICtrlSetState($iSite, $GUI_DISABLE)
+	EndIf
+
+	Local $sDomaine = GUICtrlCreateInput("https://", 185, 150, 105)
 	If $aEnr[3] = 1 Then
 		GUICtrlSetState($iDomaine, $GUI_DISABLE)
 		GUICtrlSetState($sDomaine, $GUI_DISABLE)
@@ -304,6 +344,8 @@ Func _MenuMod($aEnr)
 					GUICtrlSetState($iNepasmaj, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 					GUICtrlSetState($iForcedl, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 					GUICtrlSetState($sExtension, $GUI_DISABLE)
+					GUICtrlSetState($sExp, $GUI_DISABLE)
+					GUICtrlSetState($sExpnot, $GUI_DISABLE)
 					GUICtrlSetState($iHeaders, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 					GUICtrlSetState($iMdp, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 					GUICtrlSetState($iDomaine, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
@@ -312,6 +354,8 @@ Func _MenuMod($aEnr)
 					GUICtrlSetState($iNepasmaj, $GUI_ENABLE)
 					GUICtrlSetState($iForcedl, $GUI_ENABLE)
 					GUICtrlSetState($sExtension, $GUI_ENABLE)
+					GUICtrlSetState($sExp, $GUI_ENABLE)
+					GUICtrlSetState($sExpnot, $GUI_ENABLE)
 					GUICtrlSetState($iHeaders, $GUI_ENABLE)
 					GUICtrlSetState($iMdp, $GUI_ENABLE)
 					GUICtrlSetState($iDomaine, $GUI_ENABLE)
@@ -396,6 +440,22 @@ Func _MenuMod($aEnr)
 					Else
 						$aEnr[8] = ""
 					EndIf
+					If GUICtrlRead($sExp) <> "" Then
+						If GUICtrlRead($sExp) <> $aEnr[11] Then
+							$btmpmod = True
+						EndIf
+						$aEnr[11] = GUICtrlRead($sExp)
+					Else
+						$aEnr[11] = ""
+					EndIf
+					If GUICtrlRead($sExpnot) <> "" Then
+						If GUICtrlRead($sExpnot) <> $aEnr[12] Then
+							$btmpmod = True
+						EndIf
+						$aEnr[12] = GUICtrlRead($sExpnot)
+					Else
+						$aEnr[12] = ""
+					EndIf
 					If GUICtrlRead($iDomaine) = $GUI_CHECKED Then
 						$aEnr[9] = GUICtrlRead($sDomaine)
 					Else
@@ -426,7 +486,7 @@ Func _MenuMod($aEnr)
 				EndIf
 
 			Case $iIDButtonSupprimer
-				IniDelete(@ScriptDir & "\Logiciels\" & $aEnr[11], $aEnr[1])
+				IniDelete(@ScriptDir & "\Logiciels\" & $aEnr[13], $aEnr[1])
 				ExitLoop
 
 			Case $iIDButtonOuvrir
@@ -439,9 +499,9 @@ Func _MenuMod($aEnr)
 
 	If($eGet = $iIDButtonDemarrer) Then
 		If GUICtrlRead($iCombo) = "-----------" Then
-			_SauvToIni($aEnr, $aEnr[11])
+			_SauvToIni($aEnr, $aEnr[13])
 		Else
-			_SauvToIni($aEnr, GUICtrlRead($iCombo) & ".ini", $aEnr[11])
+			_SauvToIni($aEnr, GUICtrlRead($iCombo) & ".ini", $aEnr[12])
 		EndIf
 		GUIDelete()
 		_Attention("Modifications enregistrées" & @CRLF & "Redémarrer BAO quand vous aurez terminé les modifications")
@@ -490,7 +550,7 @@ Func _MenuAddDoc()
 		 If $hFileIni = -1 Then
 			_Attention("Une erreur est survenue lors de la création du fichier.")
 		 Else
-			FileWrite($hFileIni, '; Exemple' & @CRLF & ';' & @CRLF & '; [Nom Du Logiciel]' & @CRLF & '; lien=https://lelogiciel.fr/logiciel.exe' & @CRLF & '; site=1 # ouvre le lien dans le navigateur par défaut' & @CRLF & "; forcedl=1 # télécharge directement, même si ce n'est pas un lien direct. Préciser l'extension" & @CRLF & '; headers=1 # télécharge en envoyant des entêtes http (nécessaire pour Nirsoft)' & @CRLF & '; motdepasse=1 # toujours pour nirsoft, récupère le mot de passe sur la page' & @CRLF & '; extension=.exe # extension du fichier si forcedl=1 ou téléchargement indirect' & @CRLF & "; domaine=https://nirsoft.fr # complète l'url en cas de lien relatif dans le code source de la page" & @CRLF & '; nepasmaj=1 # ne pas mettre à jour si le logiciel est déjà téléchargé (SDI par exemple)' & @CRLF & @CRLF)
+			FileWrite($hFileIni, '; Exemple' & @CRLF & ';' & @CRLF & '; [Nom Du Logiciel]' & @CRLF & '; lien=https://lelogiciel.fr/logiciel.exe' & @CRLF & '; site=1 # ouvre le lien dans le navigateur par défaut' & @CRLF & "; forcedl=1 # télécharge directement, même si ce n'est pas un lien direct. Préciser l'extension" & @CRLF & '; headers=1 # télécharge en envoyant des entêtes http (nécessaire pour Nirsoft)' & @CRLF & '; motdepasse=1 # toujours pour nirsoft, récupère le mot de passe sur la page' & @CRLF & '; extension=.exe # extension du fichier si forcedl=1 ou téléchargement indirect' & @CRLF & '; expression=Windows.10.v # filtre le lien qui contient ce mot si téléchargement indirect' & @CRLF & '; expressionnonincluse=PowerShell # filtre le lien qui ne contient pas ce mot si téléchargement indirect' & @CRLF & "; domaine=https://nirsoft.fr # complète l'url en cas de lien relatif dans le code source de la page" & @CRLF & '; nepasmaj=1 # ne pas mettre à jour si le logiciel est déjà téléchargé (SDI par exemple)' & @CRLF & @CRLF)
 			FileClose($hFileIni)
 			_Attention($sInput & " a été créé." & @CRLF & "Redémarrer BAO quand vous aurez terminé les modifications")
 			WinSetTitle($hGUIBAO, "", $sSociete & " - Boîte A Outils (bêta) " & $sVersion & " - Redémarrage nécessaire *")
@@ -510,6 +570,8 @@ Func _SauvToIni($aRec, $sDossier, $sDossierToDelete="")
 	; $aEnr[8] = Extension
 	; $aEnr[9] = Domaine
 	; $aEnr[10] = Nepasmaj
+	; $aEnr[11] = Expression
+	; $aEnr[12] = ExpressionNonIncluse
 
 	Local $sData = "lien=" & $aRec[2] & @LF
 	If $aRec[7] = 1 Then
@@ -523,6 +585,12 @@ Func _SauvToIni($aRec, $sDossier, $sDossierToDelete="")
 		EndIf
 		If $aRec[8] <> "" Then
 			$sData &= "extension=" & $aRec[8] & @LF
+		EndIf
+		If $aRec[11] <> "" Then
+			$sData &= "expression=" & $aRec[11] & @LF
+		EndIf
+		If $aRec[12] <> "" Then
+			$sData &= "expressionnonincluse=" & $aRec[12] & @LF
 		EndIf
 		If $aRec[5] = 1 Then
 			$sData &= "headers=1" & @LF
@@ -564,7 +632,7 @@ Func _IniClasserAlpa($sfichierini)
 		$aTmpSection[$i - 1] = IniReadSection(@ScriptDir & "\Logiciels\" & $sfichierini, $aSections[$i])
 	Next
 	Local $hIni = FileOpen(@ScriptDir & "\Logiciels\" & $sfichierini, 514)
-	FileWrite($hIni, "; Exemple" & @CRLF & ";" & @CRLF & "; [Nom Du Logiciel] " & @CRLF & "; lien=https://lelogiciel.fr/logiciel.exe" & @CRLF & "; site=1 # ouvre le lien dans le navigateur par défaut" & @CRLF & "; forcedl=1 # télécharge directement, même si ce n'est pas un lien direct. Préciser l'extension" & @CRLF & "; headers=1 # télécharge en envoyant des entêtes http (nécessaire pour Nirsoft)" & @CRLF & "; motdepasse=1 # toujours pour nirsoft, récupère le mot de passe sur la page" & @CRLF & "; extension=.exe # extension du fichier si forcedl=1 ou téléchargement indirect" & @CRLF & "; domaine=https://nirsoft.fr # complète l'url en cas de lien relatif dans le code source de la page" & @CRLF & "; nepasmaj=1 # ne pas mettre à jour si le logiciel est déjà téléchargé (SDI par exemple)" & @CRLF & @CRLF)
+	FileWrite($hIni, "; Exemple" & @CRLF & ";" & @CRLF & "; [Nom Du Logiciel] " & @CRLF & "; lien=https://lelogiciel.fr/logiciel.exe" & @CRLF & "; site=1 # ouvre le lien dans le navigateur par défaut" & @CRLF & "; forcedl=1 # télécharge directement, même si ce n'est pas un lien direct. Préciser l'extension" & @CRLF & "; headers=1 # télécharge en envoyant des entêtes http (nécessaire pour Nirsoft)" & @CRLF & "; motdepasse=1 # toujours pour nirsoft, récupère le mot de passe sur la page" & @CRLF & "; extension=.exe # extension du fichier si forcedl=1 ou téléchargement indirect" & @CRLF & '; expression=Windows.10.v # filtre le lien qui contient ce mot si téléchargement indirect' & @CRLF & '; expressionnonincluse=PowerShell # filtre le lien qui ne contient pas ce mot si téléchargement indirect' & @CRLF & "; domaine=https://nirsoft.fr # complète l'url en cas de lien relatif dans le code source de la page" & @CRLF & "; nepasmaj=1 # ne pas mettre à jour si le logiciel est déjà téléchargé (SDI par exemple)" & @CRLF & @CRLF)
 	FileClose($hIni)
 
 	For $i = 1 To $aSections[0]

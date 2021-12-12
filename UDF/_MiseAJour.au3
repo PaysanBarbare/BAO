@@ -22,196 +22,193 @@ Func _MiseAJourOS()
 
 	_ChangerEtatBouton($iIDAction, "Patienter")
 
-	If(StringLeft($sNom, 4) = "Tech") Then
+	Local $iNoWIN=0, $iNoOFF=0, $iNoAutre=0, $l=0, $eGet, $iBT[0], $iHauteur, $sNomF, $iBT[0], $aWIN[0], $aOFF[0], $aAUTRE[0]
 
-		_DlISO()
-		_ChangerEtatBouton($iIDAction, "Desactiver")
-
+	Local $aTmpWIN = _FileListToArray(@ScriptDir & "\Cache\ISO\", "*win*.*", 1)
+	If @error Then
+		$iNoWIN = 1
+		_ArrayAdd($aWIN,0)
 	Else
+		$aWIN = $aTmpWIN
+	EndIf
+	Local $aTmpOFF = _FileListToArray(@ScriptDir & "\Cache\ISO\", "*off*.*", 1)
+	If @error Then
+		$iNoOFF = 1
+		_ArrayAdd($aOFF,0)
+	Else
+		$aOFF = $aTmpOFF
+	EndIf
+	Local $aTmpAUTRE = _FileListToArrayRec(@ScriptDir & "\Cache\ISO\", "*.*|*off*.*;*win*.*", 1)
+	If @error Then
+		$iNoAutre = 1
+		_ArrayAdd($aAUTRE,0)
+	Else
+		$aAUTRE = $aTmpAUTRE
+	EndIf
 
-		Local $iNoWIN=0, $iNoOFF=0, $iNoAutre=0, $l=0, $eGet, $iBT[0], $iHauteur, $sNomF, $iBT[0], $aWIN[0], $aOFF[0], $aAUTRE[0]
-
-		Local $aTmpWIN = _FileListToArray(@ScriptDir & "\Cache\ISO\", "*win*.*", 1)
-		If @error Then
-			$iNoWIN = 1
-			_ArrayAdd($aWIN,0)
-		Else
-			$aWIN = $aTmpWIN
-		EndIf
-		Local $aTmpOFF = _FileListToArray(@ScriptDir & "\Cache\ISO\", "*off*.*", 1)
-		If @error Then
-			$iNoOFF = 1
-			_ArrayAdd($aOFF,0)
-		Else
-			$aOFF = $aTmpOFF
-		EndIf
-		Local $aTmpAUTRE = _FileListToArrayRec(@ScriptDir & "\Cache\ISO\", "*.*|*off*.*;*win*.*", 1)
-		If @error Then
-			$iNoAutre = 1
-			_ArrayAdd($aAUTRE,0)
-		Else
-			$aAUTRE = $aTmpAUTRE
-		EndIf
-
-		If($iNoWIN = 1 And $iNoOFF = 1 And $iNoAutre = 1) Then
-			$iHauteur = 4
-		Else
-			If $aWIN[0] > $aOFF[0] Then
-				If $aAUTRE[0] > $aWIN[0] Then
-					$iHauteur = $aAUTRE[0]
-				Else
-					$iHauteur = $aWIN[0]
-				EndIf
-			ElseIf $aAUTRE[0] > $aOFF[0] Then
+	If($iNoWIN = 1 And $iNoOFF = 1 And $iNoAutre = 1) Then
+		$iHauteur = 6
+	Else
+		If $aWIN[0] > $aOFF[0] Then
+			If $aAUTRE[0] > $aWIN[0] Then
 				$iHauteur = $aAUTRE[0]
 			Else
-				$iHauteur = $aOFF[0]
+				$iHauteur = $aWIN[0]
 			EndIf
-		EndIf
-
-		If $iHauteur < 4 Then
-			$iHauteur = 4
-		EndIf
-
-		Local $hGUImaj = GUICreate("Windows et Office", 800, $iHauteur * 25 + 50)
-
-		GUICtrlCreateGroup("Outils", 5, 10, 160, $iHauteur * 25 + 30)
-		Local $iIDISODO = GUICtrlCreateButton("Windows ISO Downloader", 10, 30, 150, 20)
-		Local $iIDMCT = GUICtrlCreateButton("Media Creation Tool", 10, 55, 150, 20)
-		Local $iIDUSB = GUICtrlCreateButton("Copier ISO sur USB", 10, 80, 150, 20)
-		Local $iIDSite = GUICtrlCreateButton("setup.office.com", 10, 105, 150, 20)
-
-		GUICtrlCreateGroup("Windows", 175, 10, 200, $iHauteur * 25 + 30)
-
-		If $iNoWIN =  0 Then
-			For $j = 1 To $aWIN[0]
-				_ArrayAdd($iBT, GUICtrlCreateButton($aWIN[$j], 180, ($j * 25)+5, 190, 20))
-			Next
+		ElseIf $aAUTRE[0] > $aOFF[0] Then
+			$iHauteur = $aAUTRE[0]
 		Else
-			GUICtrlCreateLabel("Aucun ISO/IMG/EXE trouvé", 180, 30)
+			$iHauteur = $aOFF[0]
 		EndIf
+	EndIf
 
-		GUICtrlCreateGroup("Office", 385, 10, 200, $iHauteur * 25 + 30)
+	If $iHauteur < 6 Then
+		$iHauteur = 6
+	EndIf
 
-		If $iNoOFF = 0 Then
-			For $l = 1 To $aOFF[0]
-				_ArrayAdd($iBT, GUICtrlCreateButton($aOFF[$l], 390, ($l* 25)+5, 190, 20))
-			Next
-		Else
-			GUICtrlCreateLabel("Aucun ISO/IMG/EXE trouvé", 390, 30)
-		EndIf
+	Local $hGUImaj = GUICreate("Windows et Office", 800, $iHauteur * 25 + 50)
 
-		GUICtrlCreateGroup("Autre", 595, 10, 200, $iHauteur * 25 + 30)
+	GUICtrlCreateGroup("Outils", 5, 10, 160, $iHauteur * 25 + 30)
+	Local $iIDAdd = GUICtrlCreateButton("Ouvrir dossier ISO", 10, 30, 150, 20)
+	Local $iIDISODO = GUICtrlCreateButton("Windows ISO Downloader", 10, 55, 150, 20)
+	Local $iIDMCT = GUICtrlCreateButton("Media Creation Tool", 10, 80, 150, 20)
+	Local $iIDUSB = GUICtrlCreateButton("Copier ISO avec Rufus", 10, 105, 150, 20)
+	Local $iIDSite = GUICtrlCreateButton("setup.office.com", 10, 130, 150, 20)
 
-		If $iNoAutre = 0 Then
-			For $m = 1 To $aAUTRE[0]
-				_ArrayAdd($iBT, GUICtrlCreateButton($aAUTRE[$m], 600, ($m * 25)+5, 190, 20))
-			Next
-		Else
-			GUICtrlCreateLabel("Aucun ISO/IMG/EXE trouvé", 600, 30)
-		EndIf
+	GUICtrlCreateGroup("Windows", 175, 10, 200, $iHauteur * 25 + 30)
 
-		If UBound($iBT) = 0 Then
-			_ArrayAdd($iBT, 1000)
-		EndIf
+	If $iNoWIN =  0 Then
+		For $j = 1 To $aWIN[0]
+			_ArrayAdd($iBT, GUICtrlCreateButton($aWIN[$j], 180, ($j * 25)+5, 190, 20))
+		Next
+	Else
+		GUICtrlCreateLabel("Aucun ISO/IMG/EXE trouvé", 180, 30)
+	EndIf
 
-		GUISetState(@SW_SHOW)
+	GUICtrlCreateGroup("Office", 385, 10, 200, $iHauteur * 25 + 30)
 
-		While 1
-			$eGet = GUIGetMsg()
-			Switch $eGet
-				Case $GUI_EVENT_CLOSE
-					GUIDelete($hGUImaj)
-					ExitLoop
+	If $iNoOFF = 0 Then
+		For $l = 1 To $aOFF[0]
+			_ArrayAdd($iBT, GUICtrlCreateButton($aOFF[$l], 390, ($l* 25)+5, 190, 20))
+		Next
+	Else
+		GUICtrlCreateLabel("Aucun ISO/IMG/EXE trouvé", 390, 30)
+	EndIf
 
-				Case $iIDMCT
-					GUIDelete($hGUImaj)
-					If(_Telecharger($aMenu["MediaCreationTool"])) Then
-						_Executer("MediaCreationTool")
-					EndIf
-					ExitLoop
+	GUICtrlCreateGroup("Autre", 595, 10, 200, $iHauteur * 25 + 30)
 
-				Case $iIDUSB
-					GUIDelete($hGUImaj)
-					If(_Telecharger($aMenu["WindowsUSBDVDDownloadTool"])) Then
-						_Executer("WindowsUSBDVDDownloadTool")
-					EndIf
-					ExitLoop
+	If $iNoAutre = 0 Then
+		For $m = 1 To $aAUTRE[0]
+			_ArrayAdd($iBT, GUICtrlCreateButton($aAUTRE[$m], 600, ($m * 25)+5, 190, 20))
+		Next
+	Else
+		GUICtrlCreateLabel("Aucun ISO/IMG/EXE trouvé", 600, 30)
+	EndIf
 
-				Case $iIDISODO
-					GUIDelete($hGUImaj)
-					$sNomF = _DlISO()
-					If($sNomF <> "") Then
-						_Attention('"' & $sNomF & '" a bien été téléchargé. Vous pouvez maintenant l' & "'" & 'installer à partir du bouton "Windows et Office"')
-					EndIf
-					ExitLoop
+	If UBound($iBT) = 0 Then
+		_ArrayAdd($iBT, 1000)
+	EndIf
 
-				Case $iIDSite
-					GUIDelete($hGUImaj)
-					ShellExecute("https://setup.office.com")
-					ExitLoop
+	GUISetState(@SW_SHOW)
+
+	While 1
+		$eGet = GUIGetMsg()
+		Switch $eGet
+			Case $GUI_EVENT_CLOSE
+				GUIDelete($hGUImaj)
+				ExitLoop
+
+				Case $iIDAdd
+				GUIDelete($hGUImaj)
+				Run("explorer.exe " & @ScriptDir & "\Cache\ISO\")
+				ExitLoop
+
+			Case $iIDMCT
+				GUIDelete($hGUImaj)
+				If(_Telecharger($aMenu["MediaCreationTool"])) Then
+					_Executer("MediaCreationTool")
+				EndIf
+				ExitLoop
+
+			Case $iIDUSB
+				GUIDelete($hGUImaj)
+				If(_Telecharger($aMenu["Rufus"])) Then
+					_Executer("Rufus")
+				EndIf
+				ExitLoop
+
+			Case $iIDISODO
+				GUIDelete($hGUImaj)
+				$sNomF = _DlISO()
+				If($sNomF <> "") Then
+					_Attention('"' & $sNomF & '" a bien été téléchargé. Vous pouvez maintenant l' & "'" & 'installer à partir du bouton "Windows et Office"')
+				EndIf
+				ExitLoop
+
+			Case $iIDSite
+				GUIDelete($hGUImaj)
+				ShellExecute("https://setup.office.com")
+				ExitLoop
 
 
-				Case $iBT[0] To $iBT[UBound($iBT)-1]
+			Case $iBT[0] To $iBT[UBound($iBT)-1]
 
-					Local $sFileTE = GUICtrlRead($eGet)
-					GUIDelete($hGUImaj)
+				Local $sFileTE = GUICtrlRead($eGet)
+				GUIDelete($hGUImaj)
 
-					Local $sDocTE =  @ScriptDir & '\Cache\ISO\tmp\'
+				Local $sDocTE =  @ScriptDir & '\Cache\ISO\tmp\'
 
-					If(StringInStr(@ScriptDir, "\\") And (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso")) Then
-						GUICtrlSetData($statusbar, "Copie en cours, patientez")
-						GUICtrlSetData($statusbarprogress, 10)
+				If(StringInStr(@ScriptDir, "\\") And (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso")) Then
+					GUICtrlSetData($statusbar, "Copie en cours, patientez")
+					GUICtrlSetData($statusbarprogress, 10)
 
-						_FileWriteLog($hLog, "Copie de " & $sFileTE & " sur l'ordinateur")
+					_FileWriteLog($hLog, "Copie de " & $sFileTE & " sur l'ordinateur")
 
-						RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '\Cache\ISO" "' &  @LocalAppDataDir & '\bao" "' &  $sFileTE & '"')
-						$sDocTE = @LocalAppDataDir & '\bao\tmp\'
-					EndIf
+					RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '\Cache\ISO" "' &  @LocalAppDataDir & '\bao" "' &  $sFileTE & '"')
+					$sDocTE = @LocalAppDataDir & '\bao\tmp\'
+				EndIf
 
-					DirRemove($sDocTE, 1)
+				DirRemove($sDocTE, 1)
 
-					If (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso") Then
+				If (StringRight($sFileTE, 3) = "img" Or StringRight($sFileTE, 3) = "iso") Then
 
-						If(FileCopy(@ScriptDir & "\Outils\7z\7z.*", $sDocTE, 9)) Then
-							_FileWriteLog($hLog, "Décompression de " & $sFileTE)
-							GUICtrlSetData($statusbar, "Extraction en cours, patientez")
-							GUICtrlSetData($statusbarprogress, 20)
-							RunWait(@ComSpec & ' /c 7z.exe x "..\' &  $sFileTE & '"', $sDocTE)
+					If(FileCopy(@ScriptDir & "\Outils\7z\7z.*", $sDocTE, 9)) Then
+						_FileWriteLog($hLog, "Décompression de " & $sFileTE)
+						GUICtrlSetData($statusbar, "Extraction en cours, patientez")
+						GUICtrlSetData($statusbarprogress, 20)
+						RunWait(@ComSpec & ' /c 7z.exe x "..\' &  $sFileTE & '"', $sDocTE)
 
-							;_Debug(@ComSpec & ' /c 7z.exe x ..\' &  $sFileTE & ' & ' & $sDocTE)
+						;_Debug(@ComSpec & ' /c 7z.exe x ..\' &  $sFileTE & ' & ' & $sDocTE)
 
-							If FileExists($sDocTE & "setup.exe") Then
-								If(StringInStr(@ScriptDir, "\\")) Then
-									FileDelete($sDocTE & '..\' & $sFileTE)
-								EndIf
-								FileCreateShortcut($sDocTE & "setup.exe", @DesktopDir & "\BAO - Installation de " & $sFileTE)
-								Run($sDocTE & "setup.exe")
-							Else
-								;_Attention($sFileTE & " n'a pas pu être extrait, essayez d'extraire celui ci manuellement")
-								ShellExecute($sDocTE)
+						If FileExists($sDocTE & "setup.exe") Then
+							If(StringInStr(@ScriptDir, "\\")) Then
+								FileDelete($sDocTE & '..\' & $sFileTE)
 							EndIf
+							FileCreateShortcut($sDocTE & "setup.exe", @DesktopDir & "\BAO - Installation de " & $sFileTE)
+							Run($sDocTE & "setup.exe")
 						Else
-							_Attention("Extraction du fichier ISO impossible")
-							ShellExecute(@LocalAppDataDir & "\bao\tmp\")
+							;_Attention($sFileTE & " n'a pas pu être extrait, essayez d'extraire celui ci manuellement")
+							ShellExecute($sDocTE)
 						EndIf
 					Else
-						GUICtrlSetData($statusbar, "Lancement de " & $sFileTE)
-						GUICtrlSetData($statusbarprogress, 50)
-						Run(@ScriptDir & '\Cache\ISO\' & $sFileTE)
-						Sleep(5000)
+						_Attention("Extraction du fichier ISO impossible")
+						ShellExecute(@LocalAppDataDir & "\bao\tmp\")
 					EndIf
+				Else
+					GUICtrlSetData($statusbar, "Lancement de " & $sFileTE)
+					GUICtrlSetData($statusbarprogress, 50)
+					Run(@ScriptDir & '\Cache\ISO\' & $sFileTE)
+					Sleep(5000)
+				EndIf
 
-					GUICtrlSetData($statusbar, "")
-					GUICtrlSetData($statusbarprogress, 0)
-					ExitLoop
+				GUICtrlSetData($statusbar, "")
+				GUICtrlSetData($statusbarprogress, 0)
+				ExitLoop
 
-			EndSwitch
-		WEnd
+		EndSwitch
+	WEnd
 
-		_ChangerEtatBouton($iIDAction, "Desactiver")
-
-	EndIf
+	_ChangerEtatBouton($iIDAction, "Desactiver")
 
 EndFunc
 
