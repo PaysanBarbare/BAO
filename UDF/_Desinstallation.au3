@@ -166,6 +166,14 @@ Func _ReiniBAO()
 	EndIf
 
 	If(_FichierCacheExist("Installation") = 1) Then
+		If(_FichierCacheExist("ChocoMenu") = 1) Then
+			Local $aChocoToDel = FileReadToArray(@LocalAppDataDir & "\bao\ChocoMenu.txt")
+			If @error = 0 Then
+				For $sChocoToDel In $aChocoToDel
+					Run( @ComSpec & ' /c ' & 'choco uninstall ' & $sChocoToDel, "",@SW_HIDE)
+				Next
+			EndIf
+		EndIf
 		RegDelete("HKEY_CURRENT_USER\Environment\", "ChocolateyInstall")
 		DirRemove($envChoco, 1)
 	EndIf

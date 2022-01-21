@@ -338,14 +338,19 @@ Func _DeviceProblems()
 
 	Local $retour
 
-	For $DEVobjItem in $DEVcolItems
-		If($DEVobjItem.ConfigManagerErrorCode <> "" And $DEVobjItem.ConfigManagerErrorCode < 31) Then
-			$retour = $retour & $DEVobjItem.name & ": " & @CRLF & "  - " & $DEVobjItem.DeviceID & @CRLF & "  - " & $aErrorGest[$DEVobjItem.ConfigManagerErrorCode - 1] & @CRLF & @CRLF
-		Else
-			_Attention("Code d'erreur inconnu dans le gestionnaire de périphérique : " & $DEVobjItem.ConfigManagerErrorCode)
-			$retour = $retour & $DEVobjItem.name & ": " & @CRLF & "  - " & $DEVobjItem.DeviceID & @CRLF & "  - Erreur inconnue (" & $DEVobjItem.ConfigManagerErrorCode & ")" & @CRLF & @CRLF
-		EndIf
-	Next
+	If IsObj($DEVcolItems) Then
+		For $DEVobjItem in $DEVcolItems
+			If($DEVobjItem.ConfigManagerErrorCode <> "" And $DEVobjItem.ConfigManagerErrorCode < 31) Then
+				$retour = $retour & $DEVobjItem.name & ": " & @CRLF & "  - " & $DEVobjItem.DeviceID & @CRLF & "  - " & $aErrorGest[$DEVobjItem.ConfigManagerErrorCode - 1] & @CRLF & @CRLF
+			Else
+				_Attention("Code d'erreur inconnu dans le gestionnaire de périphérique : " & $DEVobjItem.ConfigManagerErrorCode)
+				$retour = $retour & $DEVobjItem.name & ": " & @CRLF & "  - " & $DEVobjItem.DeviceID & @CRLF & "  - Erreur inconnue (" & $DEVobjItem.ConfigManagerErrorCode & ")" & @CRLF & @CRLF
+			EndIf
+		Next
+	Else
+		_Attention("Impossible de vérifier si le gestionnaire de périphériques contient des erreurs")
+		$retour = "Vérification du gestionnaire de périphériques impossible"
+	EndIf
 
 	If $retour = "" Then
 		$retour = "Aucun problème n'a été détecté dans le gestionnaire de périphériques"

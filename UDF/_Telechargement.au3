@@ -75,6 +75,12 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 			;_Debug($source)
 			$url = StringRegExp($source, ' href="(.*?' & $expression & '.*?).' & $ext & '"', 3)
 
+			If(IsArray($url) = 0) Then
+				$source = StringReplace($source, "\","")
+				$url = StringRegExp($source, ' href="(.*?' & $expression & '.*?)"', 3)
+				$ext=""
+			EndIf
+
 			If $bPWD = 1 Then
 				$aPWD = StringRegExp($source, "copyTextToClipboard\(\'(.*?)\'\);", 1)
 				$sPWDZip = $aPWD[0]
@@ -87,12 +93,22 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 						If StringInStr($urltotest, $expressionnonincluse) Then
 							_FileWriteLog($hLog, "lien ignoré (contient " & $expressionnonincluse & " : " & $urltotest)
 						Else
-							$url = $urltotest & "." & $ext
+							If $ext <> "" Then
+								$url = $urltotest & "." & $ext
+							Else
+								$url = $urltotest
+								$ext = "exe"
+							EndIf
 							ExitLoop
 						EndIf
 					Next
 				Else
-					$url = $url[0] & "." & $ext
+					If $ext <> "" Then
+						$url = $url[0] & "." & $ext
+					Else
+						$url = $url[0]
+						$ext = "exe"
+					EndIf
 				EndIf
 
 				If IsArray($url) Then
@@ -121,7 +137,7 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 					_Attention("Pas de lien trouvé")
 				Else
 					_Attention("Le logiciel n'a pas pu être télécharger automatiquement. Enregistrez " & $lognom & " dans le dossier " & @ScriptDir & "\Cache\Download\")
-					ShellExecute($url)
+					ShellExecute($aLogToDL[2])
 				EndIf
 				Return False
 			EndIf
@@ -161,7 +177,7 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 				$bOK = True
 			EndIf
 		Else
-
+			;_Attention($url)
 			$dlFileSize = InetGetSize($url)
 
 			If(FileExists($sProgrun) And $test = 0 And $lognepasmaj = 0) Then
@@ -273,9 +289,10 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 				InetClose($hDownload)
 
 			ElseIf $dl = 1 And $logheaders = 1 Then
+				GUICtrlSetData($statusbar, $sProgression & "Téléchargement de " & $lognom)
 				$oHTTP = ObjCreate("winhttp.winhttprequest.5.1")
 				$oHTTP.Open("POST", $url)
-				$oHTTP.SetRequestHeader("referer", "http://www.google.com")
+				$oHTTP.SetRequestHeader("referer", $aLogToDL[2])
 				$oHTTP.SetRequestHeader("user-agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
 				$oHTTP.SetRequestHeader("Accept", "text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5")
 				$oHTTP.SetRequestHeader("Accept-Language", "en-us,en;q=0.5")
@@ -289,6 +306,7 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 
 				If $oStatusCode == 200 then
 					If $test = 0 Then
+						GUICtrlSetData($statusbarprogress, 25)
 						$file = FileOpen($sProgrun, 2) ; The value of 2 overwrites the file if it already exists
 						FileWrite($file, $oReceived)
 						FileClose($file)
@@ -298,6 +316,8 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 					_FileWriteLog($hLog, 'Erreur de téléchargement, "' & $sProgrun & '" avec headers. Code de retour : ' & $oStatusCode)
 					_Attention('Erreur lors du téléchargement de "' & $lognom & '" (headers activés). Vérifier le paramétrage')
 				EndIf
+				GUICtrlSetData($statusbar, "")
+				GUICtrlSetData($statusbarprogress, 0)
 			EndIf
 		EndIf
 	EndIf
@@ -538,7 +558,43 @@ EndFunc
 
 
 Func _ExecuteProg()
-	If StringLeft(($aMenuID[$iIDAction])[2], 4) = "http" And ($aMenuID[$iIDAction])[3] = "0" Then
+	If StringLeft(($aMenuID[$iIDAction])[2], 5) = "choco" Then
+		Local $aSoftToInstall[0]
+		If FileExists( @AppDataCommonDir & "\chocolatey\choco.exe") = 0 Then
+			_FileWriteLog($hLog, 'Installation de Chocolatey')
+			GUICtrlSetData($statusbar, " Préparation de l'installation")
+			GUICtrlSetData($statusbarprogress, 5)
+			Local $sEnvVar = EnvGet("PATH")
+
+			EnvSet("PATH", $sEnvVar & ";" & @AppDataCommonDir & "\Chocolatey\bin")
+			EnvUpdate()
+			RunWait(@ComSpec & ' /c ' & '@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command " [System.Net.ServicePointManager]::SecurityProtocol = 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://chocolatey.org/install.ps1''))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"', "", @SW_HIDE)
+
+			GUICtrlSetData($statusbarprogress, 10)
+
+			If FileExists( @AppDataCommonDir & "\chocolatey\choco.exe") = 0 Then
+				ClipPut(@ComSpec & ' /c ' & '@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command " [System.Net.ServicePointManager]::SecurityProtocol = 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://chocolatey.org/install.ps1''))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"')
+				_Attention("PowerShell n'est pas installé ou Chocolatey n'a pu s'installer. Fin de l'éxécution (cmd dans le presse papier)")
+				GUICtrlSetData($statusbar, "")
+				GUICtrlSetData($statusbarprogress, 0)
+			Else
+				_FichierCache("Installation", 1)
+			EndIf
+		Else
+			_FileWriteLog($hLog, 'Chocolatey est déjà installé')
+			_FichierCache("Installation", 1)
+		EndIf
+
+		If(_FichierCacheExist("Installation") = 1) Then
+			_FileWriteLog($hLog, 'Installation de ' & ($aMenuID[$iIDAction])[1])
+			_ArrayAdd($aSoftToInstall, ($aMenuID[$iIDAction])[1])
+			_FichierCache("ChocoMenu", ($aMenuID[$iIDAction])[1])
+			_InstallationEnCours($aSoftToInstall)
+
+			GUICtrlSetData($statusbar, "")
+			GUICtrlSetData($statusbarprogress, 0)
+		EndIf
+	ElseIf StringLeft(($aMenuID[$iIDAction])[2], 4) = "http" And ($aMenuID[$iIDAction])[3] = "0" Then
 		If(_Telecharger($aMenuID[$iIDAction])) Then
 			$iPidt[($aMenuID[$iIDAction])[1]] = _Executer(($aMenuID[$iIDAction])[1])
 		EndIf

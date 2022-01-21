@@ -378,36 +378,38 @@ For $i = 1 To $aDoc[0]
 
 	If IsArray($aLogMenu) Then
 		For $j = 1 To $aLogMenu[0]
+
 			$sNomLog = $aLogMenu[$j]
+			If((StringLeft($sNom, 4) <> "Tech" And StringInStr(IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "lien", "0" ), ":") <> 2) Or StringLeft($sNom, 4) = "Tech") Then
 
-			$sIDSM = GUICtrlCreateMenuItem($sNomLog, $iIDMenuDoc)
+				$sIDSM = GUICtrlCreateMenuItem($sNomLog, $iIDMenuDoc)
 
-			$aTempLog[0] = $sIDSM
-			$aTempLog[1] = $sNomLog
-			$aTempLog[2] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "lien", "0" )
-			$aTempLog[3] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "site", "0" )
-			$aTempLog[4] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "forcedl", "0" )
-			$aTempLog[5] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "headers", "0" )
-			$aTempLog[6] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "motdepasse", "0" )
-			$aTempLog[7] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "favoris", "0" )
-			$aTempLog[8] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "extension", "" )
-			$aTempLog[9] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "domaine", "" )
-			$aTempLog[10] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "nepasmaj", "0" )
-			$aTempLog[11] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expression", "" )
-			$aTempLog[12] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expressionnonincluse", "" )
-			$aTempLog[13] = $aDoc[$i]
+				$aTempLog[0] = $sIDSM
+				$aTempLog[1] = $sNomLog
+				$aTempLog[2] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "lien", "0" )
+				$aTempLog[3] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "site", "0" )
+				$aTempLog[4] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "forcedl", "0" )
+				$aTempLog[5] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "headers", "0" )
+				$aTempLog[6] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "motdepasse", "0" )
+				$aTempLog[7] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "favoris", "0" )
+				$aTempLog[8] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "extension", "" )
+				$aTempLog[9] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "domaine", "" )
+				$aTempLog[10] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "nepasmaj", "0" )
+				$aTempLog[11] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expression", "" )
+				$aTempLog[12] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expressionnonincluse", "" )
+				$aTempLog[13] = $aDoc[$i]
 
-			; Construction de deux Maps (un trié par nom et l'autre par ID menu
-			$aMenu[$sNomLog] = $aTempLog
-			$aMenuID[$sIDSM] = $aTempLog
-
-			If $aTempLog[7] = 1 Then
-				$sIDSM = GUICtrlCreateButton($sNomLog, 700, $x, 150, 25)
-				$x = $x + 25
-				$aTempLog[13] = -1
+				; Construction de deux Maps (un trié par nom et l'autre par ID menu
+				$aMenu[$sNomLog] = $aTempLog
 				$aMenuID[$sIDSM] = $aTempLog
-			EndIf
 
+				If $aTempLog[7] = 1 Then
+					$sIDSM = GUICtrlCreateButton($sNomLog, 700, $x, 150, 25)
+					$x = $x + 25
+					$aTempLog[13] = -1
+					$aMenuID[$sIDSM] = $aTempLog
+				EndIf
+			EndIf
 		Next
  	EndIf
 	If(StringLeft($sNom, 4) = "Tech") Then

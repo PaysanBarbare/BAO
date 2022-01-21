@@ -24,7 +24,7 @@ Func _MenuAdd()
 	If $aListDoc = "" Then
 		_Attention("Ajoutez d'abord un dossier")
 	Else
-		Local $sLien, $iCombo, $sCombo, $aEnr[13], $sNameL, $sRepTest, $sTmpdom
+		Local $sLien, $iCombo, $sCombo, $aEnr[13], $sNameL, $sTmpdom, $sFolderLog, $bChoco = False
 		Local $hGUIMenu = GUICreate("Ajout de logiciel", 600, 240)
 		GUICtrlCreateLabel("Nom du logiciel :", 10, 10)
 		Local $iNomLogiciel = GUICtrlCreateInput("", 160, 8, 140)
@@ -43,9 +43,17 @@ Func _MenuAdd()
 			If StringInStr($sNameL, ".") <> 0 And $sNameL <> "" Then
 				GUICtrlSetData($iNomLogiciel, StringLeft($sNameL, StringInStr($sNameL, ".") - 1))
 			EndIf
+		ElseIf(StringLeft(ClipGet(), 14) = "choco install ") Then
+			$sLien = "choco"
+			$sNameL = StringTrimLeft(ClipGet(), 14)
+			If $sNameL <> "" Then
+				GUICtrlSetData($iNomLogiciel, $sNameL)
+			EndIf
 		EndIf
 		GUICtrlCreateLabel("Lien (direct ou page parente) :", 10, 40)
-		Local $iLien = GUICtrlCreateInput($sLien, 160, 38, 430)
+		Local $iLien = GUICtrlCreateInput($sLien, 160, 38, 230)
+		Local $iBrowse = GUICtrlCreateButton("Parcourir", 400, 35, 80)
+		Local $iTest = GUICtrlCreateCheckbox("Tester le lien", 490, 35)
 
 		GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 135)
 		Local $iFavoris = GUICtrlCreateCheckbox("Ajouter aux favoris", 20, 90)
@@ -71,6 +79,10 @@ Func _MenuAdd()
 
 		While $eGet <> $GUI_EVENT_CLOSE And $eGet <> $iIDButtonAnnuler
 			Switch $eGet
+				Case $iBrowse
+					$sFolderLog = FileOpenDialog("Sélectionner un exécutable", "::{20D04FE0-3AEA-1069-A2D8-08002B30309D}", "Tous les fichiers (*.*)")
+					GUICtrlSetData($iLien, $sFolderLog)
+
 				Case $iSite
 					If(GUICtrlRead($iSite) = $GUI_CHECKED) Then
 						GUICtrlSetState($iNepasmaj, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
@@ -141,6 +153,10 @@ Func _MenuAdd()
 						_Attention('Le nom du logiciel ne peut contenir le caractère "\"')
 					ElseIf $aEnr[2] = "" Then
 						_Attention("Le lien ne peut être vide")
+					ElseIf StringLeft($aEnr[2], 5) = "choco" Then
+						$aEnr[2] = "choco"
+						$bChoco = True
+						ExitLoop
 					Else
 						If GUICtrlRead($iSite) = $GUI_CHECKED Then
 							$aEnr[3] = 1
@@ -195,8 +211,7 @@ Func _MenuAdd()
 
 						GUISetState(@SW_MINIMIZE)
 						WinActivate($hGUIBAO)
-						$sRepTest = MsgBox($MB_YESNO, "Tester le téléchargement", "Voulez vous tester le lien avant de l'enregistrer ?")
-						If ($sRepTest = 6) Then
+						If(GUICtrlRead($iTest) = $GUI_CHECKED) Then
 							If _TryDL($aEnr) Then
 								ExitLoop
 							Else
@@ -236,7 +251,7 @@ Func _MenuMod($aEnr)
 	; $aEnr[11] = Expression
 	; $aEnr[12] = ExpressionNonPresente
 	; $aEnr[13] = Dossier
-	Local $iCombo, $sCombo, $btmpmod = False, $sRepTest, $sTmpdom
+	Local $iCombo, $sCombo, $btmpmod = False, $sTmpdom, $bChoco = False
 	Local $aListDoc = _FileListToArrayRec(@ScriptDir & "\Logiciels\", "*.ini|" & $aEnr[11], 1, 0, 1)
 	Local $hGUIMenuMod = GUICreate('Modification de logiciel (maintenez la touche "MAJ" pour ouvrir directement)', 600, 240)
 	GUICtrlCreateLabel("Nom du logiciel :", 10, 10)
@@ -252,7 +267,8 @@ Func _MenuMod($aEnr)
 	EndIf
 
 	GUICtrlCreateLabel("Lien (direct ou page parente) :", 10, 40)
-	Local $iLien = GUICtrlCreateInput($aEnr[2], 160, 38, 430)
+	Local $iLien = GUICtrlCreateInput($aEnr[2], 160, 38, 330)
+	Local $iTest = GUICtrlCreateCheckbox("Tester le lien", 500, 35)
 
 	GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 135)
 	Local $iFavoris = GUICtrlCreateCheckbox("Ajouter aux favoris", 20, 90)
@@ -328,6 +344,23 @@ Func _MenuMod($aEnr)
 		GUICtrlSetData($sDomaine, $aEnr[9])
 		GUICtrlSetState($iSite, $GUI_DISABLE)
 	EndIf
+
+	If $aEnr[2] = "choco" Then
+		$bChoco = True
+		GUICtrlSetState($iLien,  $GUI_DISABLE)
+		GUICtrlSetState($iTest,  $GUI_DISABLE)
+		GUICtrlSetState($iSite,  $GUI_DISABLE)
+		GUICtrlSetState($iNepasmaj,  $GUI_DISABLE)
+		GUICtrlSetState($sExp,  $GUI_DISABLE)
+		GUICtrlSetState($sExpnot,  $GUI_DISABLE)
+		GUICtrlSetState($iHeaders,  $GUI_DISABLE)
+		GUICtrlSetState($iMdp,  $GUI_DISABLE)
+		GUICtrlSetState($iForcedl,  $GUI_DISABLE)
+		GUICtrlSetState($sExtension,  $GUI_DISABLE)
+		GUICtrlSetState($sDomaine,  $GUI_DISABLE)
+		GUICtrlSetState($iDomaine,  $GUI_DISABLE)
+	EndIf
+
 	Local $iIDButtonOuvrir = GUICtrlCreateButton("Télécharger/Ouvrir", 40, 210, 130, 25, $BS_DEFPUSHBUTTON)
 	Local $iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 210, 80, 25)
 	Local $iIDButtonDemarrer = GUICtrlCreateButton("Modifier", 300, 210, 80, 25)
@@ -470,8 +503,7 @@ Func _MenuMod($aEnr)
 					GUISetState(@SW_MINIMIZE)
 					If $btmpmod Then
 						WinActivate($hGUIBAO)
-						$sRepTest = MsgBox($MB_YESNO, "Tester le téléchargement", "Voulez vous tester le lien avant de l'enregistrer ?")
-						If ($sRepTest = 6) Then
+						If(GUICtrlRead($iTest) = $GUI_CHECKED) Then
 							If _TryDL($aEnr) Then
 								ExitLoop
 							Else
