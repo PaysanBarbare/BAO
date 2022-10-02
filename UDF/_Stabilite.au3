@@ -439,3 +439,16 @@ Func _AlignementSSD($iIDEditAlign)
 		_GUICtrlRichEdit_AppendText($iIDEditAlign, "Erreur : ne peut être vérifié avec cet outil")
 	EndIf
 EndFunc
+
+;~ Func _CaptureEcran($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
+;~ 	Local $iRetour
+;~ 	Local $sCapture = @ScriptDir & "\Captures\" & $sNom & " - " & @ComputerName & ".jpg"
+;~ 	_ScreenCapture_Capture($sCapture)
+;~ 	If ($sFTPAdresse <> "" And $sFTPUser <> "" And $sFTPDossierCapture) ThenStringLeft(@ScriptDir, 2) <> "\\" Then
+;~ 		Local $nb = 0
+;~ 		Do
+;~ 			$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sCapture, $sFTPDossierCapture & $sNom & " - " & @ComputerName & ".jpg')
+;~ 			$nb+=1
+;~ 		Until $iRetour <> -1 Or $nb=3
+;~ 	EndIf
+;~ EndFunc

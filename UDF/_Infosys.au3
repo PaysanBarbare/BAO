@@ -186,6 +186,22 @@ Func _GetInfoSysteme($iReset = 0)
 		$dNum = $dNum + 1
 	Next
 
+	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_DiskDrive")
+	Local $Obj_Item, $dDn = 0
+	For $Obj_Item In $Obj_Services
+		If $Obj_Item.MediaType = "Fixed hard disk media" Then
+			If(_FichierCacheExist("WHDD" & $dDn) = 0 Or $iReset = 1) Then
+				FileWriteLine($hInfosys, "[WHDD]" & $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status & "[/WHDD]")
+				_FichierCache("WHDD" & $dDn, $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status)
+			Else
+				If(_FichierCache("WHDD" & $dDn) <> $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status) Then
+					FileWriteLine($hInfosys, "[WHDD]" & $Obj_Item.Model & " - " & Round($Obj_Item.Size / 1000000000, 0) & " Go - Status " & $Obj_Item.Status & "[/WHDD]")
+				EndIf
+			EndIf
+			$dDn = $dDn + 1
+		EndIf
+	Next
+
 	FileClose($hInfosys)
 
 EndFunc

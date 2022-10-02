@@ -73,11 +73,21 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 
 			$source = BinaryToString(InetRead($url), 4)
 			;_Debug($source)
-			$url = StringRegExp($source, ' href="(.*?' & $expression & '.*?).' & $ext & '"', 3)
+			If $expression <> "" Then
+				$url = StringRegExp($source, ' href="(.*?' & $expression & '.*?)\.' & $ext & '"', 3)
+			Else
+				$url = StringRegExp($source, ' href="(.*?)\.' & $ext & '"', 3)
+			EndIf
 
+			;_Debug($url)
 			If(IsArray($url) = 0) Then
+				_FileWriteLog($hLog, "Pas de lien trouvé avec l'extension .zip  ; recherche sans extension")
 				$source = StringReplace($source, "\","")
-				$url = StringRegExp($source, ' href="(.*?' & $expression & '.*?)"', 3)
+				If $expression <> "" Then
+					$url = StringRegExp($source, ' href="(.*?' & $expression & '.*?)"', 3)
+				Else
+					$url = StringRegExp($source, ' href="(.*?)"', 3)
+				EndIf
 				$ext=""
 			EndIf
 
@@ -161,6 +171,7 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 		Else
 			$sProgrun = @TempDir & "\" & $lognom & "." & $ext
 		EndIf
+		_FileWriteLog($hLog, "Lien de téléchargement : " & $url)
 		_FileWriteLog($hLog, "Destination : " & $sProgrun)
 ;~ 		If(StringInStr(@ScriptDir, "\\") And $ext = ".zip") Then ;UNC
 ;~ 			;@ScriptDir = DriveMapAdd("*", @ScriptDir)

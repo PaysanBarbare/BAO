@@ -37,7 +37,7 @@ Func _InitialisationBAO($sConfig)
 		EndIf
 	Else
 		; Création du fichier config.ini
-		IniWriteSection($sConfig,"Parametrages", "Societe=MyBigCorporation"&@LF&"Dossier=Rapport"&@LF&"Icones=1"&@LF&"Restauration=0"&@CRLF)
+		IniWriteSection($sConfig,"Parametrages", "Societe=MyBigCorporation"&@LF&"Dossier=Rapport"&@LF&"Icones=1"&@LF&"Restauration=0"&@LF&"Supervision=0"&@CRLF)
 
 		IniWriteSection($sConfig,"Installation", "Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Safari Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh OnlyOffice"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler FoxitReader ImgBurn JavaRuntime TeamViewer"&@CRLF)
 
@@ -47,7 +47,7 @@ Func _InitialisationBAO($sConfig)
 
 		IniWriteSection($sConfig, "Associations", "Defaut=0,0,0,0"&@CRLF)
 
-		IniWriteSection($sConfig, "FTP", "Protocol=sftp"&@LF&"Adresse="&@LF&"Utilisateur="&@LF&"Port=22"&@LF&"DossierRapports=/www/rapports/"&@LF&"DossierSFX=/www/dl/"&@LF&"DossierSuivi=/www/suivi/"&@CRLF)
+		IniWriteSection($sConfig, "FTP", "Protocol=sftp"&@LF&"Adresse="&@LF&"Utilisateur="&@LF&"Port=22"&@LF&"DossierRapports=/www/rapports/"&@LF&"DossierSFX=/www/dl/"&@LF&"DossierSuivi=/www/suivi/"&@LF&"DossierCapture=/www/capture/"&@CRLF)
 
 		TrayTip("Premier lancement", "Merci de compléter le fichier de configuration", 30)
 		ShellExecuteWait($sConfig)

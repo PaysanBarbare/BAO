@@ -20,8 +20,8 @@ This file is part of "Boîte A Outils"
 
 Func _ListeProgrammes()
 
-	Local $act_key, $act_name, $sIcon, $iIDIcon = 0,$sUninstallString, $sQuietUninstallString, $sInstallDate, $system_component, $aVirg
-	Local $count, $tab = 1, $all_keys[0][7]
+	Local $act_key, $act_name, $sIcon, $iIDIcon = 0,$sUninstallString, $sQuietUninstallString, $sInstallDate, $system_component, $aVirg, $iWindowsInstaller
+	Local $count, $tab = 1, $all_keys[0][9]
 
 	Local $keys[2]
 	$keys[0] = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
@@ -53,10 +53,11 @@ Func _ListeProgrammes()
 			$sUninstallString = RegRead ($key & "\" & $act_key, "UninstallString")
 			$sQuietUninstallString = RegRead ($key & "\" & $act_key, "QuietUninstallString")
 			$sInstallDate = RegRead ($key & "\" & $act_key, "InstallDate")
+			$iWindowsInstaller = RegRead ($key & "\" & $act_key, "WindowsInstaller")
 			;MsgBox(0,"",$act_name)
 
 			If $act_name <> "" And $system_component <> "1" And _ArraySearch($all_keys, $act_name,0,0,0,0,0,0) = -1 Then
-				ReDim $all_keys[$tab][7]
+				ReDim $all_keys[$tab][9]
 
 				If($sIcon = "shell32.dll") Then
 					Local $hSearch = FileFindFirstFile(@WindowsDir & "\Installer\" & $act_key & "\" & "*.ico")
@@ -86,7 +87,9 @@ Func _ListeProgrammes()
 				$all_keys[$tab-1][3] = $sUninstallString
 				$all_keys[$tab-1][4] = $sQuietUninstallString
 				$all_keys[$tab-1][5] = $sInstallDate
-				$all_keys[$tab-1][6] = $key & "\" & $act_key
+				$all_keys[$tab-1][6] = $iWindowsInstaller
+				$all_keys[$tab-1][7] = $act_key
+				$all_keys[$tab-1][8] = $key & "\" & $act_key
 
 				$tab = $tab + 1
 			EndIf
@@ -207,7 +210,9 @@ Func _Desinstalleur()
 						if $aListeProgInst[$b-1][4] <> "" Then
 							$ipid = Run(@ComSpec & ' /c "' & $aListeProgInst[$b-1][4] & '"',"", @SW_HIDE, $STDERR_CHILD + $STDOUT_CHILD)
 						Else
-							if(StringLeft($aListeProgInst[$b-1][3], 7) = "MsiExec") Then
+							If $aListeProgInst[$b-1][6] = "1" Then
+								$aListeProgInst[$b-1][3] = "MsiExec.exe /X" & $aListeProgInst[$b-1][7] & " /passive /norestart"
+							ElseIf(StringLeft($aListeProgInst[$b-1][3], 7) = "MsiExec") Then
 								$aListeProgInst[$b-1][3] = StringReplace($aListeProgInst[$b-1][3], "/i", "/x")
 								If (StringLeft($aListeProgInst[$b-1][3], 1) = '"') Then
 									$aListeProgInst[$b-1][3] = $aListeProgInst[$b-1][3] & ' /passive /norestart'
@@ -218,7 +223,11 @@ Func _Desinstalleur()
 								If (StringLeft($aListeProgInst[$b-1][3], 1) = '"') Then
 									$aListeProgInst[$b-1][3] = $aListeProgInst[$b-1][3] & ' /silent'
 								Else
-									$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /silent'
+									If StringRight($aListeProgInst[$b-1][3], 10)="/uninstall" Then
+										$aListeProgInst[$b-1][3] = '"' & StringReplace($aListeProgInst[$b-1][3], " /uninstall", '" /uninstall /silent')
+									Else
+										$aListeProgInst[$b-1][3] = '"' & $aListeProgInst[$b-1][3] & '" /silent'
+									EndIf
 								EndIf
 							ElseIf(StringRight($aListeProgInst[$b-1][3], 4)=".exe" Or StringRight($aListeProgInst[$b-1][3], 5)='.exe"') Then
 								If (StringLeft($aListeProgInst[$b-1][3], 1) = '"') Then
@@ -228,7 +237,14 @@ Func _Desinstalleur()
 								EndIf
 							ElseIf(StringLeft($aListeProgInst[$b-1][3], 1) <> '"') Then
 								$iPosExe = StringInStr($aListeProgInst[$b-1][3], ".exe")
-								$aListeProgInst[$b-1][3] = '"' & _StringInsert($aListeProgInst[$b-1][3], '"', $iPosExe + 3)
+								If $iPosExe <> 0 Then
+									$aListeProgInst[$b-1][3] = '"' & _StringInsert($aListeProgInst[$b-1][3], '"', $iPosExe + 3)
+								Else
+									$iPosExe = StringInStr($aListeProgInst[$b-1][3], "/")
+									If $iPosExe <> 0 Then
+										$aListeProgInst[$b-1][3] = '"' & _StringInsert($aListeProgInst[$b-1][3], '"', $iPosExe - 2)
+									EndIf
+								EndIf
 							EndIf
 							_FileWriteLog($hLog, 'Désinstallation de ' & $aListeProgInst[$b-1][0])
 							_FileWriteLog($hLog, 'CMD : ' & $aListeProgInst[$b-1][3])
@@ -247,7 +263,7 @@ Func _Desinstalleur()
 							GUICtrlSetState($iButtonSuivant, $GUI_ENABLE)
 							Local $idMsgDes2 = GUIGetMsg()
 							While($idMsgDes2 <> $iButtonSuivant And $idMsgDes2 <> $GUI_EVENT_CLOSE)
-								RegEnumVal($aListeProgInst[$b-1][6],1)
+								RegEnumVal($aListeProgInst[$b-1][8],1)
 								If @error Then
 									ExitLoop
 								EndIf
@@ -325,11 +341,11 @@ Func _Desinstalleur()
 						$retour = 1
 
 					ElseIf $idMsgDes = $aItems[$i][3] Then
-						$sRepReg = MsgBox($MB_YESNO, "Suppression de " & $aListeProgInst[$i][0], "Voulez supprimer la clé de registre : " & @LF & $aListeProgInst[$i][6])
+						$sRepReg = MsgBox($MB_YESNO, "Suppression de " & $aListeProgInst[$i][0], "Voulez supprimer la clé de registre : " & @LF & $aListeProgInst[$i][8])
 						If ($sRepReg = 6) Then
 							_FileWriteLog($hLog, 'Suppression clé de registre de ' & $aListeProgInst[$i][0])
-							_FileWriteLog($hLog, 'REG : ' & $aListeProgInst[$i][6])
-							RegDelete($aListeProgInst[$i][6])
+							_FileWriteLog($hLog, 'REG : ' & $aListeProgInst[$i][8])
+							RegDelete($aListeProgInst[$i][8])
 							$retour = 1
 							Sleep(1000)
 						EndIf

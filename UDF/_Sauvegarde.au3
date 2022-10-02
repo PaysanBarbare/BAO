@@ -32,10 +32,10 @@ Func _SauvegardeAutomatique()
 	$mListeSVG["{4BD8D571-6D19-48D3-BE97-422220080E43}"] = "Music"
 	$mListeSVG["{18989B1D-99B5-455B-841C-AB7C74E4DDFC}"] = "Videos"
 
-	Local $bNet = False, $iBrowser = 0, $iMail = 0
+	Local $bNet = False, $iBrowser = 0, $iMail = 0, $iWifi = 0
 
-	Local $hGUIsvg = GUICreate("Sauvegarde et restauration", 400, 220)
-	GUICtrlCreateTab(10, 10, 380, 200)
+	Local $hGUIsvg = GUICreate("Sauvegarde et restauration", 400, 240)
+	GUICtrlCreateTab(10, 10, 380, 220)
 	GUICtrlCreateTabItem("Sauvegarde")
 	GUICtrlCreateLabel("Choisissez la source", 20, 40)
 	GUICtrlSetData($statusbar, "Recherche en cours")
@@ -80,9 +80,10 @@ Func _SauvegardeAutomatique()
 
 	Local $iIDCheckBrowser = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de navigateurs", 20, 120)
 	Local $iIDCheckMail = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de messagerie", 20, 140)
+	Local $iIDCheckWifi = GUICtrlCreateCheckbox("Exporter les profils WiFi", 20, 160)
 
-	Local $iIDButtonDemarrer = GUICtrlCreateButton("Sauvegarder", 100, 170, 90, 25, $BS_DEFPUSHBUTTON)
-	Local $iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 170, 90, 25)
+	Local $iIDButtonDemarrer = GUICtrlCreateButton("Sauvegarder", 100, 190, 90, 25, $BS_DEFPUSHBUTTON)
+	Local $iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 190, 90, 25)
 
 	GUICtrlCreateTabItem("Restauration")
 	Local $sFolderRestau
@@ -93,28 +94,30 @@ Func _SauvegardeAutomatique()
 	Local $iIDRestauBureau = GUICtrlCreateCheckbox("Restaurer le contenu du bureau dans un sous dossier", 20, 110)
 	GUICtrlSetState($iIDRestauBureau, $GUI_DISABLE)
 	Local $iIDRestauFavoris = GUICtrlCreateCheckbox("Restaurer les favoris de Edge, Chrome et Firefox", 20, 130)
+	Local $iIDRestauWifi = GUICtrlCreateCheckbox("Importer les profils WiFi", 20, 150)
 
-	Local $iIDButtonDemarrerRestau = GUICtrlCreateButton("Restaurer", 100, 170, 90, 25, $BS_DEFPUSHBUTTON)
-	Local $iIDButtonAnnulerRestau = GUICtrlCreateButton("Annuler", 210, 170, 90, 25)
+	Local $iIDButtonDemarrerRestau = GUICtrlCreateButton("Restaurer", 100, 190, 90, 25, $BS_DEFPUSHBUTTON)
+	Local $iIDButtonAnnulerRestau = GUICtrlCreateButton("Annuler", 210, 190, 90, 25)
 
 	GUICtrlCreateTabItem("Réseau")
-	GUICtrlCreateGroup("PC Source", 20, 40, 360, 110)
+	GUICtrlCreateGroup("PC Source", 20, 40, 360, 130)
 	GUICtrlCreateLabel("Nom de l'ordinateur de destination :", 30, 55)
 	Local $iIDInputNameComput = GUICtrlCreateInput("", 230, 52, 140)
 	Local $iIDCheckBrowserreseau = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de navigateurs", 30, 75)
 	Local $iIDCheckMailreseau = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de messagerie", 30, 95)
-	Local $iIDInputCopier = GUICtrlCreateButton("Démarrer la copie", 140, 120, 120)
+	Local $iIDCheckWifireseau = GUICtrlCreateCheckbox("Exporter les profils WiFi", 30, 115)
+	Local $iIDInputCopier = GUICtrlCreateButton("Démarrer la copie", 140, 140, 120)
 	GUICtrlSetTip(-1, 'Chemin vers le partage : "\\' & @ComputerName & '\SAUV"')
-	GUICtrlCreategroup("PC Destination", 20,155, 360, 50)
-	Local $iIDPCSource= GUICtrlCreateButton("Activer le partage", 30, 175, 120)
+	GUICtrlCreategroup("PC Destination", 20,175, 360, 50)
+	Local $iIDPCSource= GUICtrlCreateButton("Activer le partage", 30, 195, 120)
 	GUICtrlSetTip(-1, 'Dossier de destination : "' & $sDossierRapport & '\Sauvegarde réseau"')
 	If _FichierCacheExist("Partage") And _FichierCache("Partage") = 1 Then
 		_ChangerEtatBouton($iIDPCSource, "Activer")
 	EndIf
 	;GUICtrlCreateLabel("Nom de l'ordinateur : ", 30, 175)
-	Local $iIDInputShare = GUICtrlCreateInput(@ComputerName, 160, 175, 150)
+	Local $iIDInputShare = GUICtrlCreateInput(@ComputerName, 160, 195, 150)
 	GUICtrlSetState(-1, $GUI_DISABLE)
-	Local $iIDInputCopy = GUICtrlCreateButton("Copier", 320, 175, 50)
+	Local $iIDInputCopy = GUICtrlCreateButton("Copier", 320, 195, 50)
 
 	GUICtrlCreateTabItem("")
 	GUISetState(@SW_SHOW)
@@ -207,7 +210,7 @@ Func _SauvegardeAutomatique()
 					$bNet = True
 					ExitLoop
 				Else
-					_Attention("Le partage réseau n'a pas été trouvé")
+					_Attention("Le partage réseau n'a pas été trouvé, essayez de redémarrer l'ordinateur")
 				EndIf
 			EndIf
 		EndIf
@@ -231,6 +234,10 @@ Func _SauvegardeAutomatique()
 				If(GUICtrlRead($iIDCheckMailreseau) = $GUI_CHECKED) Then
 					$iMail = 1
 				EndIf
+
+				If(GUICtrlRead($iIDCheckWifireseau) = $GUI_CHECKED) Then
+					$iWifi = 1
+				EndIf
 			ElseIf(GUICtrlRead($iIDInput) = $sDossierRapport) Then
  				_Attention('La destination étant incluse dans la source, les fichiers seront sauvegardés dans le dossier "' & $sLetter & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(),"/","") & '"')
 				$sDossierDesti = $sLetter & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(),"/","")
@@ -248,6 +255,10 @@ Func _SauvegardeAutomatique()
 
 				If(GUICtrlRead($iIDCheckMail) = $GUI_CHECKED) Then
 					$iMail = 1
+				EndIf
+
+				If(GUICtrlRead($iIDCheckWifi) = $GUI_CHECKED) Then
+					$iWifi = 1
 				EndIf
 			EndIf
 
@@ -345,6 +356,23 @@ Func _SauvegardeAutomatique()
 ;~ 					_Attention("Merci d'enregistrer les mots de passe dans le dossier " & '"' & $sDossierDesti & '" (CTRL + V)', 1)
 ;~ 				EndIf
 
+				If $iWifi = 1 Then
+					DirCreate($sDossierDesti & '\Autres données\WiFi')
+					RunWait(@ComSpec & ' /c netsh wlan export profile key = clear folder = "' & $sDossierDesti & '\Autres données\WiFi"', '', @SW_HIDE)
+					;ClipPut(@ComSpec & ' /c netsh wlan export profile key = clear folder = ' & $sDossierDesti & "\Autres données\WiFi")
+					If DirRemove($sDossierDesti & '\Autres données\WiFi') Then
+						_FileWriteLog($hLog, 'Aucun profil WiFi trouvé')
+					Else
+						_FileWriteLog($hLog, 'Profils WiFi sauvegardés')
+						Local $hBatWiFi = FileOpen($sDossierDesti & "\Autres données\WiFi\Import profils wifi.bat", 1)
+						FileWriteLine($hBatWiFi, '@echo off')
+						FileWriteLine($hBatWiFi, '')
+						FileWriteLine($hBatWiFi, 'for %%f in (.\*.xml) do (')
+						FileWriteLine($hBatWiFi, 'netsh wlan add profile filename=".\%%f"')
+						FileWriteLine($hBatWiFi, ')')
+					EndIf
+				EndIf
+
 				Local $iInc = Round(100/8)
 
 				Local $aKeysDocs = MapKeys($mListeSVG)
@@ -366,7 +394,7 @@ Func _SauvegardeAutomatique()
 				Next
 
 				If(FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\Bookmarks")) Then
-					FileCopy(@LocalAppDataDir & "\Google\Chrome\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\Edge\Bookmarks", 9)
+					FileCopy(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\Edge\Bookmarks", 9)
 					_FileWriteLog($hLog,"Favoris de Microsoft Edge sauvegardés")
 				EndIf
 
@@ -543,7 +571,7 @@ Func _SauvegardeAutomatique()
 		EndIf
 	ElseIf $eGet = $iIDButtonDemarrerRestau Then
 		Local $sDossierRestau = $sDossierRapport
-		Local $iUtil, $iBureau, $iNav
+		Local $iUtil, $iBureau, $iNav, $iRestWifi
 		If(GUICtrlRead($iIDRestaurUtil) = $GUI_CHECKED) Then
 			$iUtil = 1
 			If(GUICtrlRead($iIDRestauBureau) = $GUI_CHECKED) Then
@@ -553,6 +581,9 @@ Func _SauvegardeAutomatique()
 		If(GUICtrlRead($iIDRestauFavoris) = $GUI_CHECKED) Then
 			$iNav = 1
 		EndIf
+		If(GUICtrlRead($iIDRestauWifi) = $GUI_CHECKED) Then
+			$iRestWifi = 1
+		EndIf
 
 		Local $sDossierSourceRestau = GUICtrlRead($iIDInputrestaur)
 		Local $sPossl = StringInStr($sDossierSourceRestau, "\", 0, -1)
@@ -561,6 +592,16 @@ Func _SauvegardeAutomatique()
 		GUIDelete()
 
 		_FileWriteLog($hLog, "Restauration des données")
+
+		If $iRestWifi = 1 And FileExists($sDossierSourceRestau & "\Autres données\WiFi\") Then
+			Local $aTempProfils = _FileListToArray($sDossierSourceRestau & "\Autres données\WiFi", "*.xml", 1)
+			_ArrayDelete($aTempProfils, 0)
+			For $sTmpWifi In $aTempProfils
+				RunWait(@ComSpec & ' /c netsh wlan add profile filename="' & $sDossierSourceRestau & '\Autres données\WiFi\' & $sTmpWifi & '" user=all', '', @SW_HIDE)
+				;ClipPut(@ComSpec & ' /c netsh wlan add profile filename="' & $sDossierSourceRestau & '\Autres données\WiFi\' & $sTmpWifi & '" user=all')
+				_FileWriteLog($hLog, 'Profil wifi importé : ' & $sTmpWifi)
+			Next
+		EndIf
 
 		If($iUtil = 0) Then
 			_FileWriteLog($hLog, 'Restauration de données dans le dossier rapport')
@@ -607,7 +648,7 @@ Func _SauvegardeAutomatique()
 			Next
 
 			If FileExists($sDossierSourceRestau & "\Autres données") Then
-				DirCopy($sDossierSourceRestau & "\Autres données", $sDossierRestau, 1)
+				DirCopy($sDossierSourceRestau & "\Autres données", $sDossierRestau & "\Autres données", 0)
 			Else
 				_FileWriteLog($hLog, 'Dossier "Autres données" absent de la sauvegarde')
 				If $iNav = 1 Then
@@ -618,7 +659,7 @@ Func _SauvegardeAutomatique()
 
 			If $iNav = 1 Then
 
-				If(FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\Bookmarks")) Then
+				If(FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\")) Then
 					If FileExists($sDossierSourceRestau & "\Autres données\Edge\Bookmarks") Then
 						FileCopy($sDossierSourceRestau & "\Autres données\Edge\Bookmarks", @LocalAppDataDir & "\Microsoft\Edge\User Data\Default\Bookmarks", 1)
 						_FileWriteLog($hLog,"Favoris de Microsoft Edge restaurés")
@@ -629,7 +670,7 @@ Func _SauvegardeAutomatique()
 					_Attention("Microsoft Edge semble ne pas être installé, les favoris sont dans le dossier rapport")
 				EndIf
 
-				If(FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\Bookmarks")) Then
+				If(FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\")) Then
 					If FileExists($sDossierSourceRestau & "\Autres données\Chrome\Bookmarks") Then
 						FileCopy($sDossierSourceRestau & "\Autres données\Chrome\Bookmarks", @LocalAppDataDir & "\Google\Chrome\User Data\Default\Bookmarks", 1)
 						_FileWriteLog($hLog,"Favoris de Google Chrome restaurés")

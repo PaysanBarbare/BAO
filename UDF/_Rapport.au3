@@ -33,6 +33,7 @@ $aBalise["MB"] = "Carte mère"
 $aBalise["SN"] = "S/N"
 $aBalise["GC"] = "Carte graphique"
 $aBalise["HDD?"] = "Disque"
+$aBalise["WHDD"] = "Disque dur"
 
 Func _ExporterRapport()
 	_ChangerEtatBouton($iIDAction, "Patienter")

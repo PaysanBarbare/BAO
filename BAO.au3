@@ -61,7 +61,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "1.0.4" ; 07/12/21
+Global $sVersion = "1.0.6" ; 02/10/22
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -90,6 +90,7 @@ Global $sVersion = "1.0.4" ; 07/12/21
 #include <Misc.au3>
 #include <Process.au3>
 #include <ProgressConstants.au3>
+;#include <ScreenCapture.au3>
 #include <SQLite.au3>
 ;#include <SQLite.dll.au3>
 #include <StaticConstants.au3>
@@ -104,7 +105,7 @@ Global $sVersion = "1.0.4" ; 07/12/21
 _Singleton(@ScriptName, 0)
 
 Local $sDossierRapport, $sNom, $bNonPremierDemarrage = False, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $sSubKey, $sMdps, $sAutoUser
-Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2)
+Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2), $iSupervision
 
 ; déclaration des fichiers rapport
 Global $hLog, $sFileLog
@@ -208,10 +209,12 @@ _InitialisationBAO($sConfig)
 
 $sSociete = IniRead($sConfig, "Parametrages", "Societe", "NomSociete")
 
+;$iSupervision = IniRead($sConfig, "Parametrages", "Supervision", "0")
+
 $sDossierRapport = @DesktopDir & "\" & IniRead($sConfig, "Parametrages", "Dossier", "Rapports")
 If DirCreate($sDossierRapport) = 0 Then	_Erreur("Impossible de créer le dossier '" & $sDossierRapport & "' sur le bureau")
 
-DirCreate(@ScriptDir & "\Cache\Download\")
+DirCreate(@ScriptDir & "\Cache\Download")
 
 ; intialisation des variables FTP
 $sFTPProtocol = IniRead($sConfig, "FTP", "Protocol", "ftp")
@@ -220,6 +223,7 @@ Local $sFTPUser = IniRead($sConfig, "FTP", "Utilisateur", "")
 Local $sFTPPort = IniRead($sConfig, "FTP", "Port", "")
 Local $sFTPDossierSuivi = IniRead($sConfig, "FTP", "DossierSuivi", "")
 Local $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
+Local $sFTPDossierCapture = IniRead($sConfig, "FTP", "DossierCapture", "")
 
 _CalculFS()
 
@@ -700,6 +704,9 @@ While 1
 
 		$aMemStats = MemGetStats()
 		GUICtrlSetData($iIDRAMlibre, "RAM : " & $aMemStats[$MEM_LOAD] & '% utilisée')
+;~ 		If $iSupervision Then
+;~ 			_CaptureEcran($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
+;~ 		EndIf
 
 	EndIf
 

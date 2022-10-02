@@ -10,6 +10,7 @@ goto:eof
 
 :run
 set dirscript=%~dp0
+REGEDIT /S "%~dp0\DeleteNewsAndInterestOpenOnHover.reg"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0\PcNeuf.ps1"
 pause
 goto:eof
