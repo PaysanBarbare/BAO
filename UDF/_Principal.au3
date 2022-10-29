@@ -37,11 +37,11 @@ Func _InitialisationBAO($sConfig)
 		EndIf
 	Else
 		; Création du fichier config.ini
-		IniWriteSection($sConfig,"Parametrages", "Societe=MyBigCorporation"&@LF&"Dossier=Rapport"&@LF&"Icones=1"&@LF&"Restauration=0"&@LF&"Supervision=0"&@CRLF)
+		IniWriteSection($sConfig,"Parametrages", "Societe=MyBigCorporation"&@LF&"Dossier=Rapport"&@LF&"Icones=1"&@LF&"Restauration=0"&@CRLF)
 
 		IniWriteSection($sConfig,"Installation", "Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Safari Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh OnlyOffice"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler FoxitReader ImgBurn JavaRuntime TeamViewer"&@CRLF)
 
-		IniWriteSection($sConfig,"BureauDistant", "Agent=https://www.dwservice.net/download/dwagent_x86.exe"&@LF&"Mail=votreadressemail@domaine.fr"&@CRLF)
+		IniWriteSection($sConfig,"BureauDistant", "Agent=DWAgent"&@LF&"Mail=votreadressemail@domaine.fr"&@CRLF)
 
 		IniWriteSection($sConfig,"Desinfection", "Programmes de desinfection=Privazer RogueKiller AdwCleaner MalwareByte ZHPCleaner EsetOnlineScanner"&@CRLF)
 
@@ -184,6 +184,9 @@ Func _ChangerEtatBouton($iIDBouton, $sEtat)
 
 		Case "Patienter"
 			GUICtrlSetState($iIDBouton, 128)
+
+		Case "Inactif"
+			GUICtrlSetState($iIDBouton, 128)
 	EndSwitch
 EndFunc
 
@@ -197,6 +200,7 @@ EndFunc
 ; Modified ......:
 ; ===============================================================================================================================
 Func _ProcessExit()
+	_SaveInter()
 	For $ipidto In $iPidt
 		ProcessClose($ipidto)
 	Next

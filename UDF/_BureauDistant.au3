@@ -21,7 +21,7 @@ This file is part of "Boîte A Outils"
 Func _BureauDistant()
 
 	Local $programFilesDir = RegRead("HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion", "ProgramFilesDir")
-	Local $sAgent = IniRead($sConfig, "BureauDistant", "Agent", "https://www.dwservice.net/download/dwagent_x86.exe")
+	Local $sAgent = IniRead($sConfig, "BureauDistant", "Agent", "DWAgent")
 	Local $sMailBD = IniRead($sConfig, "BureauDistant", "Mail", "")
 
 	If $sMailBD <> "" Then
@@ -40,7 +40,7 @@ Func _BureauDistant()
 		Else
 			If(StringLeft($sNom, 4) <> "Tech") Then
 				_ChangerEtatBouton($iIDAction, "Patienter")
-				If(_Telecharger($aMenu["DWAgent"])) Then
+				If(_Telecharger($aMenu[$sAgent])) Then
 					Local $sMdp, $bSVGMdp = 0, $iIdDWS
 					If(FileExists(@ScriptDir & '\Cache\Pwd\dws.sha')) Then
 						$sMdp = BinaryToString(_Crypt_DecryptData(FileReadLine(@ScriptDir & '\Cache\Pwd\dws.sha'), $sMailBD, $CALG_AES_256))
@@ -123,8 +123,7 @@ Func _UninstallDWAgent()
 			For $i = 1 To $process[0][0]
 			ProcessClose($process[$i][1])
 		Next
-		FileCopy("C:\Program Files\DWAgent\native\dwaglnc.exe", @LocalAppDataDir & "\bao\tmp\", 9)
-		Local $programFilesDir = RegRead("HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion", "ProgramFilesDir")
+		FileCopy($programFilesDir & "\DWAgent\native\dwaglnc.exe", @LocalAppDataDir & "\bao\tmp\", 9)
 		ShellExecuteWait($programFilesDir & "\DWAgent\runtime\dwagent.exe", "-S -m installer uninstall", "", "", @SW_HIDE)
 		ShellExecuteWait($programFilesDir & "\DWAgent\native\dwagsvc.exe", "removeAutoRun", "", "", @SW_HIDE)
 		ShellExecuteWait($programFilesDir & "\DWAgent\native\dwagsvc.exe", "stopService", "", "", @SW_HIDE)

@@ -40,6 +40,8 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 	Local $ext = $aLogToDL[8]
 	Local $expression = $aLogToDL[11]
 	Local $expressionnonincluse = $aLogToDL[12]
+	Local $expressionaremplacer = $aLogToDL[13]
+	Local $expressionderemplacement = $aLogToDL[14]
 	Local $logdomaine = $aLogToDL[9]
 	Local $lognepasmaj = $aLogToDL[10]
 	Local $lastModified
@@ -72,6 +74,20 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 			_FileWriteLog($hLog, "Recherche du lien de téléchargement dans le code source de la page")
 
 			$source = BinaryToString(InetRead($url), 4)
+
+			; hack github
+			;_Debug($source)
+
+			If(StringLeft($url,14) = "https://github") Then
+				_FileWriteLog($hLog, "Hack : recherche de lien GitHub Assets")
+				$url = StringRegExp($source, ' src="(.*?expanded_assets.*?)"', 3)
+				;_Debug($url)
+				If(IsArray($url)) Then
+					$source = BinaryToString(InetRead($url[0]), 4)
+					;_Debug($source)
+				EndIf
+			EndIf
+
 			;_Debug($source)
 			If $expression <> "" Then
 				$url = StringRegExp($source, ' href="(.*?' & $expression & '.*?)\.' & $ext & '"', 3)
@@ -81,7 +97,7 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 
 			;_Debug($url)
 			If(IsArray($url) = 0) Then
-				_FileWriteLog($hLog, "Pas de lien trouvé avec l'extension .zip  ; recherche sans extension")
+				_FileWriteLog($hLog, "Pas de lien trouvé avec l'extension " & $ext & "  ; recherche sans extension")
 				$source = StringReplace($source, "\","")
 				If $expression <> "" Then
 					$url = StringRegExp($source, ' href="(.*?' & $expression & '.*?)"', 3)
@@ -137,9 +153,18 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 					Else
 						_FileWriteLog($hLog, 'Erreur : Lien relatif pour "' & $lognom & '" : "' & $url & '"')
 						_Attention('Le lien récupéré est un lien relatif ("' & $url & '"). Merci de compléter la valeur "Domaine"')
+						_UpdEdit($iIDEditLog, $hLog)
 						Return False
 					EndIf
 				EndIf
+
+				If $expressionaremplacer <> "" Then
+					$url = StringReplace($url, $expressionaremplacer, $expressionderemplacement)
+					If(@extended < 1) Then
+						_FileWriteLog($hLog, 'Attention : "' & $expressionaremplacer & '"' & " n'a pas été trouvé dans l'url")
+					EndIf
+				EndIf
+
 			Else
 				; Pas de lien trouvé dans la page
 				_FileWriteLog($hLog, "Lien non trouvé")
@@ -149,6 +174,7 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 					_Attention("Le logiciel n'a pas pu être télécharger automatiquement. Enregistrez " & $lognom & " dans le dossier " & @ScriptDir & "\Cache\Download\")
 					ShellExecute($aLogToDL[2])
 				EndIf
+				_UpdEdit($iIDEditLog, $hLog)
 				Return False
 			EndIf
 
@@ -333,11 +359,14 @@ Func _Telecharger($aLogToDL, $test = 0, $sProgression="")
 		EndIf
 	EndIf
 
+	_UpdEdit($iIDEditLog, $hLog)
+
 	Return $bOK
 EndFunc   ;==>_Telecharger
 
 Func _TryDL($aEnr)
 	Local $iRetour = 0
+	; $aEnr[0] = Dossier
 	; $aEnr[1] = NomDuLogiciel
 	; $aEnr[2] = Lien
 	; $aEnr[3] = Site
@@ -350,6 +379,8 @@ Func _TryDL($aEnr)
 	; $aEnr[10] = Nepasmaj
 	; $aEnr[11] = Expression
 	; $aEnr[12] = ExpressionNonIncluse
+	; $aEnr[13] = ExpressionARemplacer
+	; $aEnr[14] = ExpressionDeRemplacement
 	If StringLeft($aEnr[2], 2) = "\\" Then
 		If FileExists($aEnr[2]) Then
 			$iRetour = 1

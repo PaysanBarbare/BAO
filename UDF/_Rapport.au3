@@ -46,7 +46,7 @@ Func _ExporterRapport()
 	$sData &= @CRLF & "[UNINSTALL]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\uninstall.bao") &  @CRLF & "[/UNINSTALL]" & @CRLF
 	_CalculFS()
 	$sData &= @CRLF & "[FREESPACE_END]" & $iFreeSpace & " Go[/FREESPACE_END]" & @CRLF
-	$sData &= @CRLF & "[RAPPORT]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\rapport.bao") & "[/RAPPORT]" & @CRLF
+	$sData &= @CRLF & "[RAPPORT]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\rapport.bao") & @CRLF & "[/RAPPORT]" & @CRLF
 	$sData &= @CRLF & "[LOGS]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\logs.txt") & "[/LOGS]" & @CRLF
 
     ; Display a save dialog to select a file.
@@ -91,7 +91,7 @@ Func _CompleterRapport($iRapport, $sNomRapportComplet)
 	_CalculFS()
 	$sData &= @CRLF & "[FREESPACE_END]" & $iFreeSpace & " Go[/FREESPACE_END]" & @CRLF
 	$sData &= @CRLF & "[END]" & _Now() & "[/END]" & @CRLF
-	$sData &= @CRLF & "[RAPPORT]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\rapport.bao") & "[/RAPPORT]" & @CRLF
+	$sData &= @CRLF & "[RAPPORT]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\rapport.bao") & @CRLF & "[/RAPPORT]" & @CRLF
 	$sData &= @CRLF & "[LOGS]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\logs.txt") & "[/LOGS]" & @CRLF
 
 	Local $hRapportComplet = FileOpen($sNomRapportComplet, 2)
@@ -123,8 +123,10 @@ Func _RapportParseur($iIDTABInfossys)
 			For $i = 0 To UBound($aArrayRapportupd) - 1
 				ReDim $aCatUpd[$i+1][2]
 				$aCatTmp = StringRegExp($aArrayRapportupd[$i], "\[(\w+)\](.+)\[", 1)
-				$aCatUpd[$i][0] = $aCatTmp[0]
-				$aCatUpd[$i][1] = $aCatTmp[1]
+				If UBound($aCatTmp) = 2 Then
+					$aCatUpd[$i][0] = $aCatTmp[0]
+					$aCatUpd[$i][1] = $aCatTmp[1]
+				EndIf
 			Next
 		EndIf
 

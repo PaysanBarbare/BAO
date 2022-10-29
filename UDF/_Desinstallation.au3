@@ -120,6 +120,11 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 				$nb+=1
 			Until $iRetour <> -1 or $nb = 3
 
+			If _FichierCacheExist("Supervision") Then
+				Local $sFTPDossierCapture = IniRead($sConfig, "FTP", "DossierCapture", "")
+				_EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, "", $sFTPDossierCapture & $sNom & ".png", 1)
+			EndIf
+
 		Else
 			Local $aFileToDel = FileReadToArray(@LocalAppDataDir & "\bao\FichierASupprimer.txt")
 			If @error = 0 Then
@@ -127,6 +132,11 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 					FileDelete($sFileToDel)
 				Next
 			EndIf
+
+			If _FichierCacheExist("Supervision") Then
+				FileDelete(@ScriptDir & "\Cache\Supervision\" & $sNomCapture)
+			EndIf
+
 		EndIf
 
 		; Sauvegarde du rapport complet sur le pc

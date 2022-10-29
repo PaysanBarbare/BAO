@@ -18,7 +18,7 @@ This file is part of "Boîte A Outils"
     along with Boîte A Outils.  If not, see <https://www.gnu.org/licenses/>.
 #ce
 
-Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemove = 0)
+Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemove = 0, $bCheckmdp = 0)
 
 	Local $bRetour = 0
 
@@ -31,7 +31,12 @@ Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemov
 			Local $hGUIFTP = GUICreate("Envoi sur FTP/SFTP", 400, 105)
 			GUICtrlCreateLabel('Saisissez le mot de passe FTP/SFTP (' & $sFTPUser & '@' & $sFTPAdresse & ') :',10, 15)
 			Local $iPWD = GUICtrlCreateInput("", 10, 42, 200, 20, $ES_PASSWORD)
+
 			Local $iMem = GUICtrlCreateCheckbox("Mémoriser le mot de passe ?", 220, 40)
+
+			If($bCheckmdp = 1) Then
+				GUICtrlSetState($iMem, 129)
+			EndIf
 
 			Local $iIDValider = GUICtrlCreateButton("Valider", 125, 70, 150, 25, $BS_DEFPUSHBUTTON)
 			GUISetState(@SW_SHOW)
@@ -80,7 +85,7 @@ Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemov
 
 			GUICtrlSetData($statusbarprogress, 50)
 
-			_FileWriteLog($hLog, 'Connexion au serveur FTP/SFTP')
+			;_FileWriteLog($hLog, 'Connexion au serveur FTP/SFTP')
 			_UpdEdit($iIDEditLog, $hLog)
 
 			if $sFTPProtocol = "sftp" then
@@ -104,7 +109,7 @@ Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemov
 							$sFTP_Message = "Timeout sur mot de passe"
 					EndSwitch
 					_Attention('Connexion impossible au serveur FTP/SFTP : ' & @CRLF & @CRLF & $sFTP_Message)
-					_FileWriteLog($hLog, 'Erreur : ' & $sFTP_Message)
+					_FileWriteLog($hLog, 'Erreur connexion SFTP : ' & $sFTP_Message)
 					$bRetour = -1
 				Else
 					$bRetour = 1
@@ -133,6 +138,7 @@ Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemov
 				If @error Then
 					_FTP_GetLastResponseInfo($Err, $sFTP_Message)
 					_Attention('Connexion impossible au serveur FTP : ' & @CRLF & @CRLF & $sFTP_Message)
+					_FileWriteLog($hLog, 'Erreur connexion FTP : ' & $sFTP_Message)
 					$bRetour = -1
 				Else
 					$bRetour = 1

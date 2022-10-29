@@ -61,7 +61,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "1.0.6" ; 02/10/22
+Global $sVersion = "1.0.7" ; 28/10/22
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -90,7 +90,7 @@ Global $sVersion = "1.0.6" ; 02/10/22
 #include <Misc.au3>
 #include <Process.au3>
 #include <ProgressConstants.au3>
-;#include <ScreenCapture.au3>
+#include <ScreenCapture.au3>
 #include <SQLite.au3>
 ;#include <SQLite.dll.au3>
 #include <StaticConstants.au3>
@@ -105,7 +105,7 @@ Global $sVersion = "1.0.6" ; 02/10/22
 _Singleton(@ScriptName, 0)
 
 Local $sDossierRapport, $sNom, $bNonPremierDemarrage = False, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $sSubKey, $sMdps, $sAutoUser
-Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2), $iSupervision
+Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2), $iSupervision = 1, $sCheminCapture = @ScriptDir & "\Cache\Supervision\", $sNomCapture, $iNBCaptures = 0
 
 ; déclaration des fichiers rapport
 Global $hLog, $sFileLog
@@ -184,6 +184,7 @@ Const $sConfig = @ScriptDir & "\config.ini"
 #include "UDF\_Sfx.au3"
 #include "UDF\_Stabilite.au3"
 #include "UDF\_Suivi.au3"
+#include "UDF\_Supervision.au3"
 #include "UDF\_Telechargement.au3"
 #include "UDF\SFTPEx.au3"
 
@@ -215,6 +216,7 @@ $sDossierRapport = @DesktopDir & "\" & IniRead($sConfig, "Parametrages", "Dossie
 If DirCreate($sDossierRapport) = 0 Then	_Erreur("Impossible de créer le dossier '" & $sDossierRapport & "' sur le bureau")
 
 DirCreate(@ScriptDir & "\Cache\Download")
+DirCreate(@ScriptDir & "\Cache\Supervision")
 
 ; intialisation des variables FTP
 $sFTPProtocol = IniRead($sConfig, "FTP", "Protocol", "ftp")
@@ -300,6 +302,7 @@ EndIf
 
 ; Déclaration des boutons de fonctions (pour calculer la taille de la fenêtre BAO)
 Local $iIDButtonBureaudistant
+Local $iIDButtonSupervision
 Local $iIDButtonInstallation
 Local $iIDButtonSauvegarde
 Local $iIDButtonWU
@@ -308,7 +311,7 @@ Local $iIDButtonStabilite
 Local $iIDButtonScripts
 
 ; Soit :
-Local $iFonctions = 7
+Local $iFonctions = 8
 
 $hGUIBAO = GUICreate($sSociete & " - Boîte A Outils (bêta) " & $sVersion, 860, 210 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
 
@@ -318,7 +321,7 @@ $iIDCancelDL = GUICtrlCreateButton("Passer / Annuler", 700, 135 + ($iFonctions *
 GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
 GUICtrlSetFont($statusbar, 11)
 
-Local $iIDMenu1clearcache, $iIDMenu1update, $iIDMenu1copier, $iIDMenu1sfx, $iIDMenu2index
+Local $iIDMenu1clearcache, $iIDMenu1update, $iIDMenu1copier, $iIDMenu1sfx, $iIDMenu2index, $iIDMenu1supervision
 
 Local $iIDMenu1 = GUICtrlCreateMenu("&Configuration")
 Local $iIDMenu1config = GUICtrlCreateMenuItem("Editer config.ini", $iIDMenu1)
@@ -334,6 +337,7 @@ If(StringLeft($sNom, 4) = "Tech") Then
 	$iIDMenu1update = GUICtrlCreateMenuItem("Tout mettre à jour", $iIDMenu1)
 	$iIDMenu1copier = GUICtrlCreateMenuItem("Copier BAO sur support externe", $iIDMenu1)
 	$iIDMenu1sfx = GUICtrlCreateMenuItem("Créer archive SFX", $iIDMenu1)
+	$iIDMenu1supervision = GUICtrlCreateMenuItem("Créer index supervision", $iIDMenu1)
 EndIf
 GUICtrlCreateMenuItem("", $iIDMenu1)
 
@@ -366,7 +370,7 @@ Local $i, $j, $iPremElement, $iDernElement, $x = 70
 Local $iIDMenuLog = GUICtrlCreateMenu("Logiciels")
 
 $iPremElement = $iIDMenuLog + 1
-Local $aTemp, $iIDMenuDoc, $aTempLog[14], $sNomLog, $aShortcut, $aLogMenu, $sIDSM, $iToDel, $iToOpen, $iToRen
+Local $aTemp, $iIDMenuDoc, $aTempLog[16], $sNomLog, $aShortcut, $aLogMenu, $sIDSM, $iToDel, $iToOpen, $iToRen
 
 For $i = 1 To $aDoc[0]
 
@@ -401,7 +405,9 @@ For $i = 1 To $aDoc[0]
 				$aTempLog[10] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "nepasmaj", "0" )
 				$aTempLog[11] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expression", "" )
 				$aTempLog[12] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expressionnonincluse", "" )
-				$aTempLog[13] = $aDoc[$i]
+				$aTempLog[13] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expressionaremplacer", "" )
+				$aTempLog[14] = IniRead (@ScriptDir & "\Logiciels\" & $aDoc[$i], $sNomLog, "expressionderemplacement", "" )
+				$aTempLog[15] = $aDoc[$i]
 
 				; Construction de deux Maps (un trié par nom et l'autre par ID menu
 				$aMenu[$sNomLog] = $aTempLog
@@ -410,7 +416,7 @@ For $i = 1 To $aDoc[0]
 				If $aTempLog[7] = 1 Then
 					$sIDSM = GUICtrlCreateButton($sNomLog, 700, $x, 150, 25)
 					$x = $x + 25
-					$aTempLog[13] = -1
+					$aTempLog[15] = -1
 					$aMenuID[$sIDSM] = $aTempLog
 				EndIf
 			EndIf
@@ -531,14 +537,14 @@ GUICtrlSetFont(-1, Default, 600)
 GUICtrlCreateLabel("Début : " & $sDate, 450, 34, 200, 15)
 GUICtrlSetFont(-1, Default, 600)
 
-
 $iIDButtonBureaudistant = GUICtrlCreateButton("Bureau distant", 10, 50, 150, 25)
-$iIDButtonInstallation = GUICtrlCreateButton("Installation", 10, 80, 150, 25)
-$iIDButtonSauvegarde = GUICtrlCreateButton("Sauvegarde et restauration", 10, 110, 150, 25)
-$iIDButtonWU = GUICtrlCreateButton("Windows et Office", 10, 140, 150, 25)
-$iIDButtonPilotes = GUICtrlCreateButton("Pilotes", 10, 170, 150, 25)
-$iIDButtonStabilite = GUICtrlCreateButton("Centre de contrôles", 10, 200, 150, 25)
-$iIDButtonScripts = GUICtrlCreateButton("Scripts et outils", 10, 230, 150, 25)
+$iIDButtonSupervision = GUICtrlCreateButton("Supervision", 10, 80, 150, 25)
+$iIDButtonInstallation = GUICtrlCreateButton("Installation", 10, 110, 150, 25)
+$iIDButtonSauvegarde = GUICtrlCreateButton("Sauvegarde et restauration", 10, 140, 150, 25)
+$iIDButtonWU = GUICtrlCreateButton("Windows et Office", 10, 170, 150, 25)
+$iIDButtonPilotes = GUICtrlCreateButton("Pilotes", 10, 200, 150, 25)
+$iIDButtonStabilite = GUICtrlCreateButton("Centre de contrôles", 10, 230, 150, 25)
+$iIDButtonScripts = GUICtrlCreateButton("Scripts et outils", 10, 260, 150, 25)
 
 Local $y = 70 + ($iFonctions * 30)
 Local $pgroup = $y-20
@@ -586,6 +592,21 @@ GUICtrlCreateGroup("Favoris et raccourcis", 695, 50, 160, $y - 128)
 GUICtrlSetFont (-1, 9, 800)
 
 If _FichierCacheExist("Bureaudistant") = 1 Then	_ChangerEtatBouton($iIDButtonBureaudistant, "Activer")
+
+If (Not($sFTPAdresse <> "" And $sFTPUser <> "" And $sFTPDossierCapture <> "") and StringLeft(@ScriptDir, 2) = "\\") Then
+	$iSupervision = 0
+EndIf
+
+If $iSupervision = 1 Then
+	If _FichierCacheExist("Supervision") = 1 Then	_ChangerEtatBouton($iIDButtonSupervision, "Activer")
+	$sNomCapture = $sNom & ".png"
+	_CreerIndexSupervisionLocal()
+Else
+	_ChangerEtatBouton($iIDButtonSupervision, "Inactif")
+	If _FichierCacheExist("Supervision") = 1 Then
+		_FichierCache("Supervision", -1)
+	EndIf
+EndIf
 
 If _FichierCacheExist("Envoi") = 1 Then	_ChangerEtatBouton($iIDButtonEnvoi, "Activer")
 
@@ -704,9 +725,16 @@ While 1
 
 		$aMemStats = MemGetStats()
 		GUICtrlSetData($iIDRAMlibre, "RAM : " & $aMemStats[$MEM_LOAD] & '% utilisée')
-;~ 		If $iSupervision Then
-;~ 			_CaptureEcran($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
-;~ 		EndIf
+
+ 		If StringLeft($sNom, 4) <> "Tech" And _FichierCacheExist("Supervision") Then
+			If StringLeft(@ScriptDir, 2) <> "\\" And IsInt(@MIN / 5) Then
+				_SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
+			ElseIf StringLeft(@ScriptDir, 2) = "\\" Then
+				_SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
+			EndIf
+		ElseIf StringLeft($sNom, 4) = "Tech" Then
+			_CreerIndexSupervisionLocal()
+ 		EndIf
 
 	EndIf
 
@@ -821,6 +849,10 @@ While 1
 
 				_CreerSfx($sFTPAdresse, $sFTPUser, $sFTPPort)
 
+			Case $iIDMenu1supervision
+
+				_CreerIndexSupervision($sFTPAdresse, $sFTPUser, $sFTPPort)
+
 			Case $iIDMenu1reini
 
 				_ReiniBAO()
@@ -893,6 +925,10 @@ While 1
 			Case $iIDButtonBureaudistant
 
 				_BureauDistant()
+
+			Case $iIDButtonSupervision
+
+				_Supervision($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
 
 			Case $iIDButtonInstallation
 

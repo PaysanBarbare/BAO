@@ -127,6 +127,7 @@ Func _Scripts()
 				GUIDelete($hGUIscripts)
 				DirCreate(@ScriptDir & "\Scripts\")
 				ShellExecute(@ScriptDir & "\Scripts\")
+				_ChangerEtatBouton($iIDAction, "Desactiver")
 				Return
 
 		EndSwitch

@@ -24,8 +24,8 @@ Func _MenuAdd()
 	If $aListDoc = "" Then
 		_Attention("Ajoutez d'abord un dossier")
 	Else
-		Local $sLien, $iCombo, $sCombo, $aEnr[13], $sNameL, $sTmpdom, $sFolderLog, $bChoco = False
-		Local $hGUIMenu = GUICreate("Ajout de logiciel", 600, 240)
+		Local $sLien, $iCombo, $sCombo, $aEnr[16], $sNameL, $sTmpdom, $sFolderLog, $bChoco = False
+		Local $hGUIMenu = GUICreate("Ajout de logiciel", 600, 300)
 		GUICtrlCreateLabel("Nom du logiciel :", 10, 10)
 		Local $iNomLogiciel = GUICtrlCreateInput("", 160, 8, 140)
 
@@ -55,15 +55,11 @@ Func _MenuAdd()
 		Local $iBrowse = GUICtrlCreateButton("Parcourir", 400, 35, 80)
 		Local $iTest = GUICtrlCreateCheckbox("Tester le lien", 490, 35)
 
-		GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 135)
+		GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 115)
 		Local $iFavoris = GUICtrlCreateCheckbox("Ajouter aux favoris", 20, 90)
 		Local $iSite = GUICtrlCreateCheckbox("Ouvrir dans le navigateur", 20, 110)
 		Local $iNepasmaj = GUICtrlCreateCheckbox("Ne pas mettre à jour", 20, 130)
 		Local $iDomaine = GUICtrlCreateCheckbox("Domaine pour les liens relatifs :", 20, 150)
-		GUICtrlCreateLabel("Téléchargement indirect : le lien contient ", 20, 180)
-		Local $sExp = GUICtrlCreateInput("", 220, 177, 120)
-		GUICtrlCreateLabel("mais ne contient pas ", 350, 180)
-		Local $sExpnot = GUICtrlCreateInput("", 460, 177, 120)
 		Local $iHeaders = GUICtrlCreateCheckbox("Activer headers HTTP", 300, 90)
 		Local $iMdp = GUICtrlCreateCheckbox("Rechercher mot de passe dans le source", 300, 110)
 		Local $iForcedl = GUICtrlCreateCheckbox("Forcer le téléchargement (précisez l'extension)", 300, 130)
@@ -71,8 +67,17 @@ Func _MenuAdd()
 		Local $sExtension = GUICtrlCreateInput("", 545, 150, 35)
 		GUICtrlSetLimit(-1, 3)
 		Local $sDomaine = GUICtrlCreateInput("https://", 185, 150, 105)
-		Local $iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 210, 80, 25)
-		Local $iIDButtonDemarrer = GUICtrlCreateButton("Ajouter", 310, 210, 80, 25, $BS_DEFPUSHBUTTON)
+		GUICtrlCreateGroup("Téléchargement indirect (page parente)", 10, 190, 580, 75)
+		GUICtrlCreateLabel("Recherche dans le source : le lien contient ", 20, 210)
+		Local $sExp = GUICtrlCreateInput("", 230, 207, 120)
+		GUICtrlCreateLabel("mais ne contient pas ", 360, 210)
+		Local $sExpnot = GUICtrlCreateInput("", 470, 207, 110)
+		GUICtrlCreateLabel("Lien trouvé : remplacer le mot ", 20, 235)
+		Local $sExpRemp = GUICtrlCreateInput("", 230, 232, 120)
+		GUICtrlCreateLabel("par ", 360, 235)
+		Local $sExpRempPar = GUICtrlCreateInput("", 470, 232, 110)
+		Local $iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 270, 80, 25)
+		Local $iIDButtonDemarrer = GUICtrlCreateButton("Ajouter", 310, 270, 80, 25, $BS_DEFPUSHBUTTON)
 		GUISetState(@SW_SHOW)
 
 		Local $eGet = GUIGetMsg()
@@ -94,6 +99,8 @@ Func _MenuAdd()
 						GUICtrlSetState($iMdp, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 						GUICtrlSetState($iDomaine, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 						GUICtrlSetState($sDomaine, $GUI_DISABLE)
+						GUICtrlSetState($sExpRemp, $GUI_DISABLE)
+						GUICtrlSetState($sExpRempPar, $GUI_DISABLE)
 					Else
 						GUICtrlSetState($iNepasmaj, $GUI_ENABLE)
 						GUICtrlSetState($iForcedl, $GUI_ENABLE)
@@ -104,6 +111,8 @@ Func _MenuAdd()
 						GUICtrlSetState($iMdp, $GUI_ENABLE)
 						GUICtrlSetState($iDomaine, $GUI_ENABLE)
 						GUICtrlSetState($sDomaine, $GUI_ENABLE)
+						GUICtrlSetState($sExpRemp, $GUI_ENABLE)
+						GUICtrlSetState($sExpRempPar, $GUI_ENABLE)
 					EndIf
 				Case $iForcedl
 					If(GUICtrlRead($iForcedl) = $GUI_CHECKED) Then
@@ -198,6 +207,16 @@ Func _MenuAdd()
 						Else
 							$aEnr[12] = ""
 						EndIf
+						If GUICtrlRead($sExpRemp) <> "" Then
+							$aEnr[13] = GUICtrlRead($sExp)
+						Else
+							$aEnr[13] = ""
+						EndIf
+						If GUICtrlRead($sExpRempPar) <> "" Then
+							$aEnr[14] = GUICtrlRead($sExpnot)
+						Else
+							$aEnr[14] = ""
+						EndIf
 						If GUICtrlRead($iDomaine) = $GUI_CHECKED Then
 							$aEnr[9] = GUICtrlRead($sDomaine)
 						Else
@@ -227,6 +246,7 @@ Func _MenuAdd()
 		WEnd
 
 		If($eGet = $iIDButtonDemarrer) Then
+			$aEnr[15] = GUICtrlRead($iCombo)
 			_SauvToIni($aEnr, GUICtrlRead($iCombo) & ".ini")
 			GUIDelete()
 			_Attention("Nouveau logiciel ajouté" & @CRLF & "Redémarrer BAO quand vous aurez terminé les modifications")
@@ -250,10 +270,13 @@ Func _MenuMod($aEnr)
 	; $aEnr[10] = Nepasmaj
 	; $aEnr[11] = Expression
 	; $aEnr[12] = ExpressionNonPresente
-	; $aEnr[13] = Dossier
+	; $aEnr[13] = ExpressionARemplacer
+	; $aEnr[14] = ExpressionDeRemplacement
+	; $aEnr[15] = Dossier
+
 	Local $iCombo, $sCombo, $btmpmod = False, $sTmpdom, $bChoco = False
-	Local $aListDoc = _FileListToArrayRec(@ScriptDir & "\Logiciels\", "*.ini|" & $aEnr[11], 1, 0, 1)
-	Local $hGUIMenuMod = GUICreate('Modification de logiciel (maintenez la touche "MAJ" pour ouvrir directement)', 600, 240)
+	Local $aListDoc = _FileListToArrayRec(@ScriptDir & "\Logiciels\", "*.ini", 1, 0, 1)
+	Local $hGUIMenuMod = GUICreate('Modification de logiciel (maintenez la touche "MAJ" pour ouvrir directement)', 600, 300)
 	GUICtrlCreateLabel("Nom du logiciel :", 10, 10)
 	Local $iNomLogiciel = GUICtrlCreateInput($aEnr[1], 160, 8, 140)
 	GUICtrlSetState(-1, $GUI_DISABLE)
@@ -270,7 +293,7 @@ Func _MenuMod($aEnr)
 	Local $iLien = GUICtrlCreateInput($aEnr[2], 160, 38, 330)
 	Local $iTest = GUICtrlCreateCheckbox("Tester le lien", 500, 35)
 
-	GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 135)
+	GUICtrlCreateGroup("Réglages avancés", 10, 70, 580, 115)
 	Local $iFavoris = GUICtrlCreateCheckbox("Ajouter aux favoris", 20, 90)
 	If $aEnr[7] = 1 Then
 		GUICtrlSetState(-1, $GUI_CHECKED)
@@ -287,10 +310,6 @@ Func _MenuMod($aEnr)
 		GUICtrlSetState($iSite, $GUI_DISABLE)
 	EndIf
 	Local $iDomaine = GUICtrlCreateCheckbox("Domaine pour les liens relatifs :", 20, 150)
-	GUICtrlCreateLabel("Téléchargement indirect : le lien contient ", 20, 180)
-	Local $sExp = GUICtrlCreateInput("", 220, 177, 120)
-	GUICtrlCreateLabel("mais ne contient pas ", 350, 180)
-	Local $sExpnot = GUICtrlCreateInput("", 460, 177, 120)
 
 	Local $iHeaders = GUICtrlCreateCheckbox("Activer headers HTTP", 300, 90)
 	If $aEnr[3] = 1 Then
@@ -318,22 +337,6 @@ Func _MenuMod($aEnr)
 	GUICtrlCreateLabel("Extension (téléchargement forcé ou indirect) : ", 320, 153)
 	Local $sExtension = GUICtrlCreateInput("", 545, 150, 35)
 	GUICtrlSetLimit(-1, 3)
-	If $aEnr[3] = 1 Then
-		GUICtrlSetState($sExtension, $GUI_DISABLE)
-		GUICtrlSetState($sExp, $GUI_DISABLE)
-		GUICtrlSetState($sExpnot, $GUI_DISABLE)
-	ElseIf $aEnr[8] <> "" Or $aEnr[11] <> "" Or $aEnr[12] <> "" Then
-		If $aEnr[8] <> "" Then
-			GUICtrlSetData($sExtension, $aEnr[8])
-		EndIf
-		If $aEnr[11] <> "" Then
-			GUICtrlSetData($sExp, $aEnr[11])
-		EndIf
-		If $aEnr[12] <> "" Then
-			GUICtrlSetData($sExpnot, $aEnr[12])
-		EndIf
-		GUICtrlSetState($iSite, $GUI_DISABLE)
-	EndIf
 
 	Local $sDomaine = GUICtrlCreateInput("https://", 185, 150, 105)
 	If $aEnr[3] = 1 Then
@@ -345,6 +348,41 @@ Func _MenuMod($aEnr)
 		GUICtrlSetState($iSite, $GUI_DISABLE)
 	EndIf
 
+	GUICtrlCreateGroup("Téléchargement indirect (page parente)", 10, 190, 580, 75)
+	GUICtrlCreateLabel("Recherche dans le source : le lien contient ", 20, 210)
+	Local $sExp = GUICtrlCreateInput("", 230, 207, 120)
+	GUICtrlCreateLabel("mais ne contient pas ", 360, 210)
+	Local $sExpnot = GUICtrlCreateInput("", 470, 207, 110)
+	GUICtrlCreateLabel("Lien trouvé : remplacer le mot ", 20, 235)
+	Local $sExpRemp = GUICtrlCreateInput("", 230, 232, 120)
+	GUICtrlCreateLabel("par ", 360, 235)
+	Local $sExpRempPar = GUICtrlCreateInput("", 470, 232, 110)
+
+	If $aEnr[3] = 1 Then
+		GUICtrlSetState($sExtension, $GUI_DISABLE)
+		GUICtrlSetState($sExp, $GUI_DISABLE)
+		GUICtrlSetState($sExpnot, $GUI_DISABLE)
+		GUICtrlSetState($sExpRemp, $GUI_DISABLE)
+		GUICtrlSetState($sExpRempPar, $GUI_DISABLE)
+	ElseIf $aEnr[8] <> "" Or $aEnr[11] <> "" Or $aEnr[12] <> "" Or $aEnr[13] <> "" Or $aEnr[14] <> "" Then
+		If $aEnr[8] <> "" Then
+			GUICtrlSetData($sExtension, $aEnr[8])
+		EndIf
+		If $aEnr[11] <> "" Then
+			GUICtrlSetData($sExp, $aEnr[11])
+		EndIf
+		If $aEnr[12] <> "" Then
+			GUICtrlSetData($sExpnot, $aEnr[12])
+		EndIf
+		If $aEnr[13] <> "" Then
+			GUICtrlSetData($sExpRemp, $aEnr[13])
+		EndIf
+		If $aEnr[14] <> "" Then
+			GUICtrlSetData($sExpRempPar, $aEnr[14])
+		EndIf
+		GUICtrlSetState($iSite, $GUI_DISABLE)
+	EndIf
+
 	If $aEnr[2] = "choco" Then
 		$bChoco = True
 		GUICtrlSetState($iLien,  $GUI_DISABLE)
@@ -353,6 +391,8 @@ Func _MenuMod($aEnr)
 		GUICtrlSetState($iNepasmaj,  $GUI_DISABLE)
 		GUICtrlSetState($sExp,  $GUI_DISABLE)
 		GUICtrlSetState($sExpnot,  $GUI_DISABLE)
+		GUICtrlSetState($sExpRemp,  $GUI_DISABLE)
+		GUICtrlSetState($sExpRempPar,  $GUI_DISABLE)
 		GUICtrlSetState($iHeaders,  $GUI_DISABLE)
 		GUICtrlSetState($iMdp,  $GUI_DISABLE)
 		GUICtrlSetState($iForcedl,  $GUI_DISABLE)
@@ -361,10 +401,10 @@ Func _MenuMod($aEnr)
 		GUICtrlSetState($iDomaine,  $GUI_DISABLE)
 	EndIf
 
-	Local $iIDButtonOuvrir = GUICtrlCreateButton("Télécharger/Ouvrir", 40, 210, 130, 25, $BS_DEFPUSHBUTTON)
-	Local $iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 210, 80, 25)
-	Local $iIDButtonDemarrer = GUICtrlCreateButton("Modifier", 300, 210, 80, 25)
-	Local $iIDButtonSupprimer = GUICtrlCreateButton("Supprimer", 390, 210, 80, 25)
+	Local $iIDButtonOuvrir = GUICtrlCreateButton("Télécharger/Ouvrir", 40, 270, 130, 25, $BS_DEFPUSHBUTTON)
+	Local $iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 270, 80, 25)
+	Local $iIDButtonDemarrer = GUICtrlCreateButton("Modifier", 300, 270, 80, 25)
+	Local $iIDButtonSupprimer = GUICtrlCreateButton("Supprimer", 390, 270, 80, 25)
 	GUISetState(@SW_SHOW)
 
 	Local $eGet = GUIGetMsg()
@@ -379,6 +419,8 @@ Func _MenuMod($aEnr)
 					GUICtrlSetState($sExtension, $GUI_DISABLE)
 					GUICtrlSetState($sExp, $GUI_DISABLE)
 					GUICtrlSetState($sExpnot, $GUI_DISABLE)
+					GUICtrlSetState($sExpRemp, $GUI_DISABLE)
+					GUICtrlSetState($sExpRempPar, $GUI_DISABLE)
 					GUICtrlSetState($iHeaders, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 					GUICtrlSetState($iMdp, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 					GUICtrlSetState($iDomaine, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
@@ -389,6 +431,8 @@ Func _MenuMod($aEnr)
 					GUICtrlSetState($sExtension, $GUI_ENABLE)
 					GUICtrlSetState($sExp, $GUI_ENABLE)
 					GUICtrlSetState($sExpnot, $GUI_ENABLE)
+					GUICtrlSetState($sExpRemp, $GUI_ENABLE)
+					GUICtrlSetState($sExpRempPar, $GUI_ENABLE)
 					GUICtrlSetState($iHeaders, $GUI_ENABLE)
 					GUICtrlSetState($iMdp, $GUI_ENABLE)
 					GUICtrlSetState($iDomaine, $GUI_ENABLE)
@@ -489,6 +533,22 @@ Func _MenuMod($aEnr)
 					Else
 						$aEnr[12] = ""
 					EndIf
+					If GUICtrlRead($sExpRemp) <> "" Then
+						If GUICtrlRead($sExpRemp) <> $aEnr[13] Then
+							$btmpmod = True
+						EndIf
+						$aEnr[13] = GUICtrlRead($sExpRemp)
+					Else
+						$aEnr[13] = ""
+					EndIf
+					If GUICtrlRead($sExpRempPar) <> "" Then
+						If GUICtrlRead($sExpRempPar) <> $aEnr[14] Then
+							$btmpmod = True
+						EndIf
+						$aEnr[14] = GUICtrlRead($sExpRempPar)
+					Else
+						$aEnr[14] = ""
+					EndIf
 					If GUICtrlRead($iDomaine) = $GUI_CHECKED Then
 						$aEnr[9] = GUICtrlRead($sDomaine)
 					Else
@@ -531,9 +591,10 @@ Func _MenuMod($aEnr)
 
 	If($eGet = $iIDButtonDemarrer) Then
 		If GUICtrlRead($iCombo) = "-----------" Then
-			_SauvToIni($aEnr, $aEnr[13])
+			_SauvToIni($aEnr, $aEnr[15])
 		Else
-			_SauvToIni($aEnr, GUICtrlRead($iCombo) & ".ini", $aEnr[12])
+			_SauvToIni($aEnr, GUICtrlRead($iCombo) & ".ini", $aEnr[15])
+			$aEnr[15] = GUICtrlRead($iCombo)
 		EndIf
 		GUIDelete()
 		_Attention("Modifications enregistrées" & @CRLF & "Redémarrer BAO quand vous aurez terminé les modifications")
@@ -604,6 +665,8 @@ Func _SauvToIni($aRec, $sDossier, $sDossierToDelete="")
 	; $aEnr[10] = Nepasmaj
 	; $aEnr[11] = Expression
 	; $aEnr[12] = ExpressionNonIncluse
+	; $aEnr[13] = ExpressionARemplacer
+	; $aEnr[14] = ExpressionDeRemplacement
 
 	Local $sData = "lien=" & $aRec[2] & @LF
 	If $aRec[7] = 1 Then
@@ -623,6 +686,12 @@ Func _SauvToIni($aRec, $sDossier, $sDossierToDelete="")
 		EndIf
 		If $aRec[12] <> "" Then
 			$sData &= "expressionnonincluse=" & $aRec[12] & @LF
+		EndIf
+		If $aRec[13] <> "" Then
+			$sData &= "expressionaremplacer=" & $aRec[13] & @LF
+		EndIf
+		If $aRec[14] <> "" Then
+			$sData &= "expressionderemplacement=" & $aRec[14] & @LF
 		EndIf
 		If $aRec[5] = 1 Then
 			$sData &= "headers=1" & @LF
