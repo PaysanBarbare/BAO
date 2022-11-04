@@ -39,71 +39,78 @@ Func _BureauDistant()
 			EndIf
 		Else
 			If(StringLeft($sNom, 4) <> "Tech") Then
+				_FileWriteLog($hLog, 'Activation du bureau distant')
 				_ChangerEtatBouton($iIDAction, "Patienter")
-				If(_Telecharger($aMenu[$sAgent])) Then
-					Local $sMdp, $bSVGMdp = 0, $iIdDWS
-					If(FileExists(@ScriptDir & '\Cache\Pwd\dws.sha')) Then
-						$sMdp = BinaryToString(_Crypt_DecryptData(FileReadLine(@ScriptDir & '\Cache\Pwd\dws.sha'), $sMailBD, $CALG_AES_256))
-					Else
-						Local $hGUIDWS = GUICreate("Activation du bureau distant", 400, 105)
-						GUICtrlCreateLabel('Saisissez le mot de passe DWService pour "' & $sMailBD & '" :',10, 15)
-						Local $iPWD = GUICtrlCreateInput("", 10, 42, 200, 20, $ES_PASSWORD)
-						Local $iMem = GUICtrlCreateCheckbox("Mémoriser le mot de passe ?", 220, 40)
-
-						Local $iIDValider = GUICtrlCreateButton("Valider", 125, 70, 150, 25, $BS_DEFPUSHBUTTON)
-						GUISetState(@SW_SHOW)
-
-						While 1
-							$iIdDWS= GUIGetMsg()
-							Switch $iIdDWS
-
-								Case $GUI_EVENT_CLOSE
-									ExitLoop
-
-								Case $iIDValider
-									If(GUICtrlRead($iPWD) <> "") Then
-										$sMdp = GUICtrlRead($iPWD)
-									EndIf
-
-									If GUICtrlRead($iMem) = $GUI_CHECKED Then
-										$bSVGMdp = 1
-									EndIf
-									ExitLoop
-							EndSwitch
-						WEnd
-
-						GUIDelete()
-					EndIf
-
-					If $sMdp <> "" Then
-						_FileWriteLog($hLog, 'Installation de DWAgent')
-
-						If($bSVGMdp = 1) Then
-							_Crypter("dws", $sMdp, $sMailBD)
-						EndIf
-
-						GUICtrlSetData($statusbar, " Installation de DWAgent")
-						GUICtrlSetData($statusbarprogress, 20)
-						ShellExecuteWait($sProgrun, '-silent user=' & $sMailBD & ' password=' & $sMdp & ' name="' & $sNom & '"')
-						if @error <> 0 Then
-							_Attention("Impossible d'installer DWAgent")
-							GUICtrlSetData($statusbar, "")
-							GUICtrlSetData($statusbarprogress, 0)
-							_ChangerEtatBouton($iIDAction, "Desactiver")
+				If MapExists($aMenu, $sAgent) Then
+					If(_Telecharger($aMenu[$sAgent])) Then
+						Local $sMdp, $bSVGMdp = 0, $iIdDWS
+						If(FileExists(@ScriptDir & '\Cache\Pwd\dws.sha')) Then
+							$sMdp = BinaryToString(_Crypt_DecryptData(FileReadLine(@ScriptDir & '\Cache\Pwd\dws.sha'), $sMailBD, $CALG_AES_256))
 						Else
-							GUICtrlSetData($statusbarprogress, 100)
-							Sleep(2000)
-							GUICtrlSetData($statusbar, "")
-							GUICtrlSetData($statusbarprogress, 0)
-							_ChangerEtatBouton($iIDAction, "Activer")
-							_FichierCache("BureauDistant", "1")
+							Local $hGUIDWS = GUICreate("Activation du bureau distant", 400, 105)
+							GUICtrlCreateLabel('Saisissez le mot de passe DWService pour "' & $sMailBD & '" :',10, 15)
+							Local $iPWD = GUICtrlCreateInput("", 10, 42, 200, 20, $ES_PASSWORD)
+							Local $iMem = GUICtrlCreateCheckbox("Mémoriser le mot de passe ?", 220, 40)
+
+							Local $iIDValider = GUICtrlCreateButton("Valider", 125, 70, 150, 25, $BS_DEFPUSHBUTTON)
+							GUISetState(@SW_SHOW)
+
+							While 1
+								$iIdDWS= GUIGetMsg()
+								Switch $iIdDWS
+
+									Case $GUI_EVENT_CLOSE
+										ExitLoop
+
+									Case $iIDValider
+										If(GUICtrlRead($iPWD) <> "") Then
+											$sMdp = GUICtrlRead($iPWD)
+										EndIf
+
+										If GUICtrlRead($iMem) = $GUI_CHECKED Then
+											$bSVGMdp = 1
+										EndIf
+										ExitLoop
+								EndSwitch
+							WEnd
+
+							GUIDelete()
+						EndIf
+
+						If $sMdp <> "" Then
+							_FileWriteLog($hLog, 'Installation de DWAgent')
+
+							If($bSVGMdp = 1) Then
+								_Crypter("dws", $sMdp, $sMailBD)
+							EndIf
+
+							GUICtrlSetData($statusbar, " Installation de DWAgent")
+							GUICtrlSetData($statusbarprogress, 20)
+							ShellExecuteWait($sProgrun, '-silent user=' & $sMailBD & ' password=' & $sMdp & ' name="' & $sNom & '"')
+							if @error <> 0 Then
+								_Attention("Impossible d'installer DWAgent")
+								GUICtrlSetData($statusbar, "")
+								GUICtrlSetData($statusbarprogress, 0)
+								_ChangerEtatBouton($iIDAction, "Desactiver")
+							Else
+								GUICtrlSetData($statusbarprogress, 100)
+								Sleep(2000)
+								GUICtrlSetData($statusbar, "")
+								GUICtrlSetData($statusbarprogress, 0)
+								_ChangerEtatBouton($iIDAction, "Activer")
+								_FichierCache("BureauDistant", "1")
+							EndIf
+						Else
+							_ChangerEtatBouton($iIDAction, "Desactiver")
 						EndIf
 					Else
-						_ChangerEtatBouton($iIDAction, "Desactiver")
+					 _Attention('Echec du téléchargement de "DWAgent"')
+					 _ChangerEtatBouton($iIDAction, "Desactiver")
 					EndIf
 				Else
-				 _Attention('Echec du téléchargement de "DWAgent"')
-				 _ChangerEtatBouton($iIDAction, "Desactiver")
+					_Attention($sAgent & " ne fait pas parti des logiciels de BAO. Activation Bureau Distant impossible")
+					_FileWriteLog($hLog, $sAgent & " dans config.ini introuvable")
+					 _ChangerEtatBouton($iIDAction, "Desactiver")
 				EndIf
 			Else
 			  ShellExecute("chrome", 'https://www.dwservice.net/fr/login.html')
