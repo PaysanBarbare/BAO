@@ -105,7 +105,7 @@ Global $sVersion = "1.0.7" ; 28/10/22
 _Singleton(@ScriptName, 0)
 
 Local $sDossierRapport, $sNom, $bNonPremierDemarrage = False, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $sSubKey, $sMdps, $sAutoUser
-Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2), $iSupervision = 1, $sCheminCapture = @ScriptDir & "\Cache\Supervision\", $sNomCapture, $iNBCaptures = 0
+Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2), $iSupervision = 1, $sCheminCapture = @ScriptDir & "\Cache\Supervision\", $sNomCapture, $iNBCaptures = 0, $iScreenWidth, $iScreenHeight
 
 ; déclaration des fichiers rapport
 Global $hLog, $sFileLog
@@ -133,6 +133,8 @@ If @OSArch = "X64" Then
 Else
     $HKLM = "HKLM"
 EndIf
+
+;DllCall("User32.dll","bool","SetProcessDPIAware")
 
 Local $hDLL = DllOpen("user32.dll")
 Local $iFastStart = False
@@ -597,11 +599,26 @@ If (Not($sFTPAdresse <> "" And $sFTPUser <> "" And $sFTPDossierCapture <> "") an
 	$iSupervision = 0
 EndIf
 
-If $iSupervision = 1 Then
+If $iSupervision = 1 And StringLeft($sNom, 4) <> "Tech" Then
 	If _FichierCacheExist("Supervision") = 1 Then	_ChangerEtatBouton($iIDButtonSupervision, "Activer")
 	$sNomCapture = $sNom & ".png"
-	_CreerIndexSupervisionLocal()
-Else
+
+	Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
+	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_DesktopMonitor")
+	Local $Obj_Item
+	For $Obj_Item In $Obj_Services
+		If ($Obj_Item.DeviceID = "DesktopMonitor1") Then
+			$iScreenWidth = $Obj_Item.ScreenWidth
+			$iScreenHeight = $Obj_Item.ScreenHeight
+		EndIf
+	Next
+	If StringLeft(@ScriptDir, 2) <> "\\" And IsInt(@MIN / 5) Then
+		_SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
+	ElseIf StringLeft(@ScriptDir, 2) = "\\" Then
+		_SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
+	EndIf
+
+ElseIf StringLeft($sNom, 4) <> "Tech" Then
 	_ChangerEtatBouton($iIDButtonSupervision, "Inactif")
 	If _FichierCacheExist("Supervision") = 1 Then
 		_FichierCache("Supervision", -1)

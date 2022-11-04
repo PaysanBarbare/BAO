@@ -4,6 +4,12 @@
 			<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 			<title>BAO - Supervision</title>
             <meta http-equiv="refresh" content="300">
+            <style type="text/css">
+                .container {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr; /* fraction*/
+                }
+            </style>
 		</head>
 		<body>
 			<?php
@@ -13,33 +19,37 @@
                 $i = 0;
 
                 $nbimage = count($images);
-                $width = "33%";
 
                 If ($nbimage == 0) {
-                    echo '<p>Aucune capture disponible</p>';
-                }
-                else {
+                    echo '<p>Aucune capture disponible</p>'."\n";
+                } else {
 
-                    If ($nbimage == 1) {
-                        $width = "100%";
+                    if ($nbimage < 3) {
+                        echo '<div>'."\n";
                     }
-                    elseif ($nbimage == 2) {
-                        $width = "50%";
-                    }
+
                     foreach($images as $image) {
                         $i += 1;
+
+                        If ($nbimage > 2 && $i == 1) {
+                            echo '<div class="container">'."\n";
+                        }
+
                         $timeimage = filemtime($image);
-                        $style = " border: 1px solid";
+                        $style = " border: 2px solid";
                         If (time() > ($timeimage + 905)) {
                             $style .= " red;";
                         } else {
                             $style .= " green;";
                         }
-                        echo '<a href="'.$image.'" title="'.$image.' '.date ("d-m-y H:i", $timeimage).'" style="float: left; margin: 2px; width: '.$width.';'.$style.'"><img src="'.$image.'" style="width:100%;" /></a>';
+                        echo '<a href="'.$image.'"  title="'.$image.' '.date ("d-m-y H:i", $timeimage).'" style="margin: 3px;"><img src="'.$image.'" style="width:100%;'.$style.'" /></a>'."\n";
                         If ($i == 3) {
-                            echo '<br />';
+                            echo '</div>'."\n";
                             $i = 0;
                         }
+                    }
+                    if ($i <> 0) {
+                        echo '</div>'."\n";
                     }
                 }
             ?>

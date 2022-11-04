@@ -93,7 +93,7 @@ Func _SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
 
 	FileDelete($sCheminCapture & $sNomCapture)
 
- 	$bCapt = _ScreenCapture_Capture($sCheminCapture & $sNomCapture)
+ 	$bCapt = _ScreenCapture_Capture($sCheminCapture & $sNomCapture, 0, 0, $iScreenWidth, $iScreenHeight)
 
 	If $bCapt And StringLeft(@ScriptDir, 2) <> "\\" Then
 		Local $nb = 0
