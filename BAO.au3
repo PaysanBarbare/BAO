@@ -61,7 +61,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "1.0.7" ; 28/10/22
+Global $sVersion = "1.0.8" ; 15/11/22
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -105,7 +105,7 @@ Global $sVersion = "1.0.7" ; 28/10/22
 _Singleton(@ScriptName, 0)
 
 Local $sDossierRapport, $sNom, $bNonPremierDemarrage = False, $sRetourInfo, $iFreeSpace, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $sSubKey, $sMdps, $sAutoUser
-Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2), $iSupervision = 1, $sCheminCapture = @ScriptDir & "\Cache\Supervision\", $sNomCapture, $iNBCaptures = 0, $iScreenWidth, $iScreenHeight
+Global $hGUIBAO, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iWallpaper, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $sListeProgdes, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2), $iSupervision = 0, $sCheminCapture = @ScriptDir & "\Cache\Supervision\", $sNomCapture = $sNom, $iNBCaptures = 0, $iScreenWidth, $iScreenHeight
 
 ; déclaration des fichiers rapport
 Global $hLog, $sFileLog
@@ -145,25 +145,25 @@ EndIf
 
 ; Création du raccourci sur le bureau
 ;$sDriveMap = DriveMapGet(StringLeft(@ScriptDir, 2))
-Local $sSplashTxt = "Patientez pendant l'initialisation de BAO"
+Local $sSplashTxt = "Patientez pendant l'Initialisation de BAO"
 Local $iSplashWidth = 300
 Local $iSplashHeigh = 160
 Local $iSplashX = @DesktopWidth - 400
-Local $iSplashY = @DesktopHeight - 250
+Local $iSplashY = @DesktopHeight - 270
 Local $iSplashOpt = 4
 Local $iSplashFontSize = 10
 
-SplashTextOn("Initialisation de BAO", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+SplashTextOn("Initialisation de BAO (SHIFT = démarrage rapide)", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
 If(FileExists(@DesktopDir & "\BAO.lnk") = 0) Then
 	$sSplashTxt = $sSplashTxt & @LF & "Création du raccourci sur le bureau"
-	ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+	ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 	FileCopy(@ScriptDir & "\Outils\bao.ico", @LocalAppDataDir & "\bao\bao.ico")
 	FileCreateShortcut(@ScriptDir & '\run.bat', @DesktopDir & "\BAO.lnk", "", "", "Boîte à Outils", @LocalAppDataDir & "\bao\bao.ico")
 EndIf
 
 $sSplashTxt = $sSplashTxt & @LF & "Chargement des dépendances"
-ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 
 Const $sConfig = @ScriptDir & "\config.ini"
 
@@ -193,7 +193,7 @@ Const $sConfig = @ScriptDir & "\config.ini"
 ; Désactivation de la mise en veille https://www.autoitscript.com/forum/topic/152381-screensaver-sleep-lock-and-power-save-disabling/
 
 $sSplashTxt = $sSplashTxt & @LF & "Désactivation de la mise en veille"
-ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 
 _PowerKeepAlive()
 
@@ -204,7 +204,7 @@ OnAutoItExitRegister("_ProcessExit")
 ;OnAutoItExitRegister("_StartWU")
 
 $sSplashTxt = $sSplashTxt & @LF & "Lecture du fichier de configuration"
-ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 
 _InitialisationBAO($sConfig)
 
@@ -232,7 +232,7 @@ Local $sFTPDossierCapture = IniRead($sConfig, "FTP", "DossierCapture", "")
 _CalculFS()
 
 $sSplashTxt = $sSplashTxt & @LF & "Vérification version et licence Windows"
-ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 
 If(@OSVersion = "WIN_7") Then
 	$releaseid = RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\", "CSDVersion")
@@ -284,12 +284,15 @@ Else
 	$sNom = _FichierCache("Client")
 	If $iFastStart = False Then
 		$sSplashTxt = $sSplashTxt & @LF & "Recherche des modifications sur le matériel"
-		ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+		ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 		_GetInfoSysteme()
 	EndIf
 EndIf
 
 If(FileExists(@ScriptDir & "\Logiciels\") = 0) Then _Erreur('Dossier "Logiciels" manquant')
+
+; 1 = désactiver fond - 2 remplacer fond par image intervention en cours
+$iWallpaper = IniRead($sConfig, "Parametrages", "Fondecran", "0")
 
 ; initialisation désinfection
 $sListeProgdes = _StringExplode(IniRead($sConfig, "Desinfection", "Programmes de desinfection", "Privazer RogueKiller AdwCleaner MalwareByte ZHPCleaner"), " ")
@@ -595,34 +598,9 @@ GUICtrlSetFont (-1, 9, 800)
 
 If _FichierCacheExist("Bureaudistant") = 1 Then	_ChangerEtatBouton($iIDButtonBureaudistant, "Activer")
 
-If (Not($sFTPAdresse <> "" And $sFTPUser <> "" And $sFTPDossierCapture <> "") and StringLeft(@ScriptDir, 2) = "\\") Then
-	$iSupervision = 0
-EndIf
-
-If $iSupervision = 1 And StringLeft($sNom, 4) <> "Tech" Then
-	If _FichierCacheExist("Supervision") = 1 Then	_ChangerEtatBouton($iIDButtonSupervision, "Activer")
-	$sNomCapture = $sNom & ".png"
-
-	Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
-	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_DesktopMonitor")
-	Local $Obj_Item
-	For $Obj_Item In $Obj_Services
-		If ($Obj_Item.DeviceID = "DesktopMonitor1") Then
-			$iScreenWidth = $Obj_Item.ScreenWidth
-			$iScreenHeight = $Obj_Item.ScreenHeight
-		EndIf
-	Next
-	If StringLeft(@ScriptDir, 2) <> "\\" And IsInt(@MIN / 5) Then
-		_SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
-	ElseIf StringLeft(@ScriptDir, 2) = "\\" Then
-		_SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
-	EndIf
-
-ElseIf StringLeft($sNom, 4) <> "Tech" Then
-	_ChangerEtatBouton($iIDButtonSupervision, "Inactif")
-	If _FichierCacheExist("Supervision") = 1 Then
-		_FichierCache("Supervision", -1)
-	EndIf
+If _FichierCacheExist("Supervision") = 1 Then
+	_ChangerEtatBouton($iIDButtonSupervision, "Activer")
+	$iSupervision = 1
 EndIf
 
 If _FichierCacheExist("Envoi") = 1 Then	_ChangerEtatBouton($iIDButtonEnvoi, "Activer")
@@ -636,6 +614,11 @@ If _FichierCacheExist("Stabilite") = 1 Then _ChangerEtatBouton($iIDButtonStabili
 If _FichierCacheExist("StabiliteTime") = 1 Then
 	_ResultatStabilite()
 	_FichierCache("StabiliteTime", -1)
+EndIf
+
+$sNomCapture = $sNom & ".png"
+If $iSupervision = 1 And StringLeft($sNom, 4) <> "Tech" Then
+	_GetResolution()
 EndIf
 
 Local $iIDTAB = GUICtrlCreateTab(170, 50, 520, 77 + ($iFonctions * 30) + UBound($sListeProgdes) * 25)
@@ -689,7 +672,7 @@ _UpdEdit($iIDEditInter, $sFileRapport)
 ;_RemplirListInfosys($iIDTABInfossys)
 
 $sSplashTxt = $sSplashTxt & @LF & "Ouverture de BAO"
-ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 
 GUISetState(@SW_SHOW)
 
@@ -702,7 +685,7 @@ If _FichierCacheExist("Restauration") = 0 Then
 	If $sRestauration = 1 Then
 		_FileWriteLog($hLog, 'Création point de restauration "' & $sSociete & ' - Debut Intervention"')
 		$sSplashTxt = $sSplashTxt & @LF & "Création d'un point de restauration"
-		ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+		ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 		_Restauration($sSociete & ' - Debut Intervention')
 		_FichierCache("Restauration", 1)
 	EndIf
@@ -716,7 +699,7 @@ _UpdEdit($iIDEditLog, $hLog)
 
 While 1
 	$iIDAction = GUIGetMsg()
-	If @MIN > $iMin Then
+	If @MIN <> $iMin Then
 
 		GUICtrlSetData ($sHeure, @MDAY &"/"& @MON &"/"& @YEAR &" - "& @HOUR &":"& @MIN)
 		$iMin = @MIN
@@ -743,15 +726,15 @@ While 1
 		$aMemStats = MemGetStats()
 		GUICtrlSetData($iIDRAMlibre, "RAM : " & $aMemStats[$MEM_LOAD] & '% utilisée')
 
- 		If StringLeft($sNom, 4) <> "Tech" And _FichierCacheExist("Supervision") Then
-			If StringLeft(@ScriptDir, 2) <> "\\" And IsInt(@MIN / 5) Then
+		If IsInt(@MIN / 5) Then
+			If StringLeft($sNom, 4) <> "Tech" And _FichierCacheExist("Supervision") Then
 				_SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
-			ElseIf StringLeft(@ScriptDir, 2) = "\\" Then
-				_SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
-			EndIf
-		ElseIf StringLeft($sNom, 4) = "Tech" Then
-			_CreerIndexSupervisionLocal()
- 		EndIf
+			ElseIf StringLeft($sNom, 4) = "Tech" Then
+				_CreerIndexSupervisionLocal()
+				EndIf
+		ElseIf StringLeft($sNom, 4) <> "Tech" And _FichierCacheExist("Supervision") Then
+			_SendCaptureLocal()
+		EndIf
 
 	EndIf
 
@@ -872,7 +855,7 @@ While 1
 
 			Case $iIDMenu1reini
 
-				_ReiniBAO()
+				_ReiniBAO($sFTPAdresse, $sFTPUser, $sFTPPort)
 				_Restart()
 
 			Case $iIDMenu1tech

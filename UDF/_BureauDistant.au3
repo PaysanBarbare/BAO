@@ -36,6 +36,7 @@ Func _BureauDistant()
 				_FileWriteLog($hLog, 'DWAgent déjà installé, activation du bouton "Bureau Distant"')
 				_FichierCache("BureauDistant", "1")
 				_ChangerEtatBouton($iIDAction, "Activer")
+				_DesactivationFondecran()
 			EndIf
 		Else
 			If(StringLeft($sNom, 4) <> "Tech") Then
@@ -99,6 +100,7 @@ Func _BureauDistant()
 								GUICtrlSetData($statusbarprogress, 0)
 								_ChangerEtatBouton($iIDAction, "Activer")
 								_FichierCache("BureauDistant", "1")
+								_DesactivationFondecran()
 							EndIf
 						Else
 							_ChangerEtatBouton($iIDAction, "Desactiver")

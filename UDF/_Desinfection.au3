@@ -435,35 +435,61 @@ Func _ResetBrowser()
 	_FichierCache("ResetBrowser", $iIDAction)
 	_ChangerEtatBouton($iIDAction, "Patienter")
 
-	Local $iNettoyage, $iIE, $iStartFS, $iEndFS, $iLVIE, $iLVCHROME, $iLVEDGE1, $iLVEDGE2, $iLVFIREFOX
+	; Navigateurs pris en charge (en plus de Firefox et Opera)
+	Local $mBrowsers[], $iIDListView[], $programFilesDir
+	$mBrowsers["Chrome"] = @LocalAppDataDir & "\Google\Chrome"
+	$mBrowsers["Chromium"] = @LocalAppDataDir & "\Chromium"
+	$mBrowsers["Edge"] = @LocalAppDataDir & "\Microsoft\Edge"
+	$mBrowsers["Brave"] = @LocalAppDataDir & "\BraveSoftware\Brave-Browser"
+	$mBrowsers["AvastBrowser"] =@LocalAppDataDir & "\AVAST Software\Browser"
+
+	Local $aKeyBrowsers = MapKeys($mBrowsers)
+
+	Local $iNettoyage, $iFFAuto, $aBrowsersInLV, $hWnd
 
 	Local $hGUInav = GUICreate("Nettoyage des navigateurs Internet", 600, 350)
 	GUICtrlCreateLabel("Choisissez un mode de nettoyage :", 10, 10)
-	Local $iID1 = GUICtrlCreateRadio("Manuel (Ouvre les navigateurs 1 par 1)", 60, 30)
-	Local $iID2 = GUICtrlCreateRadio("Léger (Supprime cache et historique de tous les profils de chaque navigateur)", 60, 50)
-	GUICtrlSetState($iID2, $GUI_CHECKED)
-	Local $iID3 = GUICtrlCreateRadio("Modéré (Réinitialise chaque profil, en conservant les favoris et les mots de passe enregistrés)", 60, 70)
-	Local $iID4 = GUICtrlCreateRadio("Complet (Supprime le dossier contenant les profils)", 60, 90)
-	Local $iID5 = GUICtrlCreateCheckbox("Nettoyer aussi Internet Explorer et MS Edge (ancienne version)", 60, 120)
+	Local $iID1 = GUICtrlCreateRadio("1 - Manuel (avec menu BAO-Nettoyage)", 60, 30)
+	Local $iFF = GUICtrlCreateCheckbox("Firefox : vider cache et historique automatiquement", 300, 30)
+	Local $iID2 = GUICtrlCreateRadio("2 - Réinitialisation des paramètres (Fonction intégrée au navigateur)", 60, 50)
+	Local $iID3 = GUICtrlCreateRadio("3 - Suppression des profils (Favoris et mots de passe conservés)", 60, 70)
+	GUICtrlSetState($iID1, $GUI_CHECKED)
+	GUICtrlSetState($iFF, $GUI_CHECKED)
 
-	GUICtrlCreateLabel("Résultats : ", 10, 150)
-	Local $iIDListViewNav = GUICtrlCreateListView("Navigateur|Mode|Résultat", 10, 170, 580, 140)
+	GUICtrlCreateLabel("Résultats : ", 10, 90)
+	Local $iIDListViewNav = GUICtrlCreateListView("Navigateurs détectés|Profils nettoyés|Etat", 10, 110, 480, 200)
 	_GUICtrlListView_SetColumnWidth($iIDListViewNav, 0, 200)
-	_GUICtrlListView_SetColumnWidth($iIDListViewNav, 1, 100)
-	_GUICtrlListView_SetColumnWidth($iIDListViewNav, 2, 270)
-	$iLVIE = GUICtrlCreateListViewItem("Internet Explorer", $iIDListViewNav)
-	$iLVEDGE1 = GUICtrlCreateListViewItem("Microsoft Edge (ancien)", $iIDListViewNav)
-	$iLVEDGE2 = GUICtrlCreateListViewItem("Microsoft Edge (nouveau)", $iIDListViewNav)
+	_GUICtrlListView_SetColumnWidth($iIDListViewNav, 1, 150)
+	_GUICtrlListView_SetColumnWidth($iIDListViewNav, 2, 120)
 
-	RegEnumVal($HKLM & "\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe\",1)
-	If @error = 0 Then
-		$iLVCHROME = GUICtrlCreateListViewItem("Google Chrome", $iIDListViewNav)
+	For $sBrowser In $aKeyBrowsers
+		Local $iTmpItem, $sBrowserTMP = $sBrowser
+		If $sBrowser = "edge" Then
+			$sBrowserTMP = "msedge"
+		EndIf
+		RegEnumVal($HKLM & "\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\" & StringLower($sBrowserTMP) & ".exe\",1)
+		If @error = 0 Then
+			$iTmpItem = GUICtrlCreateListViewItem($sBrowser, $iIDListViewNav)
+			$iIDListView[$sBrowser] = $iTmpItem
+		EndIf
+	Next
+
+	$programFilesDir = RegRead("HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion", "ProgramFilesDir")
+	If FileExists($programFilesDir & "\Opera\opera.exe") Then
+		$iIDListView["Opera"] = GUICtrlCreateListViewItem("Opera", $iIDListViewNav)
 	EndIf
 
 	RegEnumVal($HKLM & "\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe\",1)
 	If @error = 0 Then
-		$iLVFIREFOX = GUICtrlCreateListViewItem("Mozilla Firefox", $iIDListViewNav)
+		$iIDListView["Firefox"] = GUICtrlCreateListViewItem("Firefox", $iIDListViewNav)
+	Else
+		GUICtrlSetState($iFF, $GUI_DISABLE)
 	EndIf
+
+	$aBrowsersInLV = MapKeys($iIDListView)
+
+	Local $iIDButtonSuivant = GUICtrlCreateButton("Suivant", 500, 110, 90, 25)
+	GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
 
 	Local $iIDButtonDemarrer = GUICtrlCreateButton("Nettoyer", 200, 320, 90, 25, $BS_DEFPUSHBUTTON)
 	Local $iIDButtonAnnuler = GUICtrlCreateButton("Quitter", 310, 320, 90, 25)
@@ -473,288 +499,462 @@ Func _ResetBrowser()
 
 	While $eGet <> $GUI_EVENT_CLOSE And $eGet <> $iIDButtonAnnuler
 
-		If($eGet = $iIDButtonDemarrer) Then
+		If $eGet = $iID2 Or $eGet = $iID3 Then
+			GUICtrlSetState($iFF, $GUI_UNCHECKED)
+			GUICtrlSetState($iFF, $GUI_DISABLE)
+		ElseIf $eGet = $iID1 Then
+			GUICtrlSetState($iFF, $GUI_ENABLE)
+		ElseIf($eGet = $iIDButtonDemarrer) Then
+
+			GUICtrlSetState($iIDButtonDemarrer, $GUI_DISABLE)
+			GUICtrlSetState($iIDButtonAnnuler, $GUI_DISABLE)
 			_FileWriteLog($hLog, "Nettoyage des navigateurs")
-			;~ 	If(FileExists(@ScriptDir & "\Outils\ResetBrowser.exe")) Then
-			;~ 			FileWriteLine($hFichierRapport, " Nettoyage des navigateurs Internet")
-			;~ 			Run(@ScriptDir & "\Outils\ResetBrowser.exe")
-			;~ 			_UpdEdit($iIDEditRapport, $hFichierRapport)
-			;~ 	Else
-			;~ 		_Attention("ResetBrowser.exe n'est pas dans le dossier Outils, Téléchagez le")
-			;~ 		ShellExecute("https://www.comment-supprimer.com/telecharger/resetbrowser/")
-			;~ 	EndIf
-				; Nettoyage des navigateurs
+
+			For $sBrowserInLV In $aBrowsersInLV
+				GUICtrlSetData($iIDListView[$sBrowserInLV], $sBrowserInLV & "| |En attente")
+			Next
 
 			_BrowserClose()
 
 			$iNettoyage = 1
-			$iIE = 0
 
 			If (GUICtrlRead($iID2) = $GUI_CHECKED) Then
 				$iNettoyage = 2
 			ElseIf(GUICtrlRead($iID3) = $GUI_CHECKED) Then
 				$iNettoyage = 3
-			ElseIf(GUICtrlRead($iID4) = $GUI_CHECKED) Then
-				$iNettoyage = 4
+			ElseIf(GUICtrlRead($iFF) = $GUI_CHECKED) Then
+				$iFFAuto = 1
 			EndIf
 
-			If (GUICtrlRead($iID5) = $GUI_CHECKED) Then
-				$iIE = 1
-			EndIf
-
-			; nettoyage IE et Edge ancien
-			If $iIE = 1 Then
-				_FileWriteLog($hLog, "Nettoyage d'Internet Explorer")
-				GUICtrlSetData($statusbar, " Nettoyage d'Internet Explorer")
-
-				RunWait("RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 255")
-				GUICtrlSetData($iLVIE, "Internet Explorer| - | Effectué")
-
-				If (FileExists(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC\")) Then
-					_FileWriteLog($hLog, "Nettoyage de Microsoft Edge (ancienne version)")
-					GUICtrlSetData($statusbar, " Nettoyage de Microsoft Edge (ancienne version)")
-					GUICtrlSetData($statusbarprogress, 10)
-
-					$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC") / 1024
-
-					Local $aEdge = _FileListToArray(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC", "#!*", 2)
-
-					If(IsArray($aEdge)) Then
-						For $i = 1 To $aEdge[0]
-							DirRemove(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC\" & $aEdge[$i], 1)
-						Next
-					EndIf
-
-					$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC") / 1024
-					GUICtrlSetData($iLVEDGE1, "Microsoft Edge (ancien)| - | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
-					_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
-
-				EndIf
-			EndIf
+			Local $iSplashWidth = 600
+			Local $iSplashHeigh = 70
+			Local $iSplashX = @DesktopWidth - 900
+			Local $iSplashY = @DesktopHeight - 160
 
 			Switch $iNettoyage
 
 				Case 1
-					_FileWriteLog($hLog, "Nettoyage manuel des navigateurs")
-					GUICtrlSetData($statusbarprogress, 30)
-					ShellExecuteWait("msedge")
-					GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| Manuel | -")
-					GUICtrlSetData($statusbarprogress, 60)
-					ShellExecuteWait("Chrome")
-					GUICtrlSetData($iLVCHROME, "Google Chrome | Manuel | -")
-					GUICtrlSetData($statusbarprogress, 90)
-					ShellExecuteWait("firefox")
-					GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | Manuel | -")
+					_FileWriteLog($hLog, "Mode 1")
+
+					SplashTextOn("Nettoyage des navigateurs : 1 - Mode manuel", "", $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, 16)
+					Local $sModeleBookmark = '{"checksum":"1bbdee4bfc702f14d8c89791ecc807be","roots":{"bookmark_bar":{"children":[{"children":[{"date_added":"13312747939582318","date_last_used":"0","guid":"ca3a00ae-f502-4534-8572-631fa89ca526","id":"8","meta_info":{"power_bookmark_meta":""},"name":"Choisir la page de démarrage","type":"url","url":"%navigateur%://settings/onStartup"},{"date_added":"13312747922842454","date_last_used":"0","guid":"d7563cf8-34e3-4f25-8e0a-806df2f23af2","id":"7","meta_info":{"power_bookmark_meta":""},"name":"Supprimer les extensions malveillantes","type":"url","url":"%navigateur%://extensions/"},{"date_added":"13312747920483274","date_last_used":"0","guid":"826e13cc-b21f-4bd0-b8d5-32f2c4ad76c9","id":"6","meta_info":{"power_bookmark_meta":""},"name":"Supprimer les notifications intempestives","type":"url","url":"%navigateur%://settings/content/notifications"},{"date_added":"13312747944491453","date_last_used":"0","guid":"4544c826-1008-485b-9c14-5c904680767b","id":"9","meta_info":{"power_bookmark_meta":""},"name":"Changer le moteur de recherche par défaut","type":"url","url":"%navigateur%://settings/search"},{"date_added":"13312748017043161","date_last_used":"0","guid":"7e20dda9-eceb-45b2-bf49-bb17b5a573e1","id":"11","meta_info":{"power_bookmark_meta":""},"name":"Effacer l'&"'"&'historique de navigation","type":"url","url":"%navigateur%://settings/clearBrowserData"}],"date_added":"13312747898915548","date_last_used":"0","date_modified":"13312748198532004","guid":"939c7ac0-d93a-4540-acf0-a43d538516d6","id":"5","name":"BAO-Nettoyage","type":"folder"}],"date_added":"13312747880305172","date_last_used":"0","date_modified":"13312747898915811","guid":"0bc5d13f-2cba-5d74-951f-3f233fe6c908","id":"1","name":"Barredefavoris","type":"folder"},"other":{"children":[],"date_added":"13312747880305173","date_last_used":"0","date_modified":"0","guid":"82b081ec-3dd3-529c-8475-ab6c344590dd","id":"2","name":"Autresfavoris","type":"folder"},"synced":{"children":[],"date_added":"13312747880305174","date_last_used":"0","date_modified":"0","guid":"4cf2e351-0e85-532b-bb37-df045d8f8d0f","id":"3","name":"Favorissurmobile","type":"folder"}},"version":1}'
+					Local $sBookmark, $hFileBookmark, $ipidb, $bBookmark = 0
+					For $sBrowser In $aKeyBrowsers
+						If MapExists($iIDListView, $sBrowser) Then
+							_FileWriteLog($hLog, "Nettoyage de " & $sBrowser)
+							GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| 0 | En cours")
+							$sBookmark = StringReplace($sModeleBookmark, "%navigateur%", StringLower($sBrowser))
+							If FileExists($mBrowsers[$sBrowser] & '\User Data\Default\') Then
+								ControlSetText("Nettoyage des navigateurs : 1 - Mode manuel", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Default' & @Lf & 'Utilisez le menu "BAO - Nettoyage" dans la barre de favoris (CTRL + SHIFT + B)')
+								If Not FileMove($mBrowsers[$sBrowser] & '\User Data\Default\Bookmarks', $mBrowsers[$sBrowser] & '\User Data\Default\BookmarksSVG', 1) Then
+									_FileWriteLog($hLog, 'Pas de fichier "Bookmarks" dans le dossier "' & $mBrowsers[$sBrowser] & '\User Data\Default\' & '"')
+									$bBookmark = 1
+								EndIf
+								$hFileBookmark = FileOpen($mBrowsers[$sBrowser] & '\User Data\Default\Bookmarks', 2)
+								FileWrite($hFileBookmark, $sBookmark)
+								FileClose($hFileBookmark)
+								If $sBrowser = "Edge" Then
+									$sBrowser = "MSEdge"
+								EndIf
+								ShellExecute($sBrowser, '--profile-directory="Default" --start-maximized')
+								ProcessWait($sBrowser & ".exe", 5)
+								GUICtrlSetState($iIDButtonSuivant, $GUI_ENABLE)
+								While ProcessExists($sBrowser & ".exe")
+									If $eGet = $iIDButtonSuivant Then
+										GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
+										ProcessClose($sBrowser & ".exe")
+										ProcessWaitClose($sBrowser & ".exe")
+									EndIf
+									$eGet = GUIGetMsg()
+								WEnd
+								If $sBrowser = "MSEdge" Then
+									$sBrowser = "Edge"
+								EndIf
+								If $bBookmark = 0 And Not FileMove($mBrowsers[$sBrowser] & '\User Data\Default\BookmarksSVG', $mBrowsers[$sBrowser] & '\User Data\Default\Bookmarks', 1) Then
+									_FileWriteLog($hLog, 'Attention, les bookmarks du profil "Default" n' & "'" & 'ont pas été récupérés')
+									_Attention('Attention, "BookmarksSVG" du profil "Default" de ' & $sBrowser & ' n' & "'" & 'a pas pu être renommé en "Bookmarks". Essayez manuellement')
+									ShellExecuteWait($mBrowsers[$sBrowser] & '\User Data\Default\')
+								EndIf
+								$bBookmark = 0
+								GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| 1 | En cours")
+							Else
+								_FileWriteLog($hLog, 'Le dossier "' & $mBrowsers[$sBrowser] & '\User Data\Default\' & '" n' & "'existe pas")
+							EndIf
+
+							Local $iProfil = 1
+							While FileExists($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\")
+								If (FileExists($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\")) Then
+									ControlSetText("Nettoyage des navigateurs : 1 - Mode manuel", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Profile ' & $iProfil  & @Lf & 'Utilisez le menu "BAO - Nettoyage" dans la barre de favoris (CTRL + SHIFT + B)')
+									If Not FileMove($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", $mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\BookmarksSVG", 1) Then
+										_FileWriteLog($hLog, 'Pas de fichier "Bookmarks" dans le dossier "' & $mBrowsers[$sBrowser] & '\User Data\Profile ' & $iProfil & '\' & '"')
+										$bBookmark = 1
+									EndIf
+									$hFileBookmark = FileOpen($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", 2)
+									FileWrite($hFileBookmark, $sBookmark)
+									FileClose($hFileBookmark)
+
+									If $sBrowser = "Edge" Then
+										$sBrowser = "MSEdge"
+									EndIf
+									ShellExecute($sBrowser, '--profile-directory="Profile ' & $iProfil & '" --start-maximized')
+									ProcessWait($sBrowser & ".exe", 5)
+									GUICtrlSetState($iIDButtonSuivant, $GUI_ENABLE)
+									While ProcessExists($sBrowser & ".exe")
+										If $eGet = $iIDButtonSuivant Then
+											GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
+											ProcessClose($sBrowser & ".exe")
+											ProcessWaitClose($sBrowser & ".exe")
+										EndIf
+										$eGet = GUIGetMsg()
+									WEnd
+									If $sBrowser = "MSEdge" Then
+										$sBrowser = "Edge"
+									EndIf
+									If $bBookmark = 0 And Not FileMove($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\BookmarksSVG", $mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", 1) Then
+										_FileWriteLog($hLog, 'Attention, les bookmarks du profil "Profile ' & $iProfil & '" n' & "'" & 'ont pas été récupérés')
+										_Attention('Attention, "BookmarksSVG" du profil "Profile ' & $iProfil & '" de ' & $sBrowser & ' n' & "'" & 'a pas pu être renommé en "Bookmarks". Essayez manuellement')
+										ShellExecuteWait($mBrowsers[$sBrowser] & '\User Data\Profile ' & $iProfil & '\')
+									EndIf
+									$bBookmark = 0
+									GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| " & ($iProfil + 1) & " | En cours")
+								Else
+									_FileWriteLog($hLog, 'Le dossier "' & $mBrowsers[$sBrowser] & '\User Data\Profile ' & $iProfil & '\' & '" n' & "'existe pas")
+								EndIf
+								$iProfil += 1
+							WEnd
+							GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| " & $iProfil & " | Terminé")
+						EndIf
+					Next
+
+					; Opera
+					If MapExists($iIDListView, "Opera") Then
+						_FileWriteLog($hLog, "Nettoyage d'Opera")
+						GUICtrlSetData($iIDListView["Opera"], "Opera| 0 | En cours")
+						$sBookmark = StringReplace($sModeleBookmark, "%navigateur%", "opera")
+						If FileExists(@AppDataDir & '\Opera Software\Opera Stable\') Then
+							ControlSetText("Nettoyage des navigateurs : 1 - Mode manuel", "", "Static1", 'Navigateur : Opera - Profil : Default' & @Lf & 'Utilisez le menu "BAO - Nettoyage" dans la barre de favoris (CTRL + SHIFT + B)')
+							If Not FileMove(@AppDataDir & '\Opera Software\Opera Stable\Bookmarks', @AppDataDir & '\Opera Software\Opera Stable\BookmarksSVG') Then
+								_FileWriteLog($hLog, 'Pas de fichier "Bookmarks" dans le dossier "' & @AppDataDir & '\Opera Software\Opera Stable\"')
+								$bBookmark = 1
+							EndIf
+							$hFileBookmark = FileOpen(@AppDataDir & '\Opera Software\Opera Stable\Bookmarks', 2)
+							FileWrite($hFileBookmark, $sBookmark)
+							FileClose($hFileBookmark)
+							ShellExecute($programFilesDir & "\Opera\launcher.exe", '--start-maximized')
+							ProcessWait("opera.exe", 5)
+							GUICtrlSetState($iIDButtonSuivant, $GUI_ENABLE)
+							While ProcessExists("opera.exe")
+								If $eGet = $iIDButtonSuivant Then
+									GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
+									ProcessClose("opera.exe")
+									ExitLoop
+								EndIf
+								$eGet = GUIGetMsg()
+							WEnd
+
+							If $bBookmark = 0 And Not FileMove(@AppDataDir & '\Opera Software\Opera Stable\BookmarksSVG', @AppDataDir & '\Opera Software\Opera Stable\Bookmarks', 1) Then
+								_FileWriteLog($hLog, "Attention, les bookmarks d'Opera n'ont pas été récupérés")
+								_Attention('Attention, "BookmarksSVG" du profil "Default" d' & "'" & 'Opera n' & "'" & 'a pas pu être renommé en "Bookmarks". Essayez manuellement')
+								ShellExecuteWait(@AppDataDir & '\Opera Software\Opera Stable\')
+							EndIf
+							$bBookmark = 0
+							GUICtrlSetData($iIDListView["Opera"], "Opera| 1 | Terminé")
+						EndIf
+					EndIf
+
+					; Firefox
+					If MapExists($iIDListView, "Firefox") Then
+						_FileWriteLog($hLog, "Nettoyage de Firefox")
+						If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\")) Then
+							Local $iNbProfilsFF = 0
+							_SQLite_Startup(@ScriptDir & "\Outils\sqlite3.dll", False, 1)
+							Local $aProfil = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles", "*", 2)
+							If @error = 0 Then
+								For $i = 1 To $aProfil[0]
+									If FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite") Then
+										ControlSetText("Nettoyage des navigateurs : 1 - Mode manuel", "", "Static1", 'Navigateur : Firefox - Profil : ' & $aProfil[$i] & '' & @Lf & 'Vérifiez les extensions et les préférences de Firefox')
+										$iNbProfilsFF += 1
+										GUICtrlSetData($iIDListView["Firefox"], "Firefox| " & $iNbProfilsFF & " | En cours")
+										; fichiers à supprimer
+										_FileWriteLog($hLog, "Nettoyage du profil " & $aProfil[$i] & " de Firefox")
+										If $iFFAuto Then
+											DirRemove(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\", 1)
+											FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\favicons.sqlite")
+											FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\content-prefs.sqlite")
+											FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\permissions.sqlite")
+											FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\formhistory.sqlite")
+											FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\search.json.mozlz4")
+											; Nettoyage de l'historique tout en gardant les favoris:
+											;ConsoleWrite("_SQLite_LibVersion=" & _SQLite_LibVersion() & @CRLF)
+											_SQLite_Open(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite")
+											_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
+											_SQLite_Close()
+										EndIf
+										ShellExecute("firefox", '-profile "' & @AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & '" about:preferences about:addons')
+										ProcessWait("firefox.exe", 5)
+										GUICtrlSetState($iIDButtonSuivant, $GUI_ENABLE)
+										While ProcessExists("firefox.exe")
+											If $eGet = $iIDButtonSuivant Then
+												GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
+												ProcessClose("firefox.exe")
+												ExitLoop
+											EndIf
+											$eGet = GUIGetMsg()
+										WEnd
+
+									EndIf
+								Next
+							EndIf
+							_SQLite_Shutdown()
+							GUICtrlSetData($iIDListView["Firefox"], "Firefox| " & $iNbProfilsFF & "| Terminé")
+						EndIf
+					EndIf
 
 				Case 2
-					_FileWriteLog($hLog, "Nettoyage léger des navigateurs")
-						If (FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\")) Then
-							GUICtrlSetData($statusbarprogress, 30)
-							_FileWriteLog($hLog, "Nettoyage du profil par défaut de Edge")
-							GUICtrlSetData($statusbar, " Nettoyage de Microsoft Edge")
-							$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
-							DirRemove(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\Cache\", 1)
-							FileDelete(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\*History*")
+					_FileWriteLog($hLog, "Mode 2")
+					SplashTextOn("Nettoyage des navigateurs : 2 - Réinitialisation des paramètres", "", $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, 16)
+					For $sBrowser In $aKeyBrowsers
+						If MapExists($iIDListView, $sBrowser) Then
+							_FileWriteLog($hLog, "Nettoyage de " & $sBrowser)
+							GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| 0 | En cours")
 
-							Local $aProfilsedge = _FileListToArrayRec(@LocalAppDataDir & "\Microsoft\Edge\User Data\", "Profile *")
-							If $aProfilsedge <> "" Then
-								For $i=1 To $aProfilsedge[0]
-									_FileWriteLog($hLog, "Nettoyage du profil " & $aProfilsedge[$i] & " de Edge")
-									DirRemove(@LocalAppDataDir & "\Microsoft\Edge\User Data\" & $aProfilsedge[$i] & "Cache\", 1)
-									FileDelete(@LocalAppDataDir & "\Microsoft\Edge\User Data\" & $aProfilsedge[$i] & "*History*")
-								Next
-							EndIf
-
-							$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
-							GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| Léger | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
-							_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
-						Else
-							_FileWriteLog($hLog, "Rien à nettoyer pour Edge")
-							GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| - | -")
-						EndIf
-
-						If (FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\")) Then
-							GUICtrlSetData($statusbarprogress, 60)
-							_FileWriteLog($hLog, "Nettoyage du profil par défaut de Chrome")
-							GUICtrlSetData($statusbar, " Nettoyage de Google Chrome")
-							$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
-							DirRemove(@LocalAppDataDir & "\Google\Chrome\User Data\Default\Cache\", 1)
-							FileDelete(@LocalAppDataDir & "\Google\Chrome\User Data\Default\*History*")
-
-							Local $aProfils = _FileListToArrayRec(@LocalAppDataDir & "\Google\Chrome\User Data\", "Profile *")
-							If $aProfils <> "" Then
-								For $i=1 To $aProfils[0]
-									_FileWriteLog($hLog, "Nettoyage du profil " & $aProfils[$i] & " de Chrome")
-									DirRemove(@LocalAppDataDir & "\Google\Chrome\User Data\" & $aProfils[$i] & "Cache\", 1)
-									FileDelete(@LocalAppDataDir & "\Google\Chrome\User Data\" & $aProfils[$i] & "*History*")
-								Next
-							EndIf
-
-							$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
-							If $iLVCHROME Then
-								GUICtrlSetData($iLVCHROME, "Google Chrome | Léger | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
-							EndIf
-							_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
-						Else
-							_FileWriteLog($hLog, "Rien à nettoyer pour Chrome")
-							GUICtrlSetData($iLVCHROME, "Google Chrome | - | -")
-						EndIf
-
-						If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\")) Then
-							GUICtrlSetData($statusbarprogress, 90)
-							_FileWriteLog($hLog, "Nettoyage de Firefox")
-							GUICtrlSetData($statusbar, " Nettoyage de Mozilla Firefox")
-							$iStartFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
-							Local $aProfil = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles", "*", 2)
-							DirRemove(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\", 1)
-							_SQLite_Startup(@ScriptDir & "\Outils\sqlite3.dll", False, 1)
-							For $i = 1 To $aProfil[0]
-								If FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite") Then
-									; fichiers à supprimer
-									_FileWriteLog($hLog, "Nettoyage du profil " & $aProfil[$i] & " de Firefox")
-									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\favicons.sqlite")
-									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\content-prefs.sqlite")
-									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\permissions.sqlite")
-									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\formhistory.sqlite")
-									FileDelete(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\search.json.mozlz4")
-									DirRemove(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\extensions\", 1)
-									; Nettoyage de l'historique tout en gardant les favoris:
-									;ConsoleWrite("_SQLite_LibVersion=" & _SQLite_LibVersion() & @CRLF)
-									_SQLite_Open(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite")
-									_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
-									_SQLite_Close()
+							If FileExists($mBrowsers[$sBrowser] & '\User Data\Default\') Then
+								If $sBrowser = "Edge" Then
+									$sBrowser = "MSEdge"
+									ControlSetText("Nettoyage des navigateurs : 2 - Réinitialisation des paramètres", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Default' & @Lf & 'Cliquez sur "réinitialiser les paramètres"')
+									ShellExecute($sBrowser, '--profile-directory="Default" edge://settings/resetProfileSettings')
+								ElseIf $sBrowser = "Brave" Then
+									ShellExecute($sBrowser, '--profile-directory="Default" --start-maximized')
+									ClipPut('brave://settings/resetProfileSettings')
+									ControlSetText("Nettoyage des navigateurs : 2 - Réinitialisation des paramètres", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Profile ' & $iProfil & @Lf & "Coller dans la barre d'adresse le contenu du presse-papier")
+								Else
+									ControlSetText("Nettoyage des navigateurs : 2 - Réinitialisation des paramètres", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Default' & @Lf & 'Cliquez sur "réinitialiser les paramètres"')
+									ShellExecute($sBrowser, '--profile-directory="Default" ' & $sBrowser & '://settings/resetProfileSettings')
 								EndIf
-							Next
-							_SQLite_Shutdown()
 
-							$iEndFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
-							If $iLVFIREFOX Then
-								GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | Léger | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+								ProcessWait($sBrowser & ".exe", 5)
+								GUICtrlSetState($iIDButtonSuivant, $GUI_ENABLE)
+								While ProcessExists($sBrowser & ".exe")
+									If $eGet = $iIDButtonSuivant Then
+										GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
+										ProcessClose($sBrowser & ".exe")
+										ProcessWaitClose($sBrowser & ".exe")
+									EndIf
+									$eGet = GUIGetMsg()
+								WEnd
+								If $sBrowser = "MSEdge" Then
+									$sBrowser = "Edge"
+								EndIf
+								GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| 1 | En cours")
 							EndIf
-							_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
-						Else
-							_FileWriteLog($hLog, "Rien à nettoyer pour Firefox")
-							GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | - | -")
+
+							Local $iProfil = 1
+							While FileExists($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\")
+								If $sBrowser = "Edge" Then
+									$sBrowser = "MSEdge"
+									ControlSetText("Nettoyage des navigateurs : 2 - Réinitialisation des paramètres", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Profile ' & $iProfil & @Lf & 'Cliquez sur "Réinitialiser les paramètres"')
+									ShellExecute($sBrowser, '--profile-directory="Profile ' & $iProfil & '" edge://settings/resetProfileSettings --start-maximized')
+								ElseIf $sBrowser = "Brave" Then
+									ShellExecute($sBrowser, '--profile-directory="Profile ' & $iProfil & '" --start-maximized')
+									ClipPut('brave://settings/resetProfileSettings')
+									ControlSetText("Nettoyage des navigateurs : 2 - Réinitialisation des paramètres", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Profile ' & $iProfil & @Lf & "Coller dans la barre d'adresse le contenu du presse-papier")
+								Else
+									ControlSetText("Nettoyage des navigateurs : 2 - Réinitialisation des paramètres", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Profile ' & $iProfil & @Lf & 'Cliquez sur "Réinitialiser les paramètres"')
+									ShellExecute($sBrowser, '--profile-directory="Profile ' & $iProfil & '" ' & $sBrowser & '://settings/resetProfileSettings')
+								EndIf
+								ProcessWait($sBrowser & ".exe", 5)
+								GUICtrlSetState($iIDButtonSuivant, $GUI_ENABLE)
+								While ProcessExists($sBrowser & ".exe")
+									If $eGet = $iIDButtonSuivant Then
+										GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
+										ProcessClose($sBrowser & ".exe")
+										ProcessWaitClose($sBrowser & ".exe")
+									EndIf
+									$eGet = GUIGetMsg()
+								WEnd
+								If $sBrowser = "MSEdge" Then
+									$sBrowser = "Edge"
+								EndIf
+								GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| " & ($iProfil + 1) & " | En cours")
+								$iProfil += 1
+							WEnd
+							GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| " & $iProfil & " | Terminé")
 						EndIf
+					Next
+
+					; Opera
+					If MapExists($iIDListView, "Opera") Then
+						_FileWriteLog($hLog, "Nettoyage d'Opera")
+						GUICtrlSetData($iIDListView["Opera"], "Opera| 0 | En cours")
+
+						If FileExists(@AppDataDir & '\Opera Software\Opera Stable\') Then
+							ControlSetText("Nettoyage des navigateurs : 2 - Réinitialisation des paramètres", "", "Static1", 'Navigateur : Opera' & @Lf & "Coller dans la barre d'adresse le contenu du presse-papier")
+							ShellExecute($programFilesDir & "\Opera\launcher.exe")
+							ProcessWait("opera.exe", 5)
+							ClipPut("opera://settings/resetProfileSettings")
+							GUICtrlSetState($iIDButtonSuivant, $GUI_ENABLE)
+							While ProcessExists("opera.exe")
+								If $eGet = $iIDButtonSuivant Then
+									GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
+									ProcessClose("opera.exe")
+									ExitLoop
+								EndIf
+								$eGet = GUIGetMsg()
+							WEnd
+							GUICtrlSetData($iIDListView["Opera"], "Opera| 1 | Terminé")
+						Else
+							GUICtrlSetData($iIDListView["Opera"], "Opera| 0 | Erreur")
+						EndIf
+					EndIf
+
+					; Firefox
+					If MapExists($iIDListView, "Firefox") Then
+						If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\")) Then
+							_FileWriteLog($hLog, "Nettoyage de Firefox")
+							Local $iNbProfilsFF = 0
+							Local $aProfil = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles", "*", 2)
+							If @error = 0 Then
+								For $i = 1 To $aProfil[0]
+									If FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite") Then
+										ControlSetText("Nettoyage des navigateurs : 2 - Réinitialisation des paramètres", "", "Static1", 'Navigateur : Firefox - Profil : ' & $aProfil[$i] & '' & @Lf & 'Cliquez sur "Réparer Firefox"')
+										$iNbProfilsFF += 1
+										GUICtrlSetData($iIDListView["Firefox"], "Firefox| " & $iNbProfilsFF & " | En cours")
+										; fichiers à supprimer
+										_FileWriteLog($hLog, 'Réparation du profil "' & $aProfil[$i] & '" de Firefox')
+
+										ShellExecute("firefox", '-profile "' & @AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & '" -safe-mode')
+										ProcessWait("firefox.exe", 5)
+										GUICtrlSetState($iIDButtonSuivant, $GUI_ENABLE)
+										While ProcessExists("firefox.exe")
+											If $eGet = $iIDButtonSuivant Then
+												GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
+												ProcessClose("firefox.exe")
+												ExitLoop
+											EndIf
+											$eGet = GUIGetMsg()
+										WEnd
+
+									EndIf
+								Next
+							EndIf
+							GUICtrlSetData($iIDListView["Firefox"], "Firefox| " & $iNbProfilsFF & " | Terminé")
+						EndIf
+					EndIf
 
 
 				Case 3
-					_FileWriteLog($hLog, "Nettoyage modéré des navigateurs")
-					GUICtrlSetData($statusbarprogress, 30)
-					If (FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\")) Then
-						_FileWriteLog($hLog, "Nettoyage du profil par défaut de Edge")
-						GUICtrlSetData($statusbar, " Nettoyage de Microsoft Edge")
-						$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
-						ShellExecuteWait("msedge", '--profile-directory="Default" edge://settings/resetProfileSettings')
-
-						Local $aProfilsedge = _FileListToArrayRec(@LocalAppDataDir & "\Microsoft\Edge\User Data\", "Profile *")
-						If $aProfilsedge <> "" Then
-							For $i=1 To $aProfilsedge[0]
-								_FileWriteLog($hLog, "Nettoyage du profil " & $aProfilsedge[$i] & " de Edge")
-								ShellExecuteWait("msedge", '--profile-directory="'& StringTrimRight($aProfilsedge[$i], 1) &'" edge://settings/resetProfileSettings')
-							Next
-						EndIf
-
-						$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
-						GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| Modéré | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
-						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
-
-					EndIf
-
-					If (FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\")) Then
-						GUICtrlSetData($statusbarprogress, 60)
-						_FileWriteLog($hLog, "Nettoyage du profil par défaut de Chrome")
-						GUICtrlSetData($statusbar, " Nettoyage de Google Chrome")
-						$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
-						ShellExecuteWait("chrome", '--profile-directory="Default" chrome://settings/resetProfileSettings')
-
-						Local $aProfils = _FileListToArrayRec(@LocalAppDataDir & "\Google\Chrome\User Data\", "Profile *")
-						If $aProfils <> "" Then
-							For $i=1 To $aProfils[0]
-								_FileWriteLog($hLog, "Nettoyage du profil " & $aProfils[$i] & " de Chrome")
-								ShellExecuteWait("chrome", '--profile-directory="'& StringTrimRight($aProfils[$i], 1) &'" chrome://settings/resetProfileSettings')
-							Next
-						EndIf
-
-						$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
-						If $iLVCHROME Then
-							GUICtrlSetData($iLVCHROME, "Google Chrome | Modéré | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
-						EndIf
-						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
-
-					EndIf
-
-
-					If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\")) Then
-						GUICtrlSetData($statusbarprogress, 90)
-						_FileWriteLog($hLog, "Nettoyage de Firefox")
-						GUICtrlSetData($statusbar, " Nettoyage de Mozilla Firefox")
-						$iStartFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
-						ShellExecuteWait("firefox", '-safe-mode')
-						ProcessWaitClose("firefox.exe")
-						$iEndFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
-						If $iLVFIREFOX Then
-							GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | Modéré | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
-						EndIf
-						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
-					EndIf
-
-				Case 4
-					_FileWriteLog($hLog, "Nettoyage complet des navigateurs")
-					GUICtrlSetData($statusbarprogress, 30)
-
-					If FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\") Then
-						$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
-						If DirRemove(@LocalAppDataDir & "\Microsoft\Edge\User Data\", 1) Then
-							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Microsoft\Edge\User Data\" & '" supprimé')
-						Else
-							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Microsoft\Edge\User Data\" & '" NON supprimé')
-						EndIf
-						$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Microsoft\Edge\User Data\") / 1024
-						GUICtrlSetData($iLVEDGE2, "Microsoft Edge (nouveau)| Complet | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
-						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
-					EndIf
-					GUICtrlSetData($statusbarprogress, 60)
-					If FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\") Then
-						$iStartFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
-						If DirRemove(@LocalAppDataDir & "\Google\Chrome\User Data\", 1) Then
-							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Google\Chrome\User Data\" & '" supprimé')
-						Else
-							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Microsoft\Edge\User Data\" & '" NON supprimé')
-						EndIf
-						$iEndFS = DriveSpaceFree(@LocalAppDataDir & "\Google\Chrome\User Data\") / 1024
-						If $iLVCHROME Then
-							GUICtrlSetData($iLVCHROME, "Google Chrome | Complet | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
-						EndIf
-						_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
-					EndIf
-					GUICtrlSetData($statusbarprogress, 90)
-					If FileExists(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\") Then
-						If DirRemove(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\", 1) Then
-							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Mozilla\Firefox\Profiles\" & '" supprimé')
-						Else
-							_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Mozilla\Firefox\Profiles\" & '" NON supprimé')
-						EndIf
-					EndIf
-
-					If FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\") Then
-						$iStartFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
-						If DirRemove(@AppDataDir & "\Mozilla\Firefox\Profiles\", 1) Then
-							_FileWriteLog($hLog, 'Dossier "' & @AppDataDir & "\Mozilla\Firefox\Profiles\" & '" supprimé')
-							$iEndFS = DriveSpaceFree(@AppDataDir & "\Mozilla\Firefox\Profiles\") / 1024
-							If $iLVFIREFOX Then
-								GUICtrlSetData($iLVFIREFOX, "Mozilla Firefox | Complet | Effectué : " & Round($iStartFS - $iEndFS, 2) & " Go libérés")
+					_FileWriteLog($hLog, "Mode 3")
+					SplashTextOn("Nettoyage des navigateurs : 3 - Suppression des profils", "", $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, 16)
+					For $sBrowser In $aKeyBrowsers
+						If MapExists($iIDListView, $sBrowser) Then
+							ControlSetText("Nettoyage des navigateurs : 2 - Suppression des profils", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Default' & @Lf & "Patientez")
+							_FileWriteLog($hLog, "Nettoyage de " & $sBrowser)
+							GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| 0 | En cours")
+							If FileExists($mBrowsers[$sBrowser] & '\User Data\Default\Bookmarks') Then
+								FileCopy($mBrowsers[$sBrowser] & '\User Data\Default\Bookmarks', @LocalAppDataDir & "\bao\User Data\Default\", 9)
+								FileCopy($mBrowsers[$sBrowser] & '\User Data\Default\Login Data', @LocalAppDataDir & "\bao\User Data\Default\", 9)
+								GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| 1 | En cours")
 							EndIf
-							_FileWriteLog($hLog, Round($iStartFS - $iEndFS, 2) & " Go libérés")
+							If DirRemove($mBrowsers[$sBrowser] & "\User Data\Default", 1) Then
+								_FileWriteLog($hLog, 'Dossier "' & $mBrowsers[$sBrowser] & "\User Data\Default" & '" supprimé')
+							Else
+								_FileWriteLog($hLog, 'Dossier "' & $mBrowsers[$sBrowser] & "\User Data\Default" & '" NON supprimé')
+							EndIf
+
+							Local $iProfil = 1
+							While FileExists($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\")
+								ControlSetText("Nettoyage des navigateurs : 2 - Suppression des profils", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Profile ' & $iProfil & @Lf & "Patientez")
+								If (FileExists($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks")) Then
+									FileCopy($mBrowsers[$sBrowser] & '\User Data\Profile ' & $iProfil & '\Bookmarks', @LocalAppDataDir & "\bao\User Data\Profile " & $iProfil & "\", 9)
+									FileCopy($mBrowsers[$sBrowser] & '\User Data\Profile ' & $iProfil & '\Login Data', @LocalAppDataDir & "\bao\User Data\Profile " & $iProfil & "\", 9)
+								EndIf
+								If DirRemove($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil, 1) Then
+									_FileWriteLog($hLog, 'Dossier "' & $mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & '" supprimé')
+								Else
+									_FileWriteLog($hLog, 'Dossier "' & $mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & '" NON supprimé')
+								EndIf
+
+								$iProfil += 1
+							WEnd
+							GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| " & $iProfil & " | En cours")
+							DirCopy(@LocalAppDataDir & "\bao\User Data", $mBrowsers[$sBrowser] & '\User Data', 9)
+							DirRemove(@LocalAppDataDir & "\bao\User Data\", 1)
+							GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| " & $iProfil & " | Terminé")
+						EndIf
+					Next
+
+					If MapExists($iIDListView, "Opera") Then
+						_FileWriteLog($hLog, "Nettoyage d'Opera")
+						ControlSetText("Nettoyage des navigateurs : 2 - Suppression des profils", "", "Static1", 'Navigateur : Opera' & @Lf & "Patientez")
+						GUICtrlSetData($iIDListView["Opera"],"Opera| 0 | En cours")
+						If FileExists(@AppDataDir & '\Opera Software\Opera Stable\Bookmarks') Then
+							FileCopy(@AppDataDir & '\Opera Software\Opera Stable\Bookmarks', @LocalAppDataDir & "\bao\Opera Stable\", 9)
+							FileCopy(@AppDataDir & '\Opera Software\Opera Stable\Login Data', @LocalAppDataDir & "\bao\Opera Stable\", 9)
+							GUICtrlSetData($iIDListView[$sBrowser], "Opera| 1 | En cours")
+						EndIf
+
+						If DirRemove(@AppDataDir & '\Opera Software\Opera Stable\', 1) Then
+							_FileWriteLog($hLog, 'Dossier "' & @AppDataDir & '\Opera Software\Opera Stable\" supprimé')
 						Else
-							_FileWriteLog($hLog, 'Dossier "' & @AppDataDir & "\Mozilla\Firefox\Profiles\" & '" NON supprimé')
+							_FileWriteLog($hLog, 'Dossier "' & @AppDataDir & '\Opera Software\Opera Stable\" NON supprimé')
+						EndIf
+						DirCopy(@LocalAppDataDir & "\bao\Opera Stable", @AppDataDir & '\Opera Software\Opera Stable', 9)
+						DirRemove(@LocalAppDataDir & "\bao\Opera Stable\", 1)
+						GUICtrlSetData($iIDListView["Opera"], "Opera| 1 | Terminé")
+					EndIf
+
+					If MapExists($iIDListView, "Firefox") Then
+						_FileWriteLog($hLog, "Nettoyage de Firefox")
+
+						If FileExists(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\") Then
+							If DirRemove(@LocalAppDataDir & "\Mozilla\Firefox\Profiles\", 1) Then
+								_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Mozilla\Firefox\Profiles\" & '" supprimé')
+							Else
+								_FileWriteLog($hLog, 'Dossier "' & @LocalAppDataDir & "\Mozilla\Firefox\Profiles\" & '" NON supprimé')
+							EndIf
+						EndIf
+
+						If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\")) Then
+							Local $iNbProfilsFF = 0
+							_SQLite_Startup(@ScriptDir & "\Outils\sqlite3.dll", False, 1)
+							Local $aProfil = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles", "*", 2)
+							If @error = 0 Then
+								For $i = 1 To $aProfil[0]
+									If FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite") Then
+										ControlSetText("Nettoyage des navigateurs : 2 - Suppression des profils", "", "Static1", 'Navigateur : Firefox - Profil : ' & $aProfil[$i] & @Lf & "Patientez")
+										$iNbProfilsFF += 1
+										GUICtrlSetData($iIDListView["Firefox"], "Firefox| " & $iNbProfilsFF & " | En cours")
+										; fichiers à supprimer
+										_FileWriteLog($hLog, "Nettoyage du profil " & $aProfil[$i] & " de Firefox")
+										_SQLite_Open(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $aProfil[$i] & "\places.sqlite")
+										_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
+										_SQLite_Close()
+										FileCopy(@AppDataDir & '\Mozilla\Firefox\Profiles\' & $aProfil[$i] & '\places.sqlite', @LocalAppDataDir & '\bao\Profiles\' & $aProfil[$i] & '\', 9)
+										FileCopy(@AppDataDir & '\Mozilla\Firefox\Profiles\' & $aProfil[$i] & '\key4.db', @LocalAppDataDir & '\bao\Profiles\' & $aProfil[$i] & '\', 9)
+										FileCopy(@AppDataDir & '\Mozilla\Firefox\Profiles\' & $aProfil[$i] & '\logins.json', @LocalAppDataDir & '\bao\Profiles\' & $aProfil[$i] & '\', 9)
+									EndIf
+								Next
+							EndIf
+							_SQLite_Shutdown()
+
+							If DirRemove(@AppDataDir & '\Mozilla\Firefox\Profiles\', 1) Then
+								_FileWriteLog($hLog, 'Dossier "' & @AppDataDir & '\Mozilla\Firefox\Profiles\' & '" supprimé')
+							Else
+								_FileWriteLog($hLog, 'Dossier "' & @AppDataDir & '\Mozilla\Firefox\Profiles\' & '" NON supprimé')
+							EndIf
+							DirCopy(@LocalAppDataDir & "\bao\Profiles", @AppDataDir & '\Mozilla\Firefox\Profiles', 9)
+							DirRemove(@LocalAppDataDir & "\bao\Profiles\", 1)
+
+							GUICtrlSetData($iIDListView["Firefox"], "Firefox| " & $iNbProfilsFF & "| Terminé")
 						EndIf
 					EndIf
 
 			EndSwitch
-			GUICtrlSetData($statusbar, "")
-			GUICtrlSetData($statusbarprogress, 0)
 
+			SplashOff()
+			GUICtrlSetState($iIDButtonDemarrer, $GUI_ENABLE)
+			GUICtrlSetState($iIDButtonAnnuler, $GUI_ENABLE)
+			GUICtrlSetState($iIDButtonSuivant, $GUI_DISABLE)
 		EndIf
 
 		$eGet = GUIGetMsg()
@@ -774,7 +974,7 @@ EndFunc
 Func _BrowserClose()
 	_FileWriteLog($hLog, "Fermeture automatique des navigateurs Internet")
     Local $aList = 0
-    Local $aProcesses = StringSplit('iexplore.exe|chrome.exe|firefox.exe|MicrosoftEdge.exe', '|', $STR_NOCOUNT) ; Multiple processes
+    Local $aProcesses = StringSplit('iexplore.exe|chrome.exe|firefox.exe|MicrosoftEdge.exe|opera.exe|brave.exe|chromium.exe', '|', $STR_NOCOUNT) ; Multiple processes
     For $i = 0 To UBound($aProcesses) - 1
         $aList = ProcessList($aProcesses[$i])
         If $aList[0][0] > 0 Then ; An array is returned and @error is NEVER set, so lets check the count.

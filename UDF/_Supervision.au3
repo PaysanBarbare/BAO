@@ -24,11 +24,15 @@ Func _Supervision($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
 
 	If StringLeft($sNom, 4) <> "Tech" Then
 		If _FichierCacheExist("Supervision") = 0 Then
+
+			_GetResolution()
+
 			$iRetour = _SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
 
 			If $iRetour = 1 Then
 				_ChangerEtatBouton($iIDAction, "Activer")
 				_FichierCache("Supervision", 1)
+				_DesactivationFondecran()
 			Else
 				_FileWriteLog($hLog, "Impossible d'activer la supervision")
 			EndIf
@@ -46,10 +50,29 @@ Func _Supervision($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
 
 EndFunc
 
+Func _GetResolution()
+	Dim $Obj_WMIService = ObjGet("winmgmts:\\" & "localhost" & "\root\cimv2")
+	Dim $Obj_Services = $Obj_WMIService.ExecQuery("Select * from Win32_VideoController")
+	Local $Obj_Item
+	For $Obj_Item In $Obj_Services
+		$iScreenWidth = $Obj_Item.CurrentHorizontalResolution
+		$iScreenHeight = $Obj_Item.CurrentVerticalResolution
+		If $iScreenWidth <> "" Then
+			ExitLoop
+		EndIf
+	Next
+
+	If $iScreenWidth = "" Then
+		_FileWriteLog($hLog, "Résolution de l'écran non récupérée")
+		$iScreenHeight = @DesktopHeight
+		$iScreenWidth = @DesktopWidth
+	EndIf
+EndFunc
+
 Func _CreerIndexSupervisionLocal()
 
 	Local $iWidth = "33%", $hIndex
-	Local $shtml = '<html><title>BAO - Supervision</title><meta http-equiv="refresh" content="60"><body>'
+	Local $shtml = '<html><title>BAO - Supervision locale</title><meta http-equiv="refresh" content="60"><body>'
 	Local $aCaptures = _FileListToArray(@ScriptDir & "\Cache\Supervision\", "*.png", 1)
 
 	If @error = 0 Then
@@ -68,7 +91,7 @@ Func _CreerIndexSupervisionLocal()
 			Local $i = 0
 			For $sImage In $aCaptures
 				$i+=1
-				$shtml &= '<a href="'&$sImage&'" title="'&$sImage&'"><img src="'&$sImage&'" style="float: left; width: '&$iWidth&';" /></a>'
+				$shtml &= '<a href="'&$sImage&'" title="'&$sImage&'"><img src="'&$sImage&'" alt="'&$sImage&' (intervention terminée)" style="float: left; width: '&$iWidth&';" /></a>'
 				If $i = 3 Then
 					$shtml &= '<br />'
 					$i=0
@@ -77,7 +100,7 @@ Func _CreerIndexSupervisionLocal()
 			FileWrite($hIndex, $shtml & "</body></html>")
 			FileClose($hIndex)
 		EndIf
-	ElseIf $iNBCaptures <> 0 Or Not FileExists(@ScriptDir & "\Cache\Supervision\index.html") Then
+	Else
 		$iNBCaptures = 0
 		$shtml &= "<p>Aucune capture trouvée</p></body></html>"
 		$hIndex = FileOpen(@ScriptDir & "\Cache\Supervision\index.html", 2)
@@ -87,28 +110,42 @@ Func _CreerIndexSupervisionLocal()
 
 EndFunc
 
+Func _MakeCapture()
+	Local $return = false
+	$return = _ScreenCapture_Capture($sCheminCapture & $sNomCapture, 0, 0, $iScreenWidth, $iScreenHeight)
+	If $return = False Then
+		_FileWriteLog($hLog, "La capture d'écran n'a pas pu être réalisée")
+	EndIf
+	Return $return
+EndFunc
+
 Func _SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
 
 	Local $iRetour = 0, $bCapt = False
 
 	FileDelete($sCheminCapture & $sNomCapture)
 
- 	$bCapt = _ScreenCapture_Capture($sCheminCapture & $sNomCapture, 0, 0, $iScreenWidth, $iScreenHeight)
+ 	$bCapt = _MakeCapture()
 
-	If $bCapt And StringLeft(@ScriptDir, 2) <> "\\" Then
+	If $bCapt Then
 		Local $nb = 0
 		Do
 			$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sCheminCapture & $sNomCapture, $sFTPDossierCapture & $sNomCapture, 0, 1)
 			$nb+=1
 		Until $iRetour <> -1 or $nb = 3
-	ElseIf $bCapt Then
-		FileCopy($sCheminCapture & $sNomCapture, @ScriptDir & "\Cache\Supervision\" & $sNomCapture, 1)
-		$iRetour = 1
-	Else
-		_FileWriteLog($hLog, "La capture d'écran n'a pas pu être réalisée")
+
+		If StringLeft(@ScriptDir, 2) = "\\" Then
+			_SendCaptureLocal()
+		EndIf
 	EndIf
 
 	Return $iRetour
+EndFunc
+
+Func _SendCaptureLocal()
+	If _MakeCapture() Then
+		FileCopy($sCheminCapture & $sNomCapture, @ScriptDir & "\Cache\Supervision\" & $sNomCapture, 1)
+	EndIf
 EndFunc
 
 Func _CreerIndexSupervision($sFTPAdresse, $sFTPUser, $sFTPPort)
@@ -154,4 +191,27 @@ Func _CreerIndexSupervision($sFTPAdresse, $sFTPUser, $sFTPPort)
 	GUICtrlSetData($statusbar, "")
 	GUICtrlSetData($statusbarprogress, 0)
 
+EndFunc
+
+Func _DesactivationFondecran()
+	If _FichierCacheExist("Fondecran") = 0 Then
+		Local $sWallpaper = RegRead("HKEY_CURRENT_USER\Control Panel\Desktop\", "WallPaper")
+		If $sWallpaper <> "" Then
+			_FileWriteLog($hLog, "Désactivation du fond d'écran")
+			_FichierCache("Fondecran", $sWallpaper)
+			RegWrite("HKEY_CURRENT_USER\Control Panel\Desktop","WallPaper","REG_SZ",'')
+			ControlSend('Program Manager', '', '', '{F5}')
+		EndIf
+	EndIf
+EndFunc
+
+Func _ActivationFondecran()
+	If _FichierCacheExist("Fondecran") Then
+		Local $sWallpaper = _FichierCache("Fondecran")
+		If $sWallpaper <> "" Then
+			_FileWriteLog($hLog, "Réactivation du fond d'écran")
+			RegWrite("HKEY_CURRENT_USER\Control Panel\Desktop","WallPaper","REG_SZ",$sWallpaper)
+			ControlSend('Program Manager', '', '', '{F5}')
+		EndIf
+	EndIf
 EndFunc

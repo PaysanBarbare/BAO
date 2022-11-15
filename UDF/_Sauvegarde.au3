@@ -22,6 +22,7 @@ Func _SauvegardeAutomatique()
 
 	_ChangerEtatBouton($iIDAction, "Patienter")
 
+	; Known folders windows
 	Local $mListeSVG[]
 	$mListeSVG["{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"] = "Desktop"
 	$mListeSVG["{56784854-C6CB-462b-8169-88E350ACB882}"] = "Contacts"
@@ -31,8 +32,23 @@ Func _SauvegardeAutomatique()
 	$mListeSVG["{33E28130-4E1E-4676-835A-98395C3BC3BB}"] = "Pictures"
 	$mListeSVG["{4BD8D571-6D19-48D3-BE97-422220080E43}"] = "Music"
 	$mListeSVG["{18989B1D-99B5-455B-841C-AB7C74E4DDFC}"] = "Videos"
+	$mListeSVG["{A52BBA46-E9E1-435F-B3D9-28DAA648C0F6}"] = "OneDrive"
 
-	Local $bNet = False, $iBrowser = 0, $iMail = 0, $iWifi = 0
+	; navigateurs pris en charge
+	Local $mBrowsers[], $mProfilsBrowsers[], $mProfilsBrowsersSlave[]
+	$mBrowsers["Chrome"] = "\Google\Chrome"
+	$mBrowsers["Chromium"] = "\Chromium"
+	$mBrowsers["Edge"] = "\Microsoft\Edge"
+	$mBrowsers["Brave"] = "\BraveSoftware\Brave-Browser"
+	$mBrowsers["AvastBrowser"] = "\AVAST Software\Browser"
+
+	Local $aBrowsers = MapKeys($mBrowsers)
+
+	For $sBrowserMain In $aBrowsers
+		$mProfilsBrowsers[$sBrowserMain] = @LocalAppDataDir & $mBrowsers[$sBrowserMain]
+	Next
+
+	Local $bNet = False, $iBrowser = 0, $iExtpassword = 0, $iWifi = 0
 
 	Local $hGUIsvg = GUICreate("Sauvegarde et restauration", 400, 240)
 	GUICtrlCreateTab(10, 10, 380, 220)
@@ -40,18 +56,18 @@ Func _SauvegardeAutomatique()
 	GUICtrlCreateLabel("Choisissez la source", 20, 40)
 	GUICtrlSetData($statusbar, "Recherche en cours")
 	GUICtrlSetData($statusbarprogress, 33)
-	Local $iIDComboSource = GUICtrlCreateCombo(_WinAPI_ShellGetKnownFolderPath("{5E6C858F-0E22-4760-9AFE-EA3317B67173}"),20, 55, 360)
+	Local $iIDComboSource = GUICtrlCreateCombo(_WinAPI_ShellGetKnownFolderPath("{5E6C858F-0E22-4760-9AFE-EA3317B67173}"), 20, 55, 360)
 
-	Local $aDrive = DriveGetDrive ($DT_ALL)
+	Local $aDrive = DriveGetDrive($DT_ALL)
 	If @error = 0 Then
 		For $i = 1 To $aDrive[0]
-			If (StringUpper($aDrive[$i]) <> $HomeDrive AND DriveGetType($aDrive[$i]) = "Fixed") Then
-				If(FileExists($aDrive[$i] & "\Users")) Then
+			If (StringUpper($aDrive[$i]) <> $HomeDrive And DriveGetType($aDrive[$i]) = "Fixed") Then
+				If (FileExists($aDrive[$i] & "\Users")) Then
 					Local $aUsers = _FileListToArrayRec($aDrive[$i] & "\Users", "*|Default*;All Users;Public", 2)
 					If @error = 0 Then
-						For $k=1 To $aUsers[0]
+						For $k = 1 To $aUsers[0]
 							GUICtrlSetData($statusbarprogress, 66)
-							GUICtrlSetData($iIDComboSource, StringUpper($aDrive[$i]) & "\Users\"& $aUsers[$k])
+							GUICtrlSetData($iIDComboSource, StringUpper($aDrive[$i]) & "\Users\" & $aUsers[$k])
 						Next
 					EndIf
 				EndIf
@@ -64,10 +80,10 @@ Func _SauvegardeAutomatique()
 
 	GUICtrlCreateLabel("Choisissez la destination", 20, 80)
 	Local $sFolderD = $sDossierRapport
-	Local $iIDInput = GUICtrlCreateInput($sFolderD,20, 95, 260)
-	Local $iIDBrowse = GUICtrlCreateButton("Parcourir",290, 92, 90, 25)
+	Local $iIDInput = GUICtrlCreateInput($sFolderD, 20, 95, 260)
+	Local $iIDBrowse = GUICtrlCreateButton("Parcourir", 290, 92, 90, 25)
 
-	Local $aDrive = DriveGetDrive ($DT_ALL)
+	Local $aDrive = DriveGetDrive($DT_ALL)
 	Local $sDossierDesti, $sLetter
 
 ;~ 	For $i = 1 To $aDrive[0]
@@ -78,8 +94,8 @@ Func _SauvegardeAutomatique()
 ;~ 		EndIf
 ;~ 	Next
 
-	Local $iIDCheckBrowser = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de navigateurs", 20, 120)
-	Local $iIDCheckMail = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de messagerie", 20, 140)
+	Local $iIDCheckBrowser = GUICtrlCreateCheckbox("Sauvegarder favoris et mots de passe des navigateurs", 20, 120)
+	Local $iIDCheckExtpassword = GUICtrlCreateCheckbox("Exporter avec ExtPassword! (Nirsoft)", 20, 140)
 	Local $iIDCheckWifi = GUICtrlCreateCheckbox("Exporter les profils WiFi", 20, 160)
 
 	Local $iIDButtonDemarrer = GUICtrlCreateButton("Sauvegarder", 100, 190, 90, 25, $BS_DEFPUSHBUTTON)
@@ -88,12 +104,12 @@ Func _SauvegardeAutomatique()
 	GUICtrlCreateTabItem("Restauration")
 	Local $sFolderRestau
 	GUICtrlCreateLabel("Choisissez le dossier à restaurer", 20, 40)
-	Local $iIDInputrestaur = GUICtrlCreateInput("",20, 55, 260)
-	Local $iIDBrowserestaur = GUICtrlCreateButton("Parcourir",290, 52, 90, 25)
+	Local $iIDInputrestaur = GUICtrlCreateInput("", 20, 55, 260)
+	Local $iIDBrowserestaur = GUICtrlCreateButton("Parcourir", 290, 52, 90, 25)
 	Local $iIDRestaurUtil = GUICtrlCreateCheckbox("Restaurer dans les dossiers utilisateur", 20, 90)
 	Local $iIDRestauBureau = GUICtrlCreateCheckbox("Restaurer le contenu du bureau dans un sous dossier", 20, 110)
 	GUICtrlSetState($iIDRestauBureau, $GUI_DISABLE)
-	Local $iIDRestauFavoris = GUICtrlCreateCheckbox("Restaurer les favoris de Edge, Chrome et Firefox", 20, 130)
+	Local $iIDRestauFavoris = GUICtrlCreateCheckbox("Restaurer les favoris et mots de passe des navigateurs", 20, 130)
 	Local $iIDRestauWifi = GUICtrlCreateCheckbox("Importer les profils WiFi", 20, 150)
 
 	Local $iIDButtonDemarrerRestau = GUICtrlCreateButton("Restaurer", 100, 190, 90, 25, $BS_DEFPUSHBUTTON)
@@ -103,13 +119,13 @@ Func _SauvegardeAutomatique()
 	GUICtrlCreateGroup("PC Source", 20, 40, 360, 130)
 	GUICtrlCreateLabel("Nom de l'ordinateur de destination :", 30, 55)
 	Local $iIDInputNameComput = GUICtrlCreateInput("", 230, 52, 140)
-	Local $iIDCheckBrowserreseau = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de navigateurs", 30, 75)
-	Local $iIDCheckMailreseau = GUICtrlCreateCheckbox("Sauvegarder les mots de passe de messagerie", 30, 95)
+	Local $iIDCheckBrowserreseau = GUICtrlCreateCheckbox("Sauvegarder infos navigateurs (Edge, Chrome, Firefox)", 30, 75)
+	Local $iIDCheckExtpasswordreseau = GUICtrlCreateCheckbox("Exporter avec ExtPassword! (Nirsoft)", 30, 95)
 	Local $iIDCheckWifireseau = GUICtrlCreateCheckbox("Exporter les profils WiFi", 30, 115)
 	Local $iIDInputCopier = GUICtrlCreateButton("Démarrer la copie", 140, 140, 120)
 	GUICtrlSetTip(-1, 'Chemin vers le partage : "\\' & @ComputerName & '\SAUV"')
-	GUICtrlCreategroup("PC Destination", 20,175, 360, 50)
-	Local $iIDPCSource= GUICtrlCreateButton("Activer le partage", 30, 195, 120)
+	GUICtrlCreateGroup("PC Destination", 20, 175, 360, 50)
+	Local $iIDPCSource = GUICtrlCreateButton("Activer le partage", 30, 195, 120)
 	GUICtrlSetTip(-1, 'Dossier de destination : "' & $sDossierRapport & '\Sauvegarde réseau"')
 	If _FichierCacheExist("Partage") And _FichierCache("Partage") = 1 Then
 		_ChangerEtatBouton($iIDPCSource, "Activer")
@@ -126,14 +142,11 @@ Func _SauvegardeAutomatique()
 
 	While $eGet <> $GUI_EVENT_CLOSE And $eGet <> $iIDButtonAnnuler And $eGet <> $iIDButtonDemarrer And $eGet <> $iIDButtonAnnulerRestau
 		If $eGet = $iIDComboSource Then
-			If(GUICtrlRead($iIDComboSource) = _WinAPI_ShellGetKnownFolderPath("{5E6C858F-0E22-4760-9AFE-EA3317B67173}")) Then
-				GUICtrlSetState ($iIDCheckBrowser, $GUI_ENABLE)
-				GUICtrlSetState ($iIDCheckMail, $GUI_ENABLE)
+			If (GUICtrlRead($iIDComboSource) = _WinAPI_ShellGetKnownFolderPath("{5E6C858F-0E22-4760-9AFE-EA3317B67173}")) Then
+				GUICtrlSetState($iIDCheckWifi, $GUI_ENABLE)
 			Else
-				GUICtrlSetState ($iIDCheckBrowser, $GUI_UNCHECKED)
-				GUICtrlSetState ($iIDCheckMail, $GUI_UNCHECKED)
-				GUICtrlSetState ($iIDCheckBrowser, $GUI_DISABLE)
-				GUICtrlSetState ($iIDCheckMail, $GUI_DISABLE)
+				GUICtrlSetState($iIDCheckWifi, $GUI_UNCHECKED)
+				GUICtrlSetState($iIDCheckWifi, $GUI_DISABLE)
 			EndIf
 		ElseIf $eGet = $iIDBrowse Then
 			$sFolderD = FileSelectFolder("Dossier de destination", "::{20D04FE0-3AEA-1069-A2D8-08002B30309D}")
@@ -142,15 +155,36 @@ Func _SauvegardeAutomatique()
 			$sFolderRestau = FileSelectFolder("Dossier à restaurer", "::{20D04FE0-3AEA-1069-A2D8-08002B30309D}")
 			GUICtrlSetData($iIDInputrestaur, $sFolderRestau)
 		ElseIf $eGet = $iIDRestaurUtil Then
-			If(GUICtrlRead($iIDRestaurUtil) = $GUI_CHECKED) Then
+			If (GUICtrlRead($iIDRestaurUtil) = $GUI_CHECKED) Then
 				GUICtrlSetState($iIDRestauBureau, $GUI_ENABLE)
 			Else
 				GUICtrlSetState($iIDRestauBureau, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 			EndIf
+		ElseIf $eGet = $iIDRestauFavoris Then
+			If (GUICtrlRead($iIDRestauFavoris) = $GUI_CHECKED) Then
+				Local $aFolderBrowsers = _FileListToArray(GUICtrlRead($iIDInputrestaur) & "\Autres données\", "*", 2)
+				If @error = 0 Then
+					Local $sErrorBrowserNotInstalled
+					For $sFolderBrowser In $aFolderBrowsers
+						If MapExists($mProfilsBrowsers, $sFolderBrowser) Then
+							If Not FileExists($mProfilsBrowsers[$sFolderBrowser]) Then
+								$sErrorBrowserNotInstalled &= " - " & $sFolderBrowser & @CRLF
+							EndIf
+						EndIf
+					Next
+					If $sErrorBrowserNotInstalled <> "" Then
+						_Attention("Attention, les navigateurs suivant ne sont pas installés, les favoris et mots de passe ne seront pas restaurés : " & @CRLF & $sErrorBrowserNotInstalled)
+						$sErrorBrowserNotInstalled = ""
+					EndIf
+				Else
+					_Attention("Attention : choisissez d'abord un dossier à restaurer")
+					GUICtrlSetState($iIDRestauFavoris, $GUI_UNCHECKED)
+				EndIf
+			EndIf
 		ElseIf $eGet = $iIDButtonDemarrerRestau Then
 			If FileExists(GUICtrlRead($iIDInputrestaur)) Then
 				If StringInStr(GUICtrlRead($iIDInputrestaur), $sDossierRapport) And GUICtrlRead($iIDRestaurUtil) = $GUI_UNCHECKED Then
-					_Attention("La sauvegarde ne peut pas être restauré au même endroit qu'elle même O_o")
+					_Attention("La source et la destination de la sauvegarde sont identiques, choisissez un autre emplacement")
 				Else
 					ExitLoop
 				EndIf
@@ -165,7 +199,7 @@ Func _SauvegardeAutomatique()
 				RunWait(@ComSpec & ' /C net user bao_share /delete', "", @SW_HIDE)
 				RunWait(@ComSpec & ' /C net share SAUV /delete', "", @SW_HIDE)
 				_ChangerEtatBouton($iIDPCSource, "Desactiver")
-				_FichierCache("Partage",2)
+				_FichierCache("Partage", 2)
 			Else
 
 				Local $sEverybody
@@ -177,26 +211,13 @@ Func _SauvegardeAutomatique()
 					$sEverybody = $Obj_Item.Name
 				Next
 
-				if $sEverybody <> "" Then
-					; Désactivation du partage protégé par mot de passe
-;~ 					_FileWriteLog($hLog, 'Désactivation du partage protégé par mot de passe')
-;~ 					Local $iProtectShare = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa", "everyoneincludesanonymous")
-;~ 					If $iProtectShare = 0 Then
-;~ 						RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa\","everyoneincludesanonymous","REG_DWORD", 1)
-;~ 						_FichierCache("PartageProtege1",1)
-;~ 					EndIf
-;~ 					Local $iProtectShare2 = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess")
-;~ 					If $iProtectShare2 = 1 Then
-;~ 						RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess", "REG_DWORD", 0)
-;~ 						_FichierCache("PartageProtege2",1)
-;~ 					EndIf
-
+				If $sEverybody <> "" Then
 					DirCreate($sDossierRapport & "\Sauvegarde réseau")
 					; Création d'un user pour le partage
 					RunWait(@ComSpec & ' /C net user bao_share bao /add', "", @SW_HIDE)
 					RunWait(@ComSpec & ' /C net share SAUV /delete&net share SAUV="' & $sDossierRapport & "\Sauvegarde réseau" & '" /GRANT:"bao_share",FULL&CACLS "' & $sDossierRapport & "\Sauvegarde réseau" & '" /e /p "' & $sEverybody & '":f"', "", @SW_HIDE)
 					_ChangerEtatBouton($iIDPCSource, "Activer")
-					_FichierCache("Partage",1)
+					_FichierCache("Partage", 1)
 				Else
 					_Attention("Le compte 'Tout le monde' est introuvable pour le partage de " & $sDossierRapport & "\Sauvegarde réseau")
 				EndIf
@@ -217,144 +238,154 @@ Func _SauvegardeAutomatique()
 		$eGet = GUIGetMsg()
 	WEnd
 
-	If($eGet = $iIDButtonDemarrer Or $eGet = $iIDInputCopier) Then
+	If ($eGet = $iIDButtonDemarrer Or $eGet = $iIDInputCopier) Then
 
 		; Sauvegarde session actuelle
-		If($bNet Or GUICtrlRead($iIDComboSource) = _WinAPI_ShellGetKnownFolderPath("{5E6C858F-0E22-4760-9AFE-EA3317B67173}")) Then
+		If ($bNet Or GUICtrlRead($iIDComboSource) = _WinAPI_ShellGetKnownFolderPath("{5E6C858F-0E22-4760-9AFE-EA3317B67173}")) Then
 
 			$sLetter = StringLeft(GUICtrlRead($iIDInput), 2)
 
 			If $bNet Then
 				_FileWriteLog($hLog, 'Sauvegarde via le réseau')
 				$sDossierDesti = "\\" & GUICtrlRead($iIDInputNameComput) & "\SAUV"
-				If(GUICtrlRead($iIDCheckBrowserreseau) = $GUI_CHECKED) Then
+				If (GUICtrlRead($iIDCheckBrowserreseau) = $GUI_CHECKED) Then
 					$iBrowser = 1
 				EndIf
 
-				If(GUICtrlRead($iIDCheckMailreseau) = $GUI_CHECKED) Then
-					$iMail = 1
+				If (GUICtrlRead($iIDCheckExtpasswordreseau) = $GUI_CHECKED) Then
+					$iExtpassword = 1
 				EndIf
 
-				If(GUICtrlRead($iIDCheckWifireseau) = $GUI_CHECKED) Then
+				If (GUICtrlRead($iIDCheckWifireseau) = $GUI_CHECKED) Then
 					$iWifi = 1
 				EndIf
-			ElseIf(GUICtrlRead($iIDInput) = $sDossierRapport) Then
- 				_Attention('La destination étant incluse dans la source, les fichiers seront sauvegardés dans le dossier "' & $sLetter & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(),"/","") & '"')
-				$sDossierDesti = $sLetter & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(),"/","")
+			ElseIf (GUICtrlRead($iIDInput) = $sDossierRapport) Then
+				_Attention('La destination étant incluse dans la source, les fichiers seront sauvegardés dans le dossier "' & $sLetter & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(), "/", "") & '"')
+				$sDossierDesti = $sLetter & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(), "/", "")
 				DirCreate($sDossierDesti)
 				FileCreateShortcut($sDossierDesti & "\", $sDossierRapport & "\Sauvegarde.lnk")
 			Else
-				$sDossierDesti = GUICtrlRead($iIDInput) & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(),"/","")
- 			EndIf
+				$sDossierDesti = GUICtrlRead($iIDInput) & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(), "/", "")
+			EndIf
 
 			If $bNet = False Then
 				_FileWriteLog($hLog, 'Sauvegarde des documents de la session ouverte')
-				If(GUICtrlRead($iIDCheckBrowser) = $GUI_CHECKED) Then
+				If (GUICtrlRead($iIDCheckBrowser) = $GUI_CHECKED) Then
 					$iBrowser = 1
 				EndIf
 
-				If(GUICtrlRead($iIDCheckMail) = $GUI_CHECKED) Then
-					$iMail = 1
+				If (GUICtrlRead($iIDCheckExtpassword) = $GUI_CHECKED) Then
+					$iExtpassword = 1
 				EndIf
 
-				If(GUICtrlRead($iIDCheckWifi) = $GUI_CHECKED) Then
+				If (GUICtrlRead($iIDCheckWifi) = $GUI_CHECKED) Then
 					$iWifi = 1
 				EndIf
 			EndIf
 
 			GUIDelete()
 
-			If($sLetter <> "" And DirCreate($sDossierDesti & '\Autres données\') = 1) Then
+			If ($sLetter <> "" And DirCreate($sDossierDesti & '\Autres données\') = 1) Then
 
 				_FileWriteLog($hLog, 'Sauvegarde destination : "' & $sDossierDesti & '"')
 
-				If MapExists($aMenu, "ProduKey") Then
-					_Telecharger($aMenu["ProduKey"])
-					Local $iPidPK = _Executer("ProduKey", '/shtml "' & $sDossierDesti & '\Autres données\ProduKeys.html"')
-					ProcessWaitClose($iPidPK)
-					If(FileExists($sDossierDesti & '\Autres données\ProduKeys.html')) Then
-						_FileWriteLog($hLog, 'Clés de produit sauvegardées')
-					Else
-						_FileWriteLog($hLog, 'Clés de produit non sauvegardées')
-						_Attention("Clés de produits non copiées")
-					EndIf
-				EndIf
-
-				If $iBrowser = 1 And MapExists($aMenu, "WebBrowserPassView") Then
-					_Telecharger($aMenu["WebBrowserPassView"])
-					TrayTip ( "Aide", 'Cliquez sur "View > HTML Report - All Items"', 10 , 1 )
-					Local $iPidW = _Executer("WebBrowserPassView")
-					While(ProcessExists($iPidW))
-						If FileExists(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html") Then
+				If $iExtpassword = 1 And MapExists($aMenu, "extpassword") Then
+					_Telecharger($aMenu["extpassword"])
+					TrayTip("Aide", 'Saisissez "' & StringLeft(_WinAPI_ShellGetKnownFolderPath("{5E6C858F-0E22-4760-9AFE-EA3317B67173}"), 2) & '" dans "External Drive Path" ' & @CRLF &'Cliquez sur "View > HTML Report - All Items"', 10, 1)
+					Local $iPidW = _Executer("extpassword")
+					;ClipPut(StringLeft(_WinAPI_ShellGetKnownFolderPath("{5E6C858F-0E22-4760-9AFE-EA3317B67173}"), 2))
+					While (ProcessExists($iPidW))
+						If FileExists(@ScriptDir & "\Cache\Download\extpassword\report.html") Then
 							Sleep(2000)
-							FileMove(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html", $sDossierDesti & "\Autres données\BrowsersPwd.html", 1)
-							_FileWriteLog($hLog, 'Mots de passe sauvegardés')
+							FileMove(@ScriptDir & "\Cache\Download\extpassword\report.html", $sDossierDesti & "\Autres données\ExtPasswordReport.html", 1)
+							_FileWriteLog($hLog, 'ExtPasswordReport.html généré')
 							ProcessClose($iPidW)
 						EndIf
 					WEnd
-;~ 					_Telecharger("WebBrowserPassView", ($aMenu["WebBrowserPassView"])[2])
-;~ 					Local $iPidW = _Executer("WebBrowserPassView", '/shtml "' & $sDossierDesti & '\BrowsersPwd.html"')
-;~ 					ProcessWaitClose($iPidW)
-;~ 					If(FileExists($sDossierDesti & '\BrowsersPwd.html')) Then
-;~ 						FileWriteLine($hFichierRapport, "  Mots de passe de navigateurs sauvegardés")
-;~ 					Else
-;~ 						_Attention("Mots de passe de navigateurs non copiées")
-;~ 					EndIf
 				EndIf
 
-				If $iMail = 1 And MapExists($aMenu, "MailPassView") Then
-					_Telecharger($aMenu["MailPassView"])
- 					TrayTip ( "Aide", 'Cliquez sur "View > HTML Report - All Items"', 10 , 1 )
- 					Local $iPidM = _Executer("MailPassView")
- 					While(ProcessExists($iPidM))
- 						If FileExists(@ScriptDir & "\Cache\Download\MailPassView\report.html") Then
-							Sleep(2000)
- 							FileMove(@ScriptDir & "\Cache\Download\MailPassView\report.html", $sDossierDesti & "\Autres données\MailsPwd.html", 1)
- 							_FileWriteLog($hLog, 'Mots de passe mail sauvegardés')
- 							ProcessClose($iPidM)
- 						EndIf
- 					WEnd
-;~ 					_Telecharger("MailPassView", ($aMenu["MailPassView"])[2])
-;~ 					Local $iPidM = _Executer("MailPassView", '/shtml "' & $sDossierDesti & '\MailsPwd.html"')
-;~ 					ProcessWaitClose($iPidM)
-;~ 					If(FileExists($sDossierDesti & '\MailsPwd.html')) Then
-;~ 						FileWriteLine($hFichierRapport, "  Mots de passe des clients de messagerie sauvegardés")
-;~ 					Else
-;~ 						_Attention("Mots de passe des clients de messagerie non copiées")
-;~ 					EndIf
+				If $iBrowser = 1 Then
+
+					; Firefox
+					If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles")) Then
+						Local $iSizeBookmarkFF = 0
+						Local $aTempFF = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles\", "*", 2)
+						;_Attention(@ScriptDir & "\Outils\sqlite3.dll")
+						_SQLite_Startup(@ScriptDir & "\Outils\sqlite3.dll", False, 1)
+						;MsgBox(0, "",_SQLite_LibVersion())
+						For $sTmpDoc In $aTempFF
+							If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups")) Then
+								DirCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\Autres données\Firefox\", 1)
+								_FileWriteLog($hLog, "Marque-pages de Firefox (" & $sTmpDoc & ") sauvegardés")
+							EndIf
+							If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")) Then
+
+								FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite", 9)
+								If $iSizeBookmarkFF <> 0 And FileGetSize(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite") > $iSizeBookmarkFF Then
+									$iSizeBookmarkFF = FileGetSize(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")
+									Local $hFileSizeFF = FileOpen($sDossierDesti & "\Autres données\Firefox.txt", 2)
+									FileWriteLine($hFileSizeFF, $sTmpDoc)
+									FileClose($hFileSizeFF)
+								EndIf
+								_FileWriteLog($hLog, "Nettoyage du profil " & $sTmpDoc & " de Firefox")
+								; Nettoyage de l'historique tout en gardant les favoris:
+								;ConsoleWrite("_SQLite_LibVersion=" & _SQLite_LibVersion() & @CRLF)
+								_SQLite_Open($sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite")
+								_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
+								_SQLite_Close()
+							EndIf
+							If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json") And FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db")) Then
+								FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\logins.json", 9)
+								FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\key4.db", 9)
+							EndIf
+						Next
+						_SQLite_Shutdown()
+					Else
+						_FileWriteLog($hLog, "Firefox : aucun profil trouvé")
+					EndIf
+
+					; Opera
+					If (FileExists(@AppDataDir & "\Opera Software\Opera Stable")) Then
+						FileCopy(@AppDataDir & "\Opera Software\Opera Stable\Bookmarks", $sDossierDesti & "\Autres données\Opera\", 9)
+						FileCopy(@AppDataDir & "\Opera Software\Opera Stable\Login Data", $sDossierDesti & "\Autres données\Opera\", 9)
+						_FileWriteLog($hLog, "Sauvegarde d'Opera")
+					Else
+						_FileWriteLog($hLog, "Opera : aucun profil trouvé")
+					EndIf
+
+					For $sBrowser In $aBrowsers
+						Local $iSizeBookmark
+						If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\")) Then
+							_FileWriteLog($hLog, 'Sauvegarde de ' & $sBrowser)
+							If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks")) Then
+								$iSizeBookmark = FileGetSize($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks")
+								FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Bookmarks", 9)
+							EndIf
+							If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Login Data")) Then
+								FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Login Data", 9)
+							EndIf
+
+							Local $iProfil = 1
+							While FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\")
+								If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks")) Then
+									If FileGetSize($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks") > $iSizeBookmark Then
+										$iSizeBookmark = FileGetSize($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks")
+										Local $hFileSize = FileOpen($sDossierDesti & "\Autres données\" & $sBrowser & ".txt", 2)
+										FileWriteLine($hFileSize, "Profile " & $iProfil)
+										FileClose($hFileSize)
+									EndIf
+									FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Bookmarks", 9)
+								EndIf
+								If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data")) Then
+									FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Login Data", 9)
+								EndIf
+								$iProfil += 1
+							WEnd
+						Else
+							_FileWriteLog($hLog, $sBrowser & " : aucun profil trouvé")
+						EndIf
+					Next
 				EndIf
-
-;~ 				If MapExists($aMenu, "MailPassView") Then
-;~ 					_Telecharger("MailPassView", ($aMenu["MailPassView"])[2])
-;~ 					TrayTip ( "Aide", 'Cliquez sur "View > HTML Report - All Items"', 10 , 1 )
-;~ 					Local $iPidM = _Executer("MailPassView")
-;~ 					While(ProcessExists($iPidM))
-;~ 						If FileExists(@ScriptDir & "\Cache\Download\MailPassView\report.html") Then
-;~ 							FileMove(@ScriptDir & "\Cache\Download\MailPassView\report.html", $sDossierDesti & "\MailsPwd.html", 1)
-;~ 							FileWriteLine($hFichierRapport, "  Mots de passe mail copiés")
-;~ 							ProcessClose($iPidM)
-;~ 						EndIf
-;~ 					WEnd
-;~ 				EndIf
-
-;~ 				If MapExists($aMenu, "WebBrowserPassView") Then
-;~ 					_Telecharger("WebBrowserPassView", ($aMenu["WebBrowserPassView"])[2])
-;~ 					TrayTip ( "Aide", 'Cliquez sur "View > HTML Report - All Items"', 10 , 1 )
-;~ 					Local $iPidW = _Executer("WebBrowserPassView")
-;~ 					While(ProcessExists($iPidW))
-;~ 						If FileExists(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html") Then
-;~ 							FileMove(@ScriptDir & "\Cache\Download\WebBrowserPassView\report.html", $sDossierDesti & "\BrowsersPwd.html", 1)
-;~ 							FileWriteLine($hFichierRapport, "  Mots de passe de navigateurs copiés")
-;~ 							ProcessClose($iPidW)
-;~ 						EndIf
-;~ 					WEnd
-;~ 				EndIf
-
-;~ 				If MapExists($aMenu, "#WebBrowserPassView") Then
-;~ 					ShellExecute(($aMenu["#WebBrowserPassView"])[2])
-;~ 					ClipPut($sDossierDesti & "\MDP navigateurs.txt")
-;~ 					_Attention("Merci d'enregistrer les mots de passe dans le dossier " & '"' & $sDossierDesti & '" (CTRL + V)', 1)
-;~ 				EndIf
 
 				If $iWifi = 1 Then
 					DirCreate($sDossierDesti & '\Autres données\WiFi')
@@ -373,7 +404,7 @@ Func _SauvegardeAutomatique()
 					EndIf
 				EndIf
 
-				Local $iInc = Round(100/8)
+				Local $iInc = Round(100 / 8)
 
 				Local $aKeysDocs = MapKeys($mListeSVG)
 
@@ -381,69 +412,33 @@ Func _SauvegardeAutomatique()
 
 					GUICtrlSetData($statusbar, " Copie " & _WinAPI_ShellGetKnownFolderPath($sKeys))
 					GUICtrlSetData($statusbarprogress, $iInc)
-					$iInc = $iInc + Round(100/8)
+					$iInc = $iInc + Round(100 / 8)
 
-					If($sLetter <> "\\" And DriveSpaceFree($sLetter) < DirGetSize(_WinAPI_ShellGetKnownFolderPath($sKeys)) / 1048576) Then
+					If ($sLetter <> "\\" And DriveSpaceFree($sLetter) < DirGetSize(_WinAPI_ShellGetKnownFolderPath($sKeys)) / 1048576) Then
 						_Attention("Espace sur le disque " & $sLetter & " insuffisant")
 						_FileWriteLog($hLog, 'Dossier "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" non sauvegardé : espace disque insuffisant')
 					Else
-						RunWait(@ComSpec & ' /c robocopy "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" "' &  $sDossierDesti & '\' & $mListeSVG[$sKeys] & '" /E /B /R:1 /W:1')
+						RunWait(@ComSpec & ' /c robocopy "' & _WinAPI_ShellGetKnownFolderPath($sKeys) & '" "' & $sDossierDesti & '\' & $mListeSVG[$sKeys] & '" /E /B /R:1 /W:1')
 						_FileWriteLog($hLog, 'Dossier "' & $mListeSVG[$sKeys] & '" : ' & Round(DirGetSize($sDossierDesti & "\" & $mListeSVG[$sKeys]) / (1024 * 1024 * 1024), 2) & " sur " & Round(DirGetSize(_WinAPI_ShellGetKnownFolderPath($sKeys)) / (1024 * 1024 * 1024), 2) & " Go copiés")
 					EndIf
 
 				Next
 
-				If(FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\Bookmarks")) Then
-					FileCopy(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\Edge\Bookmarks", 9)
-					_FileWriteLog($hLog,"Favoris de Microsoft Edge sauvegardés")
-				EndIf
-
-				If(FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\Bookmarks")) Then
-					FileCopy(@LocalAppDataDir & "\Google\Chrome\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\Chrome\Bookmarks", 9)
-					_FileWriteLog($hLog,"Favoris de Google Chrome sauvegardés")
-				EndIf
-
-				If(FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles")) Then
-					Local $aTempFF = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles\", "*", 2)
-					;_Attention(@ScriptDir & "\Outils\sqlite3.dll")
-					_SQLite_Startup(@ScriptDir & "\Outils\sqlite3.dll", False, 1)
-					;MsgBox(0, "",_SQLite_LibVersion())
-					For $sTmpDoc In $aTempFF
-						If(FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups")) Then
-							DirCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\Autres données\Firefox\", 1)
-							_FileWriteLog($hLog, "Marque-pages de Firefox sauvegardés")
-						EndIf
-						If(FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")) Then
-
-							FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite", 9)
-
-							_FileWriteLog($hLog, "Nettoyage du profil " & $sTmpDoc & " de Firefox")
-							; Nettoyage de l'historique tout en gardant les favoris:
-							;ConsoleWrite("_SQLite_LibVersion=" & _SQLite_LibVersion() & @CRLF)
-							_SQLite_Open($sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite")
-							_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
-							_SQLite_Close()
-						EndIf
-					Next
-					_SQLite_Shutdown()
-					_FileWriteLog($hLog, "Marque-pages de Firefox sauvegardés et nettoyés")
-				EndIf
-
-				If(FileExists(@LocalAppDataDir & "\Microsoft\Outlook")) Then
+				If (FileExists(@LocalAppDataDir & "\Microsoft\Outlook")) Then
 					DirCopy(@LocalAppDataDir & "\Microsoft\Outlook", $sDossierDesti & "\Autres données\Outlook", 1)
 					_FileWriteLog($hLog, "PST de Microsoft Outlook sauvegardés")
 				EndIf
 
 ;~ 				FileSetPos($hFichierRapport, 0, $FILE_BEGIN)
 				_FileWriteLog($hLog, 'Création du fichier"' & $sDossierDesti & '\Autres données\Infos sauvegarde.txt"')
- 				Local $hFichierSauvegarde = FileOpen($sDossierDesti & "\Autres données\Infos sauvegarde.txt", 1)
+				Local $hFichierSauvegarde = FileOpen($sDossierDesti & "\Autres données\Infos sauvegarde.txt", 1)
 ;~ 				FileWrite($hFichierSauvegarde, FileRead($hFichierRapport))
 
 				Local $aListe = _ListeProgrammes()
 				$aListe = _ArrayUnique($aListe, 0, 0, 0, 0)
 
 				FileWriteLine($hFichierSauvegarde, "Programmes installés :")
-				For $sProgi in $aListe
+				For $sProgi In $aListe
 					FileWriteLine($hFichierSauvegarde, " - " & $sProgi)
 				Next
 				FileWriteLine($hFichierSauvegarde, "")
@@ -464,7 +459,7 @@ Func _SauvegardeAutomatique()
 				GUICtrlSetData($statusbarprogress, 0)
 				_UpdEdit($iIDEditLog, $hLog)
 				_ChangerEtatBouton($iIDAction, "Activer")
-				If(_FichierCacheExist("Sauvegarde") = 0) Then
+				If (_FichierCacheExist("Sauvegarde") = 0) Then
 					_FichierCache("Sauvegarde", "1")
 				EndIf
 				If $bNet Then
@@ -481,78 +476,131 @@ Func _SauvegardeAutomatique()
 			Local $sUserSlave = StringTrimLeft($sSource, $sPos)
 
 			_FileWriteLog($hLog, 'Sauvegarde de la session "' & $sSource & '"')
-;~ 			If(GUICtrlRead($iIDInput) = $sDossierRapport) Then
-;~ 				$sDossierDesti = $sDossierRapport & "\Sauvegarde " & $sNom & " du " & StringReplace(_NowDate(),"/","")
-;~ 			Else
-				$sDossierDesti =  GUICtrlRead($iIDInput) & "\Sauvegarde " & $sUserSlave & " du " & StringReplace(_NowDate(),"/","")
-;~ 			EndIf
+			$sDossierDesti = GUICtrlRead($iIDInput) & "\Sauvegarde " & $sUserSlave & " du " & StringReplace(_NowDate(), "/", "")
 
 			GUIDelete()
 
 
-			If($sLetter <> "" And DirCreate($sDossierDesti & '\Autres données\') = 1) Then
+			If ($sLetter <> "" And DirCreate($sDossierDesti & '\Autres données\') = 1) Then
 
 				_FileWriteLog($hLog, 'Sauvegarde sur : "' & $sDossierDesti & '"')
 
-				If MapExists($aMenu, "ProduKey") Then
-					_Telecharger($aMenu["ProduKey"])
-					Local $iPidPK = _Executer("ProduKey", '/external /shtml "' & $sDossierDesti & '\Autres données\ProduKeys.html')
-					ProcessWaitClose($iPidPK)
-					If(FileExists($sDossierDesti & '\Autres données\ProduKeys.html')) Then
-						_FileWriteLog($hLog, "Clés de produit copiées")
-					Else
-						_FileWriteLog($hLog, "Clés de produit non copiées")
-						_Attention("Clés de produits non copiées")
-					EndIf
+				If $iExtpassword = 1 And MapExists($aMenu, "extpassword") Then
+					_Telecharger($aMenu["extpassword"])
+					TrayTip("Aide", 'Saisissez "' & StringLeft(GUICtrlRead($sSource), 2) & '" dans "External Drive Path" ' & @CRLF & 'Cliquez ensuite sur "View > HTML Report - All Items"', 10, 1)
+					Local $iPidW = _Executer("extpassword")
+					;ClipPut(StringLeft(GUICtrlRead($sSource), 2))
+					While (ProcessExists($iPidW))
+						If FileExists(@ScriptDir & "\Cache\Download\extpassword\report.html") Then
+							Sleep(2000)
+							FileMove(@ScriptDir & "\Cache\Download\extpassword\report.html", $sDossierDesti & "\Autres données\ExtPasswordReport.html", 1)
+							_FileWriteLog($hLog, 'ExtPasswordReport.html généré')
+							ProcessClose($iPidW)
+						EndIf
+					WEnd
 				EndIf
 
 				GUICtrlSetData($statusbar, " Copie " & $sSource & " en cours")
 				GUICtrlSetData($statusbarprogress, 50)
 
-				If(DriveSpaceFree($sLetter) < (DirGetSize($sSource) - DirGetSize($sSource & "\Appdata")) / 1048576) Then
+				If (DriveSpaceFree($sLetter) < (DirGetSize($sSource) - DirGetSize($sSource & "\Appdata")) / 1048576) Then
 					_Attention("Espace sur le disque " & $sLetter & " insuffisant")
 					_FileWriteLog($hLog, '  Dossier "' & $sSource & '" non sauvegardé : espace disque insuffisant')
 				Else
-					RunWait(@ComSpec & ' /c robocopy "' & $sSource & '" "' &  $sDossierDesti & '" /E /B /R:1 /W:1 /XJ /XD "' & $sSource & '\Appdata"')
+					RunWait(@ComSpec & ' /c robocopy "' & $sSource & '" "' & $sDossierDesti & '" /E /B /R:1 /W:1 /XJ /XD "' & $sSource & '\Appdata"')
 					_FileWriteLog($hLog, 'Dossier "' & $sSource & '" : ' & Round(DirGetSize($sDossierDesti) / (1024 * 1024 * 1024), 2) & " sur " & Round((DirGetSize($sSource) - DirGetSize($sSource & "\Appdata")) / (1024 * 1024 * 1024), 2) & " Go copiés")
 				EndIf
 
+				If $iBrowser = 1 Then
 
-				If(FileExists($sSource & "\AppData\Local\Google\Chrome\User Data\Default\Bookmarks")) Then
-					FileCopy($sSource & "\AppData\Local\Google\Chrome\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\Chrome\Bookmarks", 9)
-					_FileWriteLog($hLog, "Favoris de Google Chrome sauvegardés")
-				EndIf
+					Local $aBrowsersSlave = MapKeys($mProfilsBrowsersSlave)
 
-				If(FileExists($sSource & "\AppData\Local\Microsoft\Edge\User Data\Default\Bookmarks")) Then
-					FileCopy($sSource & "\AppData\Local\Microsoft\Edge\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\Edge\Bookmarks", 9)
-					_FileWriteLog($hLog, "Favoris de Microsoft Edge sauvegardés")
-				EndIf
+					; Firefox
+					If (FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles")) Then
+						Local $iSizeBookmarkFF = 0
+						Local $aTempFF = _FileListToArray($sSource & "\Roaming\Mozilla\Firefox\Profiles\", "*", 2)
+						;_Attention(@ScriptDir & "\Outils\sqlite3.dll")
+						_SQLite_Startup(@ScriptDir & "\Outils\sqlite3.dll", False, 1)
+						;MsgBox(0, "",_SQLite_LibVersion())
+						For $sTmpDoc In $aTempFF
+							If (FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups")) Then
+								DirCopy($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\Autres données\Firefox\", 1)
+								_FileWriteLog($hLog, "Marque-pages de Firefox (" & $sTmpDoc & ") sauvegardés")
+							EndIf
+							If (FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")) Then
 
-				If(FileExists($sSource & "\Roaming\Local\Mozilla\Firefox\Profiles")) Then
-					Local $aTempFF = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles\", "*", 2)
-					_SQLite_Startup(@ScriptDir & "\Outils\sqlite3.dll", False, 1)
-					For $sTmpDoc In $aTempFF
-						If(FileExists($sSource & "\Roaming\Local\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups")) Then
-							DirCopy($sSource & "\Roaming\Local\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\Autres données\Firefox\"& $sTmpDoc & "\bookmarkbackups", 9)
-						EndIf
-						If(FileExists($sSource & "\Roaming\Local\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")) Then
+								FileCopy($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite", 9)
+								If $iSizeBookmarkFF <> 0 And FileGetSize($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite") > $iSizeBookmark Then
+									$iSizeBookmarkFF = FileGetSize($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")
+									Local $hFileSizeFF = FileOpen($sDossierDesti & "\Autres données\Firefox.txt", 2)
+									FileWriteLine($hFileSizeFF, $sTmpDoc)
+									FileClose($hFileSizeFF)
+								EndIf
+								_FileWriteLog($hLog, "Nettoyage du profil " & $sTmpDoc & " de Firefox")
+								; Nettoyage de l'historique tout en gardant les favoris:
+								;ConsoleWrite("_SQLite_LibVersion=" & _SQLite_LibVersion() & @CRLF)
+								_SQLite_Open($sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite")
+								_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
+								_SQLite_Close()
+							EndIf
+							If (FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json") And FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db")) Then
+								FileCopy($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\logins.json", 9)
+								FileCopy($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\key4.db", 9)
+							EndIf
+						Next
+						_SQLite_Shutdown()
+					Else
+						_FileWriteLog($hLog, "Firefox : aucun profil trouvé")
+					EndIf
 
-							FileCopy($sSource & "\Roaming\Local\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite", 9)
+					; Opera
+					If (FileExists($sSource & "\Roaming\Opera Software\Opera Stable")) Then
+						FileCopy($sSource & "\Roaming\Opera Software\Opera Stable\Bookmarks", $sDossierDesti & "\Autres données\Opera\", 9)
+						FileCopy($sSource & "\Roaming\Opera Software\Opera Stable\Login Data", $sDossierDesti & "\Autres données\Opera\", 9)
+					Else
+						_FileWriteLog($hLog, "Opera : aucun profil trouvé")
+					EndIf
 
-							_FileWriteLog($hLog, "Nettoyage du profil " & $sTmpDoc & " de Firefox")
-							; Nettoyage de l'historique tout en gardant les favoris:
-							;ConsoleWrite("_SQLite_LibVersion=" & _SQLite_LibVersion() & @CRLF)
-							_SQLite_Open($sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite")
-							_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
-							_SQLite_Close()
+					For $sBrowserMain In $aBrowsers
+						$mProfilsBrowsersSlave[$sBrowserMain] = $sSource & "\AppData\Local" & $mBrowsers[$sBrowserMain]
+					Next
+
+					For $sBrowser In $aBrowsersSlave
+						Local $iSizeBookmark
+						If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\")) Then
+							_FileWriteLog($hLog, 'Sauvegarde de ' & $sBrowser)
+							If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks")) Then
+								$iSizeBookmark = FileGetSize($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks")
+								FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Bookmarks", 9)
+							EndIf
+							If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Login Data")) Then
+								FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Login Data", 9)
+							EndIf
+
+							Local $iProfil = 1
+							While FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\")
+								If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks")) Then
+									If FileGetSize($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks") > $iSizeBookmark Then
+										$iSizeBookmark = FileGetSize($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks")
+										Local $hFileSize = FileOpen($sDossierDesti & "\Autres données\" & $sBrowser & ".txt", 2)
+										FileWriteLine($hFileSize, "Profile " & $iProfil)
+										FileClose($hFileSize)
+									EndIf
+									FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Bookmarks", 9)
+								EndIf
+								If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data")) Then
+									FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Login Data", 9)
+								EndIf
+								$iProfil += 1
+							WEnd
+						Else
+							_FileWriteLog($hLog, $sBrowser & " : aucun profil trouvé")
 						EndIf
 					Next
-					_SQLite_Shutdown()
-					_FileWriteLog($hLog, "Marque-pages de Firefox sauvegardés et nettoyés")
 				EndIf
 
-				If(FileExists($sSource & "\AppData\Local\Microsoft\Outlook")) Then
-					DirCopy($sSource& "\AppData\Local\Microsoft\Outlook", $sDossierDesti & "\Autres données\Outlook", 1)
+				If (FileExists($sSource & "\AppData\Local\Microsoft\Outlook")) Then
+					DirCopy($sSource & "\AppData\Local\Microsoft\Outlook", $sDossierDesti & "\Autres données\Outlook", 1)
 					_FileWriteLog($hLog, "PST de Microsoft Outlook sauvegardés")
 				EndIf
 
@@ -560,7 +608,7 @@ Func _SauvegardeAutomatique()
 				GUICtrlSetData($statusbarprogress, 0)
 				_UpdEdit($iIDEditLog, $hLog)
 				_ChangerEtatBouton($iIDAction, "Activer")
-				If(_FichierCacheExist("Sauvegarde") = 0) Then
+				If (_FichierCacheExist("Sauvegarde") = 0) Then
 					_FichierCache("Sauvegarde", "1")
 				EndIf
 			Else
@@ -572,16 +620,16 @@ Func _SauvegardeAutomatique()
 	ElseIf $eGet = $iIDButtonDemarrerRestau Then
 		Local $sDossierRestau = $sDossierRapport
 		Local $iUtil, $iBureau, $iNav, $iRestWifi
-		If(GUICtrlRead($iIDRestaurUtil) = $GUI_CHECKED) Then
+		If (GUICtrlRead($iIDRestaurUtil) = $GUI_CHECKED) Then
 			$iUtil = 1
-			If(GUICtrlRead($iIDRestauBureau) = $GUI_CHECKED) Then
+			If (GUICtrlRead($iIDRestauBureau) = $GUI_CHECKED) Then
 				$iBureau = 1
 			EndIf
 		EndIf
-		If(GUICtrlRead($iIDRestauFavoris) = $GUI_CHECKED) Then
+		If (GUICtrlRead($iIDRestauFavoris) = $GUI_CHECKED) Then
 			$iNav = 1
 		EndIf
-		If(GUICtrlRead($iIDRestauWifi) = $GUI_CHECKED) Then
+		If (GUICtrlRead($iIDRestauWifi) = $GUI_CHECKED) Then
 			$iRestWifi = 1
 		EndIf
 
@@ -603,26 +651,26 @@ Func _SauvegardeAutomatique()
 			Next
 		EndIf
 
-		If($iUtil = 0) Then
+		If ($iUtil = 0) Then
 			_FileWriteLog($hLog, 'Restauration de données dans le dossier rapport')
-			If(DriveSpaceFree($HomeDrive) < DirGetSize($sDossierSourceRestau) / 1048576) Then
+			If (DriveSpaceFree($HomeDrive) < DirGetSize($sDossierSourceRestau) / 1048576) Then
 				_Attention("Espace sur le disque " & $HomeDrive & " insuffisant")
 				_FileWriteLog($hLog, '  Dossier "' & $sDossierSourceRestau & '" non restauré : espace disque insuffisant')
 				_UpdEdit($iIDEditLog, $hLog)
 				_ChangerEtatBouton($iIDAction, "Desactiver")
 			Else
-				RunWait(@ComSpec & ' /c robocopy "' & $sDossierSourceRestau & '" "' &  $sDossierRestau & '" /E /B /R:1 /W:1')
+				RunWait(@ComSpec & ' /c robocopy "' & $sDossierSourceRestau & '" "' & $sDossierRestau & '" /E /B /R:1 /W:1')
 				_FileWriteLog($hLog, 'Restauration du dossier "' & $sDossierSourceRestau & '" dans "' & $sDossierRestau & '" : ')
 				_FileWriteLog($hLog, @TAB & Round(DirGetSize($sDossierRestau) / (1024 * 1024 * 1024), 2) & " sur " & Round((DirGetSize($sDossierSourceRestau)) / (1024 * 1024 * 1024), 2) & " Go copiés")
 				_UpdEdit($iIDEditLog, $hLog)
 				_ChangerEtatBouton($iIDAction, "Activer")
-				If(_FichierCacheExist("Sauvegarde") = 0) Then
+				If (_FichierCacheExist("Sauvegarde") = 0) Then
 					_FichierCache("Sauvegarde", "1")
 				EndIf
 			EndIf
 		Else
 			_FileWriteLog($hLog, 'Restauration de données "en place"')
-			Local $iInc = Round(100/8)
+			Local $iInc = Round(100 / 8)
 
 			Local $aKeysDocs = MapKeys($mListeSVG)
 
@@ -630,8 +678,8 @@ Func _SauvegardeAutomatique()
 
 				GUICtrlSetData($statusbar, " Copie " & _WinAPI_ShellGetKnownFolderPath($sKeys))
 				GUICtrlSetData($statusbarprogress, $iInc)
-				$iInc = $iInc + Round(100/8)
-				If(DriveSpaceFree($HomeDrive) < DirGetSize($sDossierSourceRestau) / 1048576) Then
+				$iInc = $iInc + Round(100 / 8)
+				If (DriveSpaceFree($HomeDrive) < DirGetSize($sDossierSourceRestau) / 1048576) Then
 					_Attention("Espace sur le disque " & $HomeDrive & " insuffisant")
 					_FileWriteLog($hLog, '  Dossier "' & $sDossierSourceRestau & '" non restauré : espace disque insuffisant')
 				Else
@@ -652,75 +700,92 @@ Func _SauvegardeAutomatique()
 			Else
 				_FileWriteLog($hLog, 'Dossier "Autres données" absent de la sauvegarde')
 				If $iNav = 1 Then
-					_Attention("Le dossier à restaurer ne contient pas les favoris des navigateurs")
+					_Attention("Le dossier à restaurer ne contient pas les sauvegardes de navigateurs")
 					$iNav = 0
 				EndIf
 			EndIf
+		EndIf
 
-			If $iNav = 1 Then
+		If $iNav = 1 Then
 
-				If(FileExists(@LocalAppDataDir & "\Microsoft\Edge\User Data\Default\")) Then
-					If FileExists($sDossierSourceRestau & "\Autres données\Edge\Bookmarks") Then
-						FileCopy($sDossierSourceRestau & "\Autres données\Edge\Bookmarks", @LocalAppDataDir & "\Microsoft\Edge\User Data\Default\Bookmarks", 1)
-						_FileWriteLog($hLog,"Favoris de Microsoft Edge restaurés")
-					Else
-						_FileWriteLog($hLog, "La sauvegarde ne contient pas de favoris de Edge")
-					EndIf
-				Else
-					_Attention("Microsoft Edge semble ne pas être installé, les favoris sont dans le dossier rapport")
-				EndIf
+			If FileExists($sDossierRestau & "\Autres données") Then
+				_BrowserClose()
+				Local $sBrowserProfilToRestaur
 
-				If(FileExists(@LocalAppDataDir & "\Google\Chrome\User Data\Default\")) Then
-					If FileExists($sDossierSourceRestau & "\Autres données\Chrome\Bookmarks") Then
-						FileCopy($sDossierSourceRestau & "\Autres données\Chrome\Bookmarks", @LocalAppDataDir & "\Google\Chrome\User Data\Default\Bookmarks", 1)
-						_FileWriteLog($hLog,"Favoris de Google Chrome restaurés")
-					Else
-						_FileWriteLog($hLog, "La sauvegarde ne contient pas de favoris de Chrome")
-					EndIf
-				Else
-					_Attention("Google Chrome semble ne pas être installé, les favoris sont dans le dossier rapport")
-				EndIf
+				For $sBrowser In $aBrowsers
 
-				If(FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles")) Then
-					Local $aTempFFsource = _FileListToArray($sDossierSourceRestau & "\Autres données\Firefox\", "*default-release", 2)
-					If @error = 0 Then
-						Local $sDestiFF
-						Local $aTempFF = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles\", "*default-release", 2)
-						If @error = 0 Then
-							If FileExists($sDossierSourceRestau & "\Autres données\Firefox\"& $aTempFFsource[1] &"\places.sqlite") Then
-								FileCopy($sDossierSourceRestau & "\Autres données\Firefox\"& $aTempFFsource[1] &"\places.sqlite", @AppDataDir & "\Mozilla\Firefox\Profiles\" & $aTempFF[1] & "\places.sqlite", 1)
-								_FileWriteLog($hLog, "Marque-pages de Firefox restaurés")
+					If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\")) Then
+
+						If FileExists($sDossierRestau & "\Autres données\" & $sBrowser & "\") Then
+
+							If FileExists($sDossierRestau & "\Autres données\" & $sBrowser & ".txt") Then
+								$sBrowserProfilToRestaur = $sDossierRestau & "\Autres données\" & $sBrowser & "\" & FileReadLine($sDossierRestau & "\Autres données\" & $sBrowser & ".txt")
 							Else
-								_FileWriteLog($hLog, "Le dossier source de Firefox ne contient pas de marques pages")
+								$sBrowserProfilToRestaur = $sDossierRestau & "\Autres données\" & $sBrowser & "\Default"
 							EndIf
-						Else
-							_FileWriteLog($hLog, "Pas de profil par défaut trouvé dans le dossier de destination pour Firefox")
+
+							If FileCopy($sBrowserProfilToRestaur & "\*", $mProfilsBrowsers[$sBrowser] & "\User Data\Default\", 9) Then
+								_FileWriteLog($hLog, 'Restauration de ' & $sBrowser & ' réussie')
+							Else
+								_FileWriteLog($hLog, 'Echec de la restauration de ' & $sBrowser)
+							EndIf
+
 						EndIf
 					Else
-						_FileWriteLog($hLog, "Pas de profil par défaut trouvé dans le dossier à restaurerpour Firefox")
+						_FileWriteLog($hLog, "Données de " & $sBrowser & " non restaurées car ce navigateur n'est pas installé")
 					EndIf
+				Next
+
+				If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles")) Then
+
+					If FileExists($sDossierRestau & "\Autres données\Firefox.txt") Then
+						$sBrowserProfilToRestaur = $sDossierRestau & "\Autres données\Firefox\" & FileReadLine($sDossierRestau & "\Autres données\Firefox.txt")
+						Local $aTempFF = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles\", "*default-release", 2)
+						If FileCopy($sBrowserProfilToRestaur & "\*",  @AppDataDir & "\Mozilla\Firefox\Profiles\" & $aTempFF[1] & "\", 1) Then
+							_FileWriteLog($hLog, "Marque-pages de Firefox restaurés")
+						Else
+							_FileWriteLog($hLog, "Erreur lors de la restauration des données de Firefox")
+						EndIf
+					EndIf
+				Else
+						_FileWriteLog($hLog, "Données de Firefox non restaurées car ce navigateur n'est pas installé")
 				EndIf
+
+				; Opera
+				If (FileExists(@AppDataDir & "\Opera Software\Opera Stable")) Then
+					If FileExists($sDossierRestau & "\Autres données\Opera\") Then
+						FileCopy($sDossierRestau & "\Autres données\Opera\", @AppDataDir & "\Opera Software\Opera Stable", 9)
+					EndIf
+				Else
+					_FileWriteLog($hLog, "Données d'Opera non restaurées car ce navigateur n'est pas installé")
+				EndIf
+
+			Else
+				_FileWriteLog($hLog, "Aucune données de navigateurs trouvé dans la sauvegarde")
 			EndIf
-			GUICtrlSetData($statusbar, "")
-			GUICtrlSetData($statusbarprogress, 0)
-			_UpdEdit($iIDEditLog, $hLog)
-			_ChangerEtatBouton($iIDAction, "Activer")
-			If(_FichierCacheExist("Sauvegarde") = 0) Then
-				_FichierCache("Sauvegarde", "1")
-			EndIf
+
 		EndIf
+
+		GUICtrlSetData($statusbar, "")
+		GUICtrlSetData($statusbarprogress, 0)
+		_UpdEdit($iIDEditLog, $hLog)
+		_ChangerEtatBouton($iIDAction, "Activer")
+		If (_FichierCacheExist("Sauvegarde") = 0) Then
+			_FichierCache("Sauvegarde", "1")
+		EndIf
+
 	Else
 		GUIDelete()
 		_ChangerEtatBouton($iIDAction, "Desactiver")
 	EndIf
-EndFunc
+EndFunc   ;==>_SauvegardeAutomatique
 
 Func _CopierSur()
 	Local $hGUIcopie = GUICreate("Copie BAO sur support externe", 400, 80)
 
-	Local $iIDCombo = GUICtrlCreateCombo("Choisissez la destination",10, 10, 380)
+	Local $iIDCombo = GUICtrlCreateCombo("Choisissez la destination", 10, 10, 380)
 
-	Local $aDrive = DriveGetDrive ($DT_ALL)
+	Local $aDrive = DriveGetDrive($DT_ALL)
 	Local $sDossierDesti, $sLetter
 
 	For $i = 1 To $aDrive[0]
@@ -741,7 +806,7 @@ Func _CopierSur()
 		$eGet = GUIGetMsg()
 	WEnd
 
-	If($eGet = $iIDButtonDemarrer And GUICtrlRead($iIDCombo) <> "Choisissez la destination") Then
+	If ($eGet = $iIDButtonDemarrer And GUICtrlRead($iIDCombo) <> "Choisissez la destination") Then
 
 		$sLetter = StringLeft(GUICtrlRead($iIDCombo), 2)
 		GUIDelete()
@@ -750,11 +815,11 @@ Func _CopierSur()
 		_FileWriteLog($hLog, 'Copie de BAO sur "' & $sDossierDesti & '"')
 		_UpdEdit($iIDEditLog, $hLog)
 		GUICtrlSetData($statusbar, "Copie en cours")
-		RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '" "' &  $sDossierDesti & '" /MIR /XD "' & @ScriptDir & '\Cache\Pwd\"')
+		RunWait(@ComSpec & ' /c robocopy "' & @ScriptDir & '" "' & $sDossierDesti & '" /MIR /XD "' & @ScriptDir & '\Cache\Pwd\"')
 		GUICtrlSetData($statusbar, "")
 		;DirCopy(@ScriptDir, $sDossierDesti, 1)
 	Else
 		GUIDelete()
 	EndIf
 
-EndFunc
+EndFunc   ;==>_CopierSur

@@ -185,7 +185,7 @@ Func _RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossier)
 		If(_FichierCache("FTPRecup") <> _NowDate()) Then
 
 			$sSplashTxt = $sSplashTxt & @LF & "Récupération des rapports sur le FTP/SFTP"
-			ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+			ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 
 			Local $sMdp, $bSVGMdp = 0, $iIdFTP
 
@@ -275,7 +275,7 @@ Func _RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossier)
 							If($aFile[0] <> 0) Then
 
 								$sSplashTxt = $sSplashTxt & @LF & "  " & $aFile[0] & " rapport(s) à récupérer"
-								ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+								ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 								_ArrayDelete($aFile, 0)
 								Sleep(2000)
 

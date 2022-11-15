@@ -39,7 +39,7 @@ Func _InitialisationBAO($sConfig)
 		; Création du fichier config.ini
 		IniWriteSection($sConfig,"Parametrages", "Societe=MyBigCorporation"&@LF&"Dossier=Rapport"&@LF&"Icones=1"&@LF&"Restauration=0"&@CRLF)
 
-		IniWriteSection($sConfig,"Installation", "Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Safari Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh OnlyOffice"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler FoxitReader ImgBurn JavaRuntime TeamViewer"&@CRLF)
+		IniWriteSection($sConfig,"Installation", "Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Safari Brave Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh OnlyOffice wps-office-free"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler FoxitReader ImgBurn JavaRuntime TeamViewer"&@CRLF)
 
 		IniWriteSection($sConfig,"BureauDistant", "Agent=DWAgent"&@LF&"Mail=votreadressemail@domaine.fr"&@CRLF)
 
@@ -110,7 +110,7 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	_FileWriteLog($hLog, "Client : " & $sNom & " - PC : " & @ComputerName)
 
 	$sSplashTxt = $sSplashTxt & @LF & "Génération des informations système"
-	ControlSetText("Initialisation de BAO", "", "Static1", $sSplashTxt)
+	ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 
 	 _RapportInfos()
 
@@ -156,6 +156,8 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	if $iAutoAdmin = 0 Then
 		_FichierCache("Autologon", 2)
 	EndIf
+
+	ControlSend('Program Manager', '', '', '{F5}')
 
 	Return $sNom
 EndFunc
@@ -256,11 +258,8 @@ Func _FichierCache($sNomFichier, $sValeur = "0")
 
 	If($sValeur = "0") Then ;Mode lecture
 		If Not FileExists($sNomFichier) Then
-			$sRepReini = MsgBox($MB_YESNO, "Fichier manquant", "Le fichier " & $sNomFichier & " n'existe pas. Il est conseillé de réintialiser les réglages de BAO" & @CRLF & "Voulez vous réintialiser BAO ?")
-			If ($sRepReini = 6) Then
-				_ReiniBAO()
-				Exit
-			EndIf
+			_Attention("Le fichier " & $sNomFichier & " n'existe pas. Il est conseillé de réintialiser BAO")
+			_FileWriteLog($hLog, 'Erreur : "' & $sNomFichier & '" manquant')
 		EndIf
 		$hID = FileOpen($sNomFichier)
 		If $hID = -1 Then
@@ -276,11 +275,8 @@ Func _FichierCache($sNomFichier, $sValeur = "0")
 	Else
 		$hID = FileOpen($sNomFichier, 10)
 		If $hID = -1 Then
-			$sRepReini = MsgBox($MB_YESNO, "Erreur d'ouverture", "Impossible d'ouvrir " & $sNomFichier & ". Il est conseillé de réintialiser les réglages de BAO" & @CRLF & "Voulez vous réintialiser BAO ?")
-			If ($sRepReini = 6) Then
-				_ReiniBAO()
-				Exit
-			EndIf
+			_Attention("Le fichier " & $sNomFichier & " n'a pas pu être ouvert. Il est conseillé de réintialiser BAO")
+			_FileWriteLog($hLog, 'Erreur : "' & $sNomFichier & '" impossible à ouvrir')
 			$sFuncRetour = 0
 		Else
 			FileWriteLine($hID, $sValeur)
@@ -528,7 +524,7 @@ Func _APropos()
 		GUICtrlCreateLabel("Nouvelle version disponible !",220, 45)
 		GUICtrlSetColor(-1, $COLOR_RED)
 	EndIf
-	GUICtrlCreateLabel('"Boîte A Outils" est un logiciel d' & "'" & 'aide au dépannage informatique'&@CRLF&"Licence : GPL-3.0-or-later"&@CRLF&"https://www.isergues.fr"&@CRLF&"Copyright 2019 - 2021 Bastien Rouches", 10, 75)
+	GUICtrlCreateLabel('"Boîte A Outils" est un logiciel d' & "'" & 'aide au dépannage informatique'&@CRLF&"Licence : GPL-3.0-or-later"&@CRLF&"https://www.isergues.fr"&@CRLF&"Copyright 2019 - 2022 Bastien Rouches", 10, 75)
  	GUICtrlCreateLabel("Aller sur le site du logiciel : ", 40, 145)
 	local $iIdLien = GUICtrlCreateButton("https://boiteaoutils.xyz", 200, 140, 190)
 	GUICtrlCreateLabel("Encourager le développeur : ", 40, 170)

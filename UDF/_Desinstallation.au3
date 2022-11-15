@@ -119,22 +119,12 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 				$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomRapportComplet, $sFTPDossierRapports & $sNomFichier)
 				$nb+=1
 			Until $iRetour <> -1 or $nb = 3
-
-			If _FichierCacheExist("Supervision") Then
-				Local $sFTPDossierCapture = IniRead($sConfig, "FTP", "DossierCapture", "")
-				_EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, "", $sFTPDossierCapture & $sNom & ".png", 1)
-			EndIf
-
 		Else
 			Local $aFileToDel = FileReadToArray(@LocalAppDataDir & "\bao\FichierASupprimer.txt")
 			If @error = 0 Then
 				For $sFileToDel In $aFileToDel
 					FileDelete($sFileToDel)
 				Next
-			EndIf
-
-			If _FichierCacheExist("Supervision") Then
-				FileDelete(@ScriptDir & "\Cache\Supervision\" & $sNomCapture)
 			EndIf
 
 		EndIf
@@ -156,7 +146,7 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 
 		$sSplashTxt = $sSplashTxt & @LF & "Suppression des dépendances de BAO"
 		ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
-		_ReiniBAO()
+		_ReiniBAO($sFTPAdresse, $sFTPUser, $sFTPPort)
 		$sSplashTxt = $sSplashTxt & @LF & "Suppression de BAO"
 		ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
 		_Uninstall($iEteindre)
@@ -169,10 +159,10 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	EndIf
 EndFunc
 
-Func _ReiniBAO()
+Func _ReiniBAO($sFTPAdresse, $sFTPUser, $sFTPPort)
 
-	If(_FichierCacheExist("BureauDistant") = 1) Then
-		_UninstallDWAgent()
+	If(_FichierCacheExist("Fondecran") = 1) Then
+		_ActivationFondecran()
 	EndIf
 
 	If(_FichierCacheExist("Installation") = 1) Then
@@ -201,6 +191,20 @@ Func _ReiniBAO()
 		If _FichierCacheExist("PartageProtege2") Then
 			RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess", "REG_DWORD", 1)
 		EndIf
+	EndIf
+
+	If _FichierCacheExist("Supervision") Then
+		Local $sFTPDossierCapture = IniRead($sConfig, "FTP", "DossierCapture", "")
+		_EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, "", $sFTPDossierCapture & $sNom & ".png", 1)
+
+		If StringLeft(@ScriptDir, 2) <> "\\" Then
+			FileDelete(@ScriptDir & "\Cache\Supervision\" & $sNomCapture)
+		EndIf
+
+	EndIf
+
+	If(_FichierCacheExist("BureauDistant") = 1) Then
+		_UninstallDWAgent()
 	EndIf
 
 	DirRemove(@LocalAppDataDir & "\bao", 1)

@@ -9,6 +9,11 @@
                     display: grid;
                     grid-template-columns: 1fr 1fr 1fr; /* fraction*/
                 }
+
+                .container2 {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr; /* fraction*/
+                }
             </style>
 		</head>
 		<body>
@@ -24,8 +29,10 @@
                     echo '<p>Aucune capture disponible</p>'."\n";
                 } else {
 
-                    if ($nbimage < 3) {
+                    if ($nbimage == 1) {
                         echo '<div>'."\n";
+                    } elseif ($nbimage == 2) {
+                         echo '<div class="container2">'."\n";
                     }
 
                     foreach($images as $image) {
