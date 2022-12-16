@@ -21,12 +21,10 @@ This file is part of "Boîte A Outils"
 Func _BureauDistant()
 
 	Local $programFilesDir = RegRead("HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion", "ProgramFilesDir")
-	Local $sAgent = IniRead($sConfig, "BureauDistant", "Agent", "DWAgent")
-	Local $sMailBD = IniRead($sConfig, "BureauDistant", "Mail", "")
 
 	If $sMailBD <> "" Then
 
-		If StringLeft($sNom, 4) <> "Tech" And FileExists($programFilesDir & "\DWAgent\runtime\dwagent.exe") Then
+		If($iModeTech = 0) And FileExists($programFilesDir & "\DWAgent\runtime\dwagent.exe") Then
 			If(_FichierCacheExist("BureauDistant") = 1) Then
 				_FileWriteLog($hLog, 'Désinstallation DWAgent')
 				_UninstallDWAgent()
@@ -39,7 +37,7 @@ Func _BureauDistant()
 				_DesactivationFondecran()
 			EndIf
 		Else
-			If(StringLeft($sNom, 4) <> "Tech") Then
+			If($iModeTech = 0) Then
 				_FileWriteLog($hLog, 'Activation du bureau distant')
 				_ChangerEtatBouton($iIDAction, "Patienter")
 				If MapExists($aMenu, $sAgent) Then

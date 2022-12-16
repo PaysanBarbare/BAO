@@ -18,7 +18,7 @@ This file is part of "Boîte A Outils"
     along with Boîte A Outils.  If not, see <https://www.gnu.org/licenses/>.
 #ce
 
-Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemove = 0, $bCheckmdp = 0)
+Func _EnvoiFTP($sFichier, $sDossier, $bRemove = 0, $bCheckmdp = 0)
 
 	Local $bRetour = 0
 
@@ -172,11 +172,11 @@ Func _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFichier, $sDossier, $bRemov
 	Return $bRetour
 EndFunc
 
-Func _RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossier)
+Func _RecupFTP()
 
 	Local $bRetour = 0
 
-	If($sFTPAdresse <> "" And $sFTPUser <> "" And $sFTPDossier <> "") Then
+	If($sFTPAdresse <> "" And $sFTPUser <> "" And $sFTPDossierRapports <> "") Then
 
 		If(_FichierCacheExist("FTPRecup") = 0) Then
 			_FichierCache("FTPRecup", 1)
@@ -184,8 +184,10 @@ Func _RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossier)
 
 		If(_FichierCache("FTPRecup") <> _NowDate()) Then
 
-			$sSplashTxt = $sSplashTxt & @LF & "Récupération des rapports sur le FTP/SFTP"
-			ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
+			;$sSplashTxt = $sSplashTxt & @LF & "Récupération des rapports sur le FTP/SFTP"
+			;ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
+			GUICtrlSetData($statusbar, "Téléchargement rapports sur FTP")
+			GUICtrlSetData($statusbarprogress, 25)
 
 			Local $sMdp, $bSVGMdp = 0, $iIdFTP
 
@@ -226,6 +228,7 @@ Func _RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossier)
 
 			If $sMdp <> "" Then
 
+				GUICtrlSetData($statusbarprogress, 50)
 				; Ajout de BAO dans le pare-feu Windows
 				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall delete rule name = "BAO" dir = in', "", @SW_HIDE)
 				RunWait(@ComSpec & " /c " & 'netsh advfirewall firewall add rule name = "BAO" dir = in action = allow program = "' & @AutoItExe & '" enable = yes', "", @SW_HIDE)
@@ -264,7 +267,7 @@ Func _RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossier)
 							_Crypter("ftp", $sMdp, $sFTPUser)
 						EndIf
 
-						_SFTP_DirSetCurrent($hConn, $sFTPDossier)
+						_SFTP_DirSetCurrent($hConn, $sFTPDossierRapports)
 						If @error Then
 							_FileWriteLog($hLog, 'Erreur de récupération des fichiers sur le FTP: ' & @error)
 						Else
@@ -274,8 +277,10 @@ Func _RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossier)
 
 							If($aFile[0] <> 0) Then
 
-								$sSplashTxt = $sSplashTxt & @LF & "  " & $aFile[0] & " rapport(s) à récupérer"
-								ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
+								;$sSplashTxt = $sSplashTxt & @LF & "  " & $aFile[0] & " rapport(s) à récupérer"
+								GUICtrlSetData($statusbar, "Téléchargement : " & $aFile[0] & " rapport(s) à récupérer")
+								GUICtrlSetData($statusbarprogress, 75)
+								;ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 								_ArrayDelete($aFile, 0)
 								Sleep(2000)
 
@@ -318,15 +323,17 @@ Func _RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossier)
 							_Crypter("ftp", $sMdp, $sFTPUser)
 						EndIf
 
-						_FTP_DirSetCurrent($hConn, $sFTPDossier)
+						_FTP_DirSetCurrent($hConn, $sFTPDossierRapports)
 
 						Local $sDocY, $sDocM
 						Local $aFile = _FTP_ListToArray($hConn, 2)
 
 						If($aFile[0] <> 0) Then
 
-							$sSplashTxt = $sSplashTxt & @LF & "  " & $aFile[0] & " rapport(s) à récupérer"
-							SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+							;$sSplashTxt = $sSplashTxt & @LF & "  " & $aFile[0] & " rapport(s) à récupérer"
+							;SplashTextOn("", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
+							GUICtrlSetData($statusbar, "Téléchargement : " & $aFile[0] & " rapport(s) à récupérer")
+							GUICtrlSetData($statusbarprogress, 75)
 							_ArrayDelete($aFile, 0)
 
 							For $sFTPFile in $aFile
@@ -350,7 +357,12 @@ Func _RecupFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossier)
 					_FTP_Close($hConn)
 					_FTP_Close($hOpen)
 				EndIf
+				GUICtrlSetData($statusbarprogress, 100)
+				_SupprimerSuivisAnciens()
 			EndIf
+			GUICtrlSetData($statusbar, "")
+			GUICtrlSetData($statusbarprogress, 0)
+
 		EndIf
 	EndIf
 

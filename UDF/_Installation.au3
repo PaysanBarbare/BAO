@@ -21,6 +21,7 @@ This file is part of "Boîte A Outils"
 Func _InstallationAutomatique()
 
 	_ChangerEtatBouton($iIDAction, "Patienter")
+	Local $iIDButtonDefaut, $iIDButtonDeselectionner, $iIDButtonSelectionner, $iIDCache, $iIDDefaut, $iIDButtonInstaller, $iTitreBureautique, $iTitreDivers, $iTitreInternet, $iTitreMultimedia, $iEDivers, $iEBureautique, $iEInternet, $iEMultimedia
 
 	Local $sListeSoftsInternet = IniRead($sConfig, "Installation", "1", "Internet GoogleChrome Firefox Opera Safari Thunderbird")
 	Local $sListeSoftsBureautique = IniRead($sConfig, "Installation", "2", "Bureautique OpenOffice LibreOffice-fresh")
@@ -50,62 +51,89 @@ Func _InstallationAutomatique()
 	Local $idCheckboxMultimedia[$aListeSoftsMultimedia[0]]
 	Local $idCheckboxDivers[$aListeSoftsDivers[0]]
 
-	Local $iHauteurCadre1 = $aListeSoftsInternet[0] * 25 + 30
+	Local $iHauteurCadre1 = $aListeSoftsInternet[0] * 20 + 25
 	If $aListeSoftsInternet[0] < $aListeSoftsBureautique[0] Then
-		$iHauteurCadre1 = $aListeSoftsBureautique[0] * 25 + 30
+		$iHauteurCadre1 = $aListeSoftsBureautique[0] * 20 + 25
 	EndIf
 
-	Local $iHauteurCadre2 = $aListeSoftsMultimedia[0] * 25 + 30
+	Local $iHauteurCadre2 = $aListeSoftsMultimedia[0] * 20 + 25
 	If $aListeSoftsMultimedia[0] < $aListeSoftsDivers[0] Then
-		$iHauteurCadre2 = $aListeSoftsDivers[0] * 25 + 30
+		$iHauteurCadre2 = $aListeSoftsDivers[0] * 20 + 25
 	EndIf
 
 	Local $hGUIInst = GUICreate("Sélection des programmes à installer", 400,$iHauteurCadre1 + $iHauteurCadre2 + 130)
 
-	GUICtrlCreateGroup($sGroupe1, 10, 10, 180, $iHauteurCadre1)
-	For $p = 1 To $aListeSoftsInternet[0]
-		$idCheckboxInternet[$p-1] = GUICtrlCreateCheckbox($aListeSoftsInternet[$p], 20, 25 * ($p - 1) + 30)
-		If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsInternet[$p]) <> -1) Then
+	If($iModeTech = 0) Then
+		GUICtrlCreateGroup($sGroupe1, 10, 10, 180, $iHauteurCadre1)
+		For $p = 1 To $aListeSoftsInternet[0]
+			$idCheckboxInternet[$p-1] = GUICtrlCreateCheckbox($aListeSoftsInternet[$p], 20, 20 * ($p - 1) + 25)
+			If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsInternet[$p]) <> -1) Then
+				GUICtrlSetState (-1, 1)
+			EndIf
+		Next
+
+		GUICtrlCreateGroup($sGroupe2, 210, 10, 180, $iHauteurCadre1)
+		For $p = 1 To $aListeSoftsBureautique[0]
+			$idCheckboxBureautique[$p-1] = GUICtrlCreateCheckbox($aListeSoftsBureautique[$p], 220, 20 * ($p - 1) + 25)
+			If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsBureautique[$p]) <> -1) Then
+				GUICtrlSetState (-1, 1)
+			EndIf
+		Next
+
+		GUICtrlCreateGroup($sGroupe3, 10,$iHauteurCadre1 + 30 , 180, $iHauteurCadre2)
+		For $p = 1 To $aListeSoftsMultimedia[0]
+			$idCheckboxMultimedia[$p-1] = GUICtrlCreateCheckbox($aListeSoftsMultimedia[$p], 20, $iHauteurCadre1 + 20 * ($p - 1) + 50)
+			If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsMultimedia[$p]) <> -1) Then
+				GUICtrlSetState (-1, 1)
+			EndIf
+		Next
+
+		GUICtrlCreateGroup($sGroupe4, 210, $iHauteurCadre1 + 30 , 180, $iHauteurCadre2)
+		For $p = 1 To $aListeSoftsDivers[0]
+			$idCheckboxDivers[$p-1] = GUICtrlCreateCheckbox($aListeSoftsDivers[$p], 220, $iHauteurCadre1 + 20 * ($p - 1) + 50)
+			If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsDivers[$p]) <> -1) Then
+				GUICtrlSetState (-1, 1)
+			EndIf
+		Next
+
+		GUICtrlCreateLabel("Sélectionner", 15, $iHauteurCadre1 + $iHauteurCadre2 + 45)
+		$iIDButtonSelectionner = GUICtrlCreateButton("Tous", 90, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
+		$iIDButtonDeselectionner = GUICtrlCreateButton("Aucun", 165, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
+		$iIDButtonDefaut = GUICtrlCreateButton("Par défaut", 240, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
+
+		If StringLeft(@ScriptDir, 2) = "\\" Then
+			$iIDCache = GUICtrlCreateCheckbox("Utiliser le cache sur le partage ?", 20, $iHauteurCadre1 + $iHauteurCadre2 + 70)
 			GUICtrlSetState (-1, 1)
 		EndIf
-	Next
 
-	GUICtrlCreateGroup($sGroupe2, 210, 10, 180, $iHauteurCadre1)
-	For $p = 1 To $aListeSoftsBureautique[0]
-		$idCheckboxBureautique[$p-1] = GUICtrlCreateCheckbox($aListeSoftsBureautique[$p], 220, 25 * ($p - 1) + 30)
-		If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsBureautique[$p]) <> -1) Then
-			GUICtrlSetState (-1, 1)
-		EndIf
-	Next
+		$iIDDefaut = GUICtrlCreateDummy()
+	Else
+		$iTitreInternet = GUICtrlCreateInput($sGroupe1, 10, 10, 180, 20)
+		$iEInternet = GUICtrlCreateEdit(_ArrayToString($aListeSoftsInternet, @CRLF, 1), 20, 35, 160, $iHauteurCadre1 - 20)
 
-	GUICtrlCreateGroup($sGroupe3, 10,$iHauteurCadre1 + 30 , 180, $iHauteurCadre2)
-	For $p = 1 To $aListeSoftsMultimedia[0]
-		$idCheckboxMultimedia[$p-1] = GUICtrlCreateCheckbox($aListeSoftsMultimedia[$p], 20, $iHauteurCadre1 + 25 * ($p - 1) + 50)
-		If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsMultimedia[$p]) <> -1) Then
-			GUICtrlSetState (-1, 1)
-		EndIf
-	Next
+		$iTitreBureautique = GUICtrlCreateInput($sGroupe2, 210, 10, 180, 20)
+		$iEBureautique = GUICtrlCreateEdit(_ArrayToString($aListeSoftsBureautique, @CRLF, 1), 220, 35, 160, $iHauteurCadre1 - 20)
 
-	GUICtrlCreateGroup($sGroupe4, 210, $iHauteurCadre1 + 30 , 180, $iHauteurCadre2)
-	For $p = 1 To $aListeSoftsDivers[0]
-		$idCheckboxDivers[$p-1] = GUICtrlCreateCheckbox($aListeSoftsDivers[$p], 220, $iHauteurCadre1 + 25 * ($p - 1) + 50)
-		If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsDivers[$p]) <> -1) Then
-			GUICtrlSetState (-1, 1)
-		EndIf
-	Next
+		$iTitreMultimedia = GUICtrlCreateInput($sGroupe3, 10, $iHauteurCadre1 + 30 , 180, 20)
+		$iEMultimedia = GUICtrlCreateEdit(_ArrayToString($aListeSoftsMultimedia, @CRLF, 1), 20, $iHauteurCadre1 + 60, 160, $iHauteurCadre1 + 30)
 
-	GUICtrlCreateLabel("Sélectionner", 15, $iHauteurCadre1 + $iHauteurCadre2 + 45)
-	Local $iIDButtonSelectionner = GUICtrlCreateButton("Tous", 90, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
-	Local $iIDButtonDeselectionner = GUICtrlCreateButton("Aucun", 165, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
-	Local $iIDButtonDefaut = GUICtrlCreateButton("Par défaut", 240, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
-	$p = $p+1
- 	Local $iIDCache
-	If StringLeft(@ScriptDir, 2) = "\\" Then
-		$iIDCache = GUICtrlCreateCheckbox("Utiliser le cache sur le partage ?", 20, $iHauteurCadre1 + $iHauteurCadre2 + 70)
-		GUICtrlSetState (-1, 1)
+		$iTitreDivers = GUICtrlCreateInput($sGroupe4, 210, $iHauteurCadre1 + 30 , 180, 20)
+		$iEDivers = GUICtrlCreateEdit(_ArrayToString($aListeSoftsDivers, @CRLF, 1), 220,  $iHauteurCadre1 + 60, 160, $iHauteurCadre1 + 30)
+
+		GUICtrlCreateLabel("Cocher par défaut (saisissez les noms des logiciels séparés par un espace)", 20, $iHauteurCadre1 + $iHauteurCadre2 + 45)
+		$iIDDefaut = GUICtrlCreateInput($sListeSoftsDefaut, 20, $iHauteurCadre1 + $iHauteurCadre2 + 65)
+
+		$iIDButtonSelectionner = GUICtrlCreateDummy()
+		$iIDButtonDeselectionner = GUICtrlCreateDummy()
+		$iIDButtonDefaut = GUICtrlCreateDummy()
+		$iIDCache = GUICtrlCreateDummy()
 	EndIf
 
-	Local $iIDButtonInstaller = GUICtrlCreateButton("Installer", 125, $iHauteurCadre1 + $iHauteurCadre2 + 100, 150, 25, $BS_DEFPUSHBUTTON)
+	If $iModeTech = 0 Then
+		$iIDButtonInstaller = GUICtrlCreateButton("Installer", 100, $iHauteurCadre1 + $iHauteurCadre2 + 100, 200, 25, $BS_DEFPUSHBUTTON)
+	Else
+		$iIDButtonInstaller = GUICtrlCreateButton("Sauvegarder les changements", 100, $iHauteurCadre1 + $iHauteurCadre2 + 100, 200, 25, $BS_DEFPUSHBUTTON)
+	EndIf
 
 	 ; Boucle jusqu'à ce que l'utilisateur quitte.
 
@@ -114,7 +142,7 @@ Func _InstallationAutomatique()
 	Local $idMsgInst = GUIGetMsg()
 	Local $idtab
 
-	While ($idMsgInst <> $GUI_EVENT_CLOSE) And ($idMsgInst <> $iIDButtonInstaller)
+	While ($idMsgInst <> $GUI_EVENT_CLOSE)
 
 		If $idMsgInst = $iIDButtonSelectionner Then
 			Local $aSofts[0]
@@ -189,6 +217,23 @@ Func _InstallationAutomatique()
 				$idtab = _ArraySearch($aSofts, GUICtrlRead($idMsgInst, 1))
 				_ArrayDelete($aSofts, $idtab)
 			EndIf
+		ElseIf $idMsgInst = $iIDButtonInstaller Then
+				If $iModeTech = 0 Then
+					ExitLoop
+				Else
+					If GUICtrlRead($iTitreBureautique) <> "" And GUICtrlRead($iTitreDivers) <> "" And GUICtrlRead($iTitreInternet) <> "" And GUICtrlRead($iTitreMultimedia) <> "" Then
+						$sListeSoftsBureautique = GUICtrlRead($iTitreBureautique) & " " & StringStripWS(StringReplace(GUICtrlRead($iEBureautique), @CRLF, " "), 7)
+						$sListeSoftsDivers = GUICtrlRead($iTitreDivers) & " " & StringStripWS(StringReplace(GUICtrlRead($iEDivers), @CRLF, " "), 7)
+						$sListeSoftsInternet = GUICtrlRead($iTitreInternet) & " " & StringStripWS(StringReplace(GUICtrlRead($iEInternet), @CRLF, " "), 7)
+						$sListeSoftsMultimedia = GUICtrlRead($iTitreMultimedia) & " " & StringStripWS(StringReplace(GUICtrlRead($iEMultimedia), @CRLF, " "), 7)
+						$sListeSoftsDefaut = StringStripWS(GUICtrlRead($iIDDefaut), 7)
+						_SaveConfigInstallation($sListeSoftsDefaut, $sListeSoftsInternet, $sListeSoftsBureautique, $sListeSoftsMultimedia, $sListeSoftsDivers)
+						_Attention("Les changements ont été sauvegardés")
+						ExitLoop
+					Else
+						_Attention("Les titres des catégories ne peuvent être vides")
+					EndIf
+				EndIf
 		EndIf
 		$idMsgInst = GUIGetMsg()
 	WEnd
@@ -203,7 +248,7 @@ Func _InstallationAutomatique()
 
 	GUIDelete($hGUIInst)
 
-	If($idMsgInst = $iIDButtonInstaller And UBound($aSofts) > 0) Then
+	If($iModeTech = 0 And $idMsgInst = $iIDButtonInstaller And UBound($aSofts) > 0) Then
 
 		;$sListeSofts = _ArrayToString($aListeSofts, " ")
 		If FileExists( @AppDataCommonDir & "\chocolatey\choco.exe") = 0 Then

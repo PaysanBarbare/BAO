@@ -38,45 +38,105 @@ Func _InitialisationBAO($sConfig)
 	Else
 		; Création du fichier config.ini
 		IniWriteSection($sConfig,"Parametrages", "Societe=MyBigCorporation"&@LF&"Dossier=Rapport"&@LF&"Icones=1"&@LF&"Restauration=0"&@CRLF)
-
 		IniWriteSection($sConfig,"Installation", "Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Safari Brave Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh OnlyOffice wps-office-free"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler FoxitReader ImgBurn JavaRuntime TeamViewer"&@CRLF)
-
 		IniWriteSection($sConfig,"BureauDistant", "Agent=DWAgent"&@LF&"Mail=votreadressemail@domaine.fr"&@CRLF)
-
 		IniWriteSection($sConfig,"Desinfection", "Programmes de desinfection=Privazer RogueKiller AdwCleaner MalwareByte ZHPCleaner EsetOnlineScanner"&@CRLF)
-
 		IniWriteSection($sConfig, "Associations", "Defaut=0,0,0,0"&@CRLF)
-
 		IniWriteSection($sConfig, "FTP", "Protocol=sftp"&@LF&"Adresse="&@LF&"Utilisateur="&@LF&"Port=22"&@LF&"DossierRapports=/www/rapports/"&@LF&"DossierSFX=/www/dl/"&@LF&"DossierSuivi=/www/suivi/"&@LF&"DossierCapture=/www/capture/"&@CRLF)
-
-		TrayTip("Premier lancement", "Merci de compléter le fichier de configuration", 30)
-		ShellExecuteWait($sConfig)
 	EndIf
 
 EndFunc
 
-Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
+Func _SaveConfig($sSociete, $sDossierRapport, $iIcones, $sRestauration, $sBD, $sMailBD, $sFTPProtocol, $sFTPAdresse, $sFTPPort, $sFTPUser, $sFTPDossierRapports, $sFTPDossierSFX, $sFTPDossierSuivi, $sFTPDossierCapture, $sListeProgdes, $sListeTech)
+	Local $bRetour = True, $aTMPDes, $sErr
+	If $sSociete = "" Or $sDossierRapport = "" Or $sListeProgdes = "" Then
+		$bRetour = False
+		_Attention('Les champs "Nom de votre entreprise", "Nom du dossier rapport" et "Désinfection antivirale" ne peuvent être vide')
+	EndIf
+	$aTMPDes = _ArrayFromString($sListeProgdes, " ")
+	For $sdes In $aTMPDes
+		If Not MapExists($aMenu, $sdes) Then
+			$sErr &= " - " & $sdes & @CRLF
+		EndIf
+	Next
 
-	Local $hGUINom = GUICreate("Client", 400, 200)
-	GUICtrlCreateLabel('Entrez le nom du client :',10, 15)
-	Local $iNomTmp = GUICtrlCreateInput(@UserName, 130, 12, 250)
-	GUICtrlCreateLabel('(Indiquez "Tech" suivi de votre nom pour la version Technicien)', 10, 40)
+	If $sErr <> "" Then
+		$bRetour = False
+		_Attention('Erreur : Ces logiciels ne sont pas présents dans le menu "Logiciels" de BAO :' & @CRLF & $sErr)
+	Else
+		IniWriteSection($sConfig,"Parametrages", "Societe="&$sSociete&@LF&"Dossier="&$sDossierRapport&@LF&"Icones="&$iIcones&@LF&"Restauration="&$sRestauration)
+		IniWriteSection($sConfig,"BureauDistant", "Agent="&$sBD&@LF&"Mail="&$sMailBD)
+		IniWriteSection($sConfig,"Desinfection", "Programmes de desinfection="&$sListeProgdes)
+		IniWriteSection($sConfig, "FTP", "Protocol="&$sFTPProtocol&@LF&"Adresse="&$sFTPAdresse&@LF&"Utilisateur="&$sFTPUser&@LF&"Port="&$sFTPPort&@LF&"DossierRapports="&$sFTPDossierRapports&@LF&"DossierSFX="&$sFTPDossierSFX&@LF&"DossierSuivi="&$sFTPDossierSuivi&@LF&"DossierCapture="&$sFTPDossierCapture)
+		If $sListeTech <> "" Then
+			IniWrite($sConfig, "Parametrages", "Techniciens", $sListeTech)
+		EndIf
+	EndIf
 
-	Local $aSuivi = _FileListToArrayRec(@ScriptDir & "\Cache\Suivi\", "*.txt")
-	Local $iIDCombo
+	Return $bRetour
 
-	If $aSuivi <> "" And _FichierCacheExist("Suivi") = 1 Then
-		GUICtrlCreateLabel('Associer cette machine au numéro de suivi : ',10, 90)
-		Local $iIDCombo = GUICtrlCreateCombo("Aucun",250, 88, 80)
+EndFunc
+
+Func _SaveConfigInstallation($sListeSoftsDefaut, $sListeSoftsInternet, $sListeSoftsBureautique, $sListeSoftsMultimedia, $sListeSoftsDivers)
+
+	IniWriteSection($sConfig,"Installation", "Defaut="&$sListeSoftsDefaut&@LF&"1="&$sListeSoftsInternet&@LF&"2="&$sListeSoftsBureautique&@LF&"3="&$sListeSoftsMultimedia&@LF&"4="&$sListeSoftsDivers)
+
+EndFunc
+
+Func _PremierLancement()
+
+	Local $hGUINom = GUICreate("Choix du mode", 520, 265)
+	Local $iIDTabMode = GUICtrlCreateTab(10, 10, 500, 220)
+	Local $iIDTabModeClient = GUICtrlCreateTabItem("Client")
+	Local $aSuivi = _FileListToArrayRec(@ScriptDir & "\Rapports\Nouvelle\", "*.bao")
+	Local $iIDCombo = -1
+	Local $iTech
+
+	GUICtrlCreateGroup("Choix de l'intervention", 20, 40, 360, 80)
+	GUICtrlSetFont (-1, 9, 800)
+
+	If $aSuivi <> "" And _FichierCacheExist("Suivi") = 0 Then
+		GUICtrlCreateLabel('Choisissez le client dans la liste : ',30, 60)
+		$iIDCombo = GUICtrlCreateCombo("Aucun",30, 85, 340)
 		For $i=1 To $aSuivi[0]
 			GUICtrlSetData($iIDCombo, StringTrimRight($aSuivi[$i], 4))
 		Next
+	Else
+		GUICtrlCreateLabel("Aucune intervention disponible", 120, 80)
 	EndIf
 
-	Local $iIDValider = GUICtrlCreateButton("Valider", 125, 155, 150, 25, $BS_DEFPUSHBUTTON)
+	;GUICtrlCreateButton("Sélectionner", 110, 115, 180, 25)
+
+	GUICtrlCreateGroup("Création du client", 20, 125, 360, 95)
+	GUICtrlSetFont (-1, 9, 800)
+	GUICtrlCreateLabel("Nom", 30, 155, 50, 25)
+	Local $iNomClient = GUICtrlCreateInput("", 80, 150, 110, 25)
+	GUICtrlCreateLabel("Prénom", 205, 155, 50, 25)
+	Local $iPrenomClient = GUICtrlCreateInput("", 260, 150, 110, 25)
+	GUICtrlCreateLabel("Société", 30, 190, 50, 25)
+	Local $iSocieteClient = GUICtrlCreateInput("", 80, 185, 290, 25)
+
+	GUICtrlCreateGroup("Technicien", 390, 40, 110, 180)
+	GUICtrlSetFont (-1, 9, 800)
+
+	If $aListeTech <> "" Then
+		$iTech = GUICtrlCreateTreeView(390, 60, 105, 150)
+		For $tech In $aListeTech
+			GUICtrlCreateTreeViewItem($tech, $iTech)
+		Next
+	Else
+		GUICtrlCreateLabel("Aucun Tech trouvé", 400, 60, 90, 25)
+	EndIf
+
+	Local $iIDTabModeTech = GUICtrlCreateTabItem("Technicien")
+	GUICtrlCreateLabel("Entrez le nom de l'ordinateur :", 160, 100)
+	Local $iNomTech = GUICtrlCreateInput(@ComputerName, 160, 130, 200)
+
+	GUICtrlCreateTabItem("")
+	Local $iIDValider = GUICtrlCreateButton("Valider", 170, 235, 180, 25, $BS_DEFPUSHBUTTON)
 	GUISetState(@SW_SHOW)
 
-	Local $iIdNom, $bClose = 0
+	Local $iIdNom, $bClose = 0, $sTech
 
 	While 1
 		$iIdNom = GUIGetMsg()
@@ -87,18 +147,79 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 				_FichierCache("PremierLancement", _Now())
 				ExitLoop
 
+			Case $iIDCombo
+				If(GUICtrlRead($iIDCombo) <> "Aucun") Then
+					GUICtrlSetState($iNomClient, $GUI_DISABLE)
+					GUICtrlSetState($iPrenomClient, $GUI_DISABLE)
+					GUICtrlSetState($iSocieteClient, $GUI_DISABLE)
+				Else
+					GUICtrlSetState($iNomClient, $GUI_ENABLE)
+					GUICtrlSetState($iPrenomClient, $GUI_ENABLE)
+					GUICtrlSetState($iSocieteClient, $GUI_ENABLE)
+				EndIf
+
 			Case $iIDValider
 				_FichierCache("PremierLancement", _Now())
-				If(GUICtrlRead($iIDCombo) <> "Aucun") Then
-					_FichierCache("Suivi", GUICtrlRead($iIDCombo))
-					_DebutIntervention(GUICtrlRead($iIDCombo), $sFTPAdresse, $sFTPUser, $sFTPPort)
+				If GUICtrlRead($iIDTabMode, 1) = $iIDTabModeClient Then
+					If $iTech > 0 Then
+						$sTech = GUICtrlRead($iTech, 1)
+					EndIf
+					If(GUICtrlRead($iIDCombo) = "Aucun" Or $iIDCombo = -1) Then
+						If GUICtrlRead($iNomClient) <> "" Or GUICtrlRead($iSocieteClient) <> "" Then
+							If Not _RapportInfosClient($sFileInfosClient, GUICtrlRead($iNomClient), GUICtrlRead($iPrenomClient), GUICtrlRead($iSocieteClient), $sTech) Then
+								_FileWriteLog($hLog, "Erreur premier lancement : Infos clients non sauvegardées")
+							EndIf
+							If GUICtrlRead($iSocieteClient) <> "" Then
+								$sNom = _ChaineSansAccents(GUICtrlRead($iSocieteClient))
+							Else
+								$sNom = _ChaineSansAccents(GUICtrlRead($iNomClient) & " " & GUICtrlRead($iPrenomClient))
+							EndIf
+							_FichierCache("Proaxive", $sNom & " - " & @ComputerName & " - Rapport intervention.bao")
+							ExitLoop
+						Else
+							_Attention("Merci de saisir au moins le nom du client ou sa société")
+						EndIf
+					Else
+						_SetTech(@ScriptDir & "\Rapports\Nouvelle\" & GUICtrlRead($iIDCombo) & ".bao", $sTech)
+						FileCopy(@ScriptDir & "\Rapports\Nouvelle\" & GUICtrlRead($iIDCombo) & ".bao", @ScriptDir & "\Rapports\En cours\" & GUICtrlRead($iIDCombo) & ".bao", 9)
+						FileMove(@ScriptDir & "\Rapports\Nouvelle\" & GUICtrlRead($iIDCombo) & ".bao", $sFileInfosClient)
+						_FichierCache("EnCours", @ScriptDir & "\Rapports\En cours\" & GUICtrlRead($iIDCombo) & ".bao")
+						Local $mInfosClientTmp = _GetInfosClient($sFileInfosClient)
+						Local $sTNomClient, $sTPrenomClient, $sTSocieteClient, $sTTracking
+						If MapExists($mInfosClientTmp, "LASTNAME") Then $sTNomClient = $mInfosClientTmp["LASTNAME"]
+						If MapExists($mInfosClientTmp, "FIRSTNAME") Then $sTPrenomClient = $mInfosClientTmp["FIRSTNAME"]
+						If MapExists($mInfosClientTmp, "COMPANY") Then $sTSocieteClient = $mInfosClientTmp["COMPANY"]
+						If MapExists($mInfosClientTmp, "TRACKING") Then
+							$sTTracking = $mInfosClientTmp["TRACKING"]
+							If $sTTracking <> "" Then
+								_FichierCache("Suivi", $sTTracking)
+								If FileReadLine(@ScriptDir & '\Cache\Suivi\' & $sTTracking & '.txt') = "" Then
+									_DebutIntervention($sTTracking)
+								EndIf
+							EndIf
+						EndIf
+						If $sTSocieteClient <> "" Then
+							$sNom = _ChaineSansAccents($sTSocieteClient)
+						Else
+							$sNom = _ChaineSansAccents($sTNomClient & " " & $sTPrenomClient)
+						EndIf
+						FileDelete(@ScriptDir & "\Proaxive\" & GUICtrlRead($iIDCombo) & ".bao")
+						_FichierCache("Proaxive", GUICtrlRead($iIDCombo) & ".bao")
+						ExitLoop
+					EndIf
+				Else
+					_FichierCache("Technicien", 1)
+					If Not _RapportInfosClient($sFileInfosClient, "Tech", GUICtrlRead($iNomTech), $sSociete) Then
+						_FileWriteLog($hLog, "Erreur premier lancement : Infos tech non sauvegardées")
+					EndIf
+					$sNom = _ChaineSansAccents(GUICtrlRead($iNomTech))
+					$iModeTech = 1
+					ExitLoop
 				EndIf
-				ExitLoop
 
 		EndSwitch
 	WEnd
 
-	$sNom = _ChaineSansAccents(GUICtrlRead($iNomTmp))
 	$sNom = StringRegExpReplace($sNom, "(?s)[^a-z0-9A-Z-_ ]", "")
 
 	GUIDelete()
@@ -107,48 +228,53 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 
 	_FileWriteLog($hLog, "--------------------------")
 	_FileWriteLog($hLog, "Premier démarrage de BAO : ")
-	_FileWriteLog($hLog, "Client : " & $sNom & " - PC : " & @ComputerName)
+	If $iModeTech = 0 Then
+		_FileWriteLog($hLog, "Client : " & $sNom & " - PC : " & @ComputerName)
+	Else
+		_FileWriteLog($hLog, $sNom & " - PC : " & @ComputerName)
+	EndIf
 
-	$sSplashTxt = $sSplashTxt & @LF & "Génération des informations système"
-	ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
+	If $iModeTech = 0 Then
+		$sSplashTxt = $sSplashTxt & @LF & "Génération des informations système"
+		ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 
-	 _RapportInfos()
+		_RapportInfos()
 
-	 If StringLeft(@ScriptDir, 2) = "\\" Then
-		If FileCopy($sFileInfosys, @ScriptDir & "\Proaxive\" & $sNom & " - " & @ComputerName & " - Informations systeme.bao", 9) = 0 Then
-			_FileWriteLog($hLog, 'Impossible de copier "' & $sFileInfosys & '" dans "' & @ScriptDir & '\Proaxive\"')
+		If StringLeft(@ScriptDir, 2) = "\\" Then
+			_ExporterRapport(@ScriptDir & "\Proaxive\" & _FichierCache("Proaxive"))
+			_FichierCache("FichierASupprimer", @ScriptDir & "\Proaxive\" & _FichierCache("Proaxive"))
 		EndIf
-		_FichierCache("FichierASupprimer", @ScriptDir & "\Proaxive\" & $sNom & " - " & @ComputerName & " - Informations systeme.bao")
+	Else
+		_FichierCache("FS_START", $iFreeSpace)
 	EndIf
 
 	If $bClose = 1 Then
 		_FileWriteLog($hLog, "Fermeture par l'utilisateur : désinstallation de BAO")
 		$sNom = ""
-		_DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
+		_DesinstallerBAO()
 	EndIf
 
-	If($iFreeSpace < 30) Then
+	If($iModeTech = 0 And $iFreeSpace < 30) Then
 		Local $sRepnet = MsgBox($MB_YESNOCANCEL, "Nettoyage", "L'espace libre sur le disque " & $HomeDrive & " est seulement de " & $iFreeSpace & " Go." & @CR & "Voulez vous supprimer les fichiers temporaires et les anciennes installations de Windows ?")
 		If($sRepnet = 6) Then
 			RunWait(@ComSpec & ' /C cleanmgr.exe /LOWDISK /D ' & $HomeDrive, "", @SW_HIDE)
 		EndIf
 
-		If @OSVersion = "WIN_10" Or @OSVersion = "WIN_8" Then
-			Local $sRepnet = MsgBox($MB_YESNOCANCEL, "Nettoyage avancé", "Voulez vous compresser le dossier WinSXS et supprimer tous les anciens composants Windows ?")
-			If($sRepnet = 6) Then
-				RunWait(@ComSpec & ' /C Dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase')
-				RunWait(@ComSpec & ' /C sc stop msiserver & sc stop TrustedInstaller & sc config msiserver start= disabled & sc config TrustedInstaller start= disabled & icacls "%WINDIR%\WinSxS" /save "%WINDIR%\WinSxS_NTFS.acl" /t & takeown /f "%WINDIR%\WinSxS" /r & icacls "%WINDIR%\WinSxS" /grant "%USERDOMAIN%\%USERNAME%":(F) /t & compact /s:"%WINDIR%\WinSxS" /c /a /i * & icacls "%WINDIR%\WinSxS" /setowner "NT SERVICE\TrustedInstaller" /t & icacls "%WINDIR%" /restore "%WINDIR%\WinSxS_NTFS.acl" & sc config msiserver start= demand & sc config TrustedInstaller start= demand')
-			EndIf
-		EndIf
+		;If @OSVersion = "WIN_10" Or @OSVersion = "WIN_8" Then
+		;	Local $sRepnet = MsgBox($MB_YESNOCANCEL, "Nettoyage avancé", "Voulez vous compresser le dossier WinSXS et supprimer tous les anciens composants Windows ?")
+		;	If($sRepnet = 6) Then
+		;		RunWait(@ComSpec & ' /C Dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase')
+		;		RunWait(@ComSpec & ' /C sc stop msiserver & sc stop TrustedInstaller & sc config msiserver start= disabled & sc config TrustedInstaller start= disabled & icacls "%WINDIR%\WinSxS" /save "%WINDIR%\WinSxS_NTFS.acl" /t & takeown /f "%WINDIR%\WinSxS" /r & icacls "%WINDIR%\WinSxS" /grant "%USERDOMAIN%\%USERNAME%":(F) /t & compact /s:"%WINDIR%\WinSxS" /c /a /i * & icacls "%WINDIR%\WinSxS" /setowner "NT SERVICE\TrustedInstaller" /t & icacls "%WINDIR%" /restore "%WINDIR%\WinSxS_NTFS.acl" & sc config msiserver start= demand & sc config TrustedInstaller start= demand')
+		;	EndIf
+		;EndIf
 		_Attention((Round(DriveSpaceFree($HomeDrive & "\") / 1024, 2) - $iFreeSpace) & " Go libérés")
 	EndIf
 
-	Local $iIcones = IniRead($sConfig, "Parametrages", "Icones", 1)
-
-	If($iIcones = 1) Then
+	If($iModeTech = 0 And $iIcones = 1) Then
 		_FileWriteLog($hLog, "Ajout des icones sur le bureau")
 		RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel","{20D04FE0-3AEA-1069-A2D8-08002B30309D}","REG_DWORD",0)
 		RegWrite("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel","{59031a47-3f72-44a7-89c5-5595fe6b30ee}","REG_DWORD",0)
+		ControlSend('Program Manager', '', '', '{F5}')
 	Endif
 
 	; Vérification si autologon n'est pas déjà activé
@@ -156,8 +282,6 @@ Func _PremierLancement($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	if $iAutoAdmin = 0 Then
 		_FichierCache("Autologon", 2)
 	EndIf
-
-	ControlSend('Program Manager', '', '', '{F5}')
 
 	Return $sNom
 EndFunc
@@ -497,6 +621,92 @@ EndFunc
 Func _Restart()
 	run(@ScriptDir & "\run.bat", "", @SW_HIDE)
 	Exit
+EndFunc
+
+Func _UpdateEveryMin()
+	If @MIN <> $iMin Then
+
+		GUICtrlSetData ($sHeure, @MDAY &"/"& @MON &"/"& @YEAR &" - "& @HOUR &":"& @MIN)
+		$iMin = @MIN
+
+		If Not($sYear = @YEAR And $sMon = @MON And $sDay = @MDAY) Then
+			_FileWriteLog($hLog, "Correction automatique de l'heure")
+			_UpdEdit($iIDEditLog, $hLog)
+			_Attention("L'horloge a été resynchronisée, vérifiez la pile de BIOS", 1)
+			$sYear = @YEAR
+			$sMon = @MON
+			$sDay = @MDAY
+		EndIf
+
+		If(GUICtrlRead($iIDCheckboxwu) = $GUI_CHECKED) Then
+			Run(@ComSpec & ' /c net stop wuauserv & net stop bits & net stop dosvc', '', @SW_HIDE)
+		EndIf
+
+		$iFreeSpacech = $iFreeSpace
+		_CalculFS()
+		If($iFreeSpacech <> $iFreeSpace) Then
+			GUICtrlSetData($iIDespacelibre, $HomeDrive & " " & $iFreeSpacech & " Go libre")
+			$iFreeSpace = $iFreeSpacech
+		EndIf
+
+		$aMemStats = MemGetStats()
+		GUICtrlSetData($iIDRAMlibre, "RAM : " & $aMemStats[$MEM_LOAD] & '% utilisée')
+
+		If IsInt(@MIN / 5) Then
+			If $iModeTech = 0 And _FichierCacheExist("Supervision") Then
+				_SendCapture()
+			ElseIf $iModeTech = 1 Then
+				_CreerIndexSupervisionLocal()
+			EndIf
+		ElseIf $iModeTech = 0 And _FichierCacheExist("Supervision") Then
+			_SendCaptureLocal()
+		EndIf
+
+	EndIf
+EndFunc
+
+Func _ActivationAutologon($sDomaine, $sClientMdp = "")
+	Local $sSubKey, $sAutoUser, $sMdps
+	_FileWriteLog($hLog, 'Activation Autologon')
+	_UpdEdit($iIDEditLog, $hLog)
+	$sSubKey = RegEnumKey("HKEY_USERS\.DEFAULT\Software\Microsoft\IdentityCRL\StoredIdentities", 1)
+	If $sSubKey = "" Then
+		$sAutoUser = @UserName
+	Else
+		$sAutoUser = "MicrosoftAccount\" & $sSubKey
+	EndIf
+
+	If $sClientMdp = "" Then
+		$sMdps = InputBox("Mot de passe de session", "Entrez votre mot de passe de session pour" & @CRLF & '"' & $sAutoUser & '"', "", "*")
+	Else
+		$sMdps = $sClientMdp
+	EndIf
+
+	If $sMdps <> "" Then
+		$sDomaine = RegRead($HKLM & "\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters", "Domain")
+		RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 1)
+		RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName","REG_SZ", @UserName)
+		RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword","REG_SZ", $sMdps)
+		If($sDomaine <> "") Then
+			RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain","REG_SZ", $sDomaine)
+		EndIf
+		_FichierCache("Autologon", 1)
+	Else
+		GUICtrlSetState($iIDAutologon, $GUI_UNCHECKED)
+		_FichierCache("Autologon", 2)
+	EndIf
+EndFunc
+
+Func _DesactivationAutologon($sDomaine)
+	_FileWriteLog($hLog, 'Désactivation Autologon')
+	_UpdEdit($iIDEditLog, $hLog)
+	RegWrite($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","AutoAdminLogon","REG_SZ", 0)
+	RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultUserName")
+	RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultPassword")
+	If($sDomaine <> "") Then
+		RegDelete($HKLM & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon","DefaultDomain")
+	EndIf
+	_FichierCache("Autologon", 2)
 EndFunc
 
 Func _APropos()

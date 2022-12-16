@@ -169,6 +169,7 @@ Func _Desinstalleur()
 
 	While $idMsgDes <> $GUI_EVENT_CLOSE And $idMsgDes <> $iIDBQuit
 
+		_UpdateEveryMin()
 		Switch $idMsgDes
 
 			Case $iIDBDes

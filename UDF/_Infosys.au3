@@ -31,8 +31,6 @@ Func _RapportInfos($iReset = 0)
 	Else
 		$hEntete = FileOpen($sFileEntete, 1) ; append
 	EndIf
-	FileWriteLine($hEntete, '; Ce fichier peut être lu avec "Lecteur-bao.exe" présent dans le dossier "Outils" de BAO')
-	FileWriteLine($hEntete, "")
 	FileWriteLine($hEntete, "[CUSTOMER]" & $sNom & "[/CUSTOMER]")
 	FileWriteLine($hEntete, "")
 	FileWriteLine($hEntete, "[START]" & _Now() & "[/START]")
@@ -44,6 +42,7 @@ Func _RapportInfos($iReset = 0)
 
 	_FileWriteLog($hLog, 'Copie des fichiers "A copier" dans le dossier rapport')
 	; copie du contenu du dossier à copier
+	If DirCreate($sDossierRapport) = 0 Then	_Erreur("Impossible de créer le dossier '" & $sDossierRapport & "' sur le bureau")
 	FileCopy(@ScriptDir & "\A copier\*", $sDossierRapport & "\", 8)
 
 	_FileWriteLog($hLog, "Récupération des informations système")

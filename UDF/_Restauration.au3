@@ -52,21 +52,21 @@ EndFunc
 
 Func _CreateSystemRestorePoint ( $discription , $disable = True )
 
-Local $bReturn = False
-Local $obj = ObjGet ( "winmgmts:{impersonationLevel = impersonate}!root/default:SystemRestore" )
+	Local $bReturn = False
+	Local $obj = ObjGet ( "winmgmts:{impersonationLevel = impersonate}!root/default:SystemRestore" )
 
-$obj.Enable ( "" )
+	$obj.Enable ( "" )
 
-If Not $obj.CreateRestorePoint ( $discription , 12 , 100 ) = 0 Then
-	_Attention("Le point de restauration n'a pas été créé")
-Else
-	$bReturn = True
-EndIf
+	If Not $obj.CreateRestorePoint ( $discription , 12 , 100 ) = 0 Then
+		_Attention("Le point de restauration n'a pas été créé")
+	Else
+		$bReturn = True
+	EndIf
 
-If $disable Then
-$obj.Disable ( "" )
-EndIf
+	If $disable Then
+	$obj.Disable ( "" )
+	EndIf
 
-Return $bReturn
+	Return $bReturn
 
 EndFunc ; == >_CreateSystemRestorePoint

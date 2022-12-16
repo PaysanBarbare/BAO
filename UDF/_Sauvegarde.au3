@@ -94,7 +94,7 @@ Func _SauvegardeAutomatique()
 ;~ 		EndIf
 ;~ 	Next
 
-	Local $iIDCheckBrowser = GUICtrlCreateCheckbox("Sauvegarder favoris et mots de passe des navigateurs", 20, 120)
+	Local $iIDCheckBrowser = GUICtrlCreateCheckbox("Sauvegarder favoris des navigateurs", 20, 120)
 	Local $iIDCheckExtpassword = GUICtrlCreateCheckbox("Exporter avec ExtPassword! (Nirsoft)", 20, 140)
 	Local $iIDCheckWifi = GUICtrlCreateCheckbox("Exporter les profils WiFi", 20, 160)
 
@@ -109,7 +109,7 @@ Func _SauvegardeAutomatique()
 	Local $iIDRestaurUtil = GUICtrlCreateCheckbox("Restaurer dans les dossiers utilisateur", 20, 90)
 	Local $iIDRestauBureau = GUICtrlCreateCheckbox("Restaurer le contenu du bureau dans un sous dossier", 20, 110)
 	GUICtrlSetState($iIDRestauBureau, $GUI_DISABLE)
-	Local $iIDRestauFavoris = GUICtrlCreateCheckbox("Restaurer les favoris et mots de passe des navigateurs", 20, 130)
+	Local $iIDRestauFavoris = GUICtrlCreateCheckbox("Restaurer les favoris des navigateurs", 20, 130)
 	Local $iIDRestauWifi = GUICtrlCreateCheckbox("Importer les profils WiFi", 20, 150)
 
 	Local $iIDButtonDemarrerRestau = GUICtrlCreateButton("Restaurer", 100, 190, 90, 25, $BS_DEFPUSHBUTTON)
@@ -122,7 +122,8 @@ Func _SauvegardeAutomatique()
 	Local $iIDCheckBrowserreseau = GUICtrlCreateCheckbox("Sauvegarder infos navigateurs (Edge, Chrome, Firefox)", 30, 75)
 	Local $iIDCheckExtpasswordreseau = GUICtrlCreateCheckbox("Exporter avec ExtPassword! (Nirsoft)", 30, 95)
 	Local $iIDCheckWifireseau = GUICtrlCreateCheckbox("Exporter les profils WiFi", 30, 115)
-	Local $iIDInputCopier = GUICtrlCreateButton("Démarrer la copie", 140, 140, 120)
+	Local $iIDInputCopier = GUICtrlCreateButton("Démarrer la copie", 50, 140, 140)
+	Local $iIDInputOuvrir = GUICtrlCreateButton("Ouvrir le dossier partagé", 210, 140, 140)
 	GUICtrlSetTip(-1, 'Chemin vers le partage : "\\' & @ComputerName & '\SAUV"')
 	GUICtrlCreateGroup("PC Destination", 20, 175, 360, 50)
 	Local $iIDPCSource = GUICtrlCreateButton("Activer le partage", 30, 195, 120)
@@ -222,16 +223,21 @@ Func _SauvegardeAutomatique()
 					_Attention("Le compte 'Tout le monde' est introuvable pour le partage de " & $sDossierRapport & "\Sauvegarde réseau")
 				EndIf
 			EndIf
-		ElseIf $eGet = $iIDInputCopier Then
+		ElseIf $eGet = $iIDInputCopier Or $eGet = $iIDInputOuvrir Then
 			If GUICtrlRead($iIDInputNameComput) = "" Then
 				_Attention("Merci d'indiquer le nom de l'ordinateur de destination")
 			Else
 				RunWait(@ComSpec & ' /C net use \\' & GUICtrlRead($iIDInputNameComput) & '\SAUV /USER:bao_share bao', "", @SW_HIDE)
 				If FileExists("\\" & GUICtrlRead($iIDInputNameComput) & "\SAUV") Then
-					$bNet = True
-					ExitLoop
+					If $eGet = $iIDInputOuvrir Then
+						Run(@ComSpec & ' /C start \\' & GUICtrlRead($iIDInputNameComput) & '\SAUV', "", @SW_HIDE)
+					Else
+						$bNet = True
+						ExitLoop
+					EndIf
 				Else
-					_Attention("Le partage réseau n'a pas été trouvé, essayez de redémarrer l'ordinateur")
+					RunWait(@ComSpec & ' /C net use \\' & GUICtrlRead($iIDInputNameComput) & '\SAUV /delete', "", @SW_HIDE)
+					_Attention("Le partage réseau n'a pas été trouvé, Réessayez")
 				EndIf
 			EndIf
 		EndIf
@@ -347,7 +353,7 @@ Func _SauvegardeAutomatique()
 					; Opera
 					If (FileExists(@AppDataDir & "\Opera Software\Opera Stable")) Then
 						FileCopy(@AppDataDir & "\Opera Software\Opera Stable\Bookmarks", $sDossierDesti & "\Autres données\Opera\", 9)
-						FileCopy(@AppDataDir & "\Opera Software\Opera Stable\Login Data", $sDossierDesti & "\Autres données\Opera\", 9)
+						;FileCopy(@AppDataDir & "\Opera Software\Opera Stable\Login Data", $sDossierDesti & "\Autres données\Opera\", 9)
 						_FileWriteLog($hLog, "Sauvegarde d'Opera")
 					Else
 						_FileWriteLog($hLog, "Opera : aucun profil trouvé")
@@ -361,9 +367,9 @@ Func _SauvegardeAutomatique()
 								$iSizeBookmark = FileGetSize($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks")
 								FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Bookmarks", 9)
 							EndIf
-							If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Login Data")) Then
-								FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Login Data", 9)
-							EndIf
+							;If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Login Data")) Then
+							;	FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Login Data", 9)
+							;EndIf
 
 							Local $iProfil = 1
 							While FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\")
@@ -376,9 +382,9 @@ Func _SauvegardeAutomatique()
 									EndIf
 									FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Bookmarks", 9)
 								EndIf
-								If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data")) Then
-									FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Login Data", 9)
-								EndIf
+								;If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data")) Then
+								;	FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Login Data", 9)
+								;EndIf
 								$iProfil += 1
 							WEnd
 						Else
@@ -556,7 +562,7 @@ Func _SauvegardeAutomatique()
 					; Opera
 					If (FileExists($sSource & "\Roaming\Opera Software\Opera Stable")) Then
 						FileCopy($sSource & "\Roaming\Opera Software\Opera Stable\Bookmarks", $sDossierDesti & "\Autres données\Opera\", 9)
-						FileCopy($sSource & "\Roaming\Opera Software\Opera Stable\Login Data", $sDossierDesti & "\Autres données\Opera\", 9)
+						;FileCopy($sSource & "\Roaming\Opera Software\Opera Stable\Login Data", $sDossierDesti & "\Autres données\Opera\", 9)
 					Else
 						_FileWriteLog($hLog, "Opera : aucun profil trouvé")
 					EndIf
@@ -573,9 +579,9 @@ Func _SauvegardeAutomatique()
 								$iSizeBookmark = FileGetSize($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks")
 								FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Bookmarks", 9)
 							EndIf
-							If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Login Data")) Then
-								FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Login Data", 9)
-							EndIf
+							;If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Login Data")) Then
+							;	FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Login Data", 9)
+							;EndIf
 
 							Local $iProfil = 1
 							While FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\")
@@ -588,9 +594,9 @@ Func _SauvegardeAutomatique()
 									EndIf
 									FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Bookmarks", 9)
 								EndIf
-								If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data")) Then
-									FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Login Data", 9)
-								EndIf
+								;If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data")) Then
+								;	FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Login Data", 9)
+								;EndIf
 								$iProfil += 1
 							WEnd
 						Else

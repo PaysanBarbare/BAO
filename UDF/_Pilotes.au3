@@ -20,7 +20,7 @@ This file is part of "Boîte A Outils"
 
 Func _InstallationPilotes()
 	_ChangerEtatBouton($iIDAction, "Patienter")
-	If(StringLeft($sNom, 4) = "Tech") Then
+	If($iModeTech = 1) Then
 		_FileWriteLog($hLog, 'Téléchargement de la base de données de pilotes')
 		_UpdEdit($iIDEditLog, $hLog)
 		_Telecharger($aMenu["SDI"])

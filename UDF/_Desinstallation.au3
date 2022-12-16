@@ -18,9 +18,9 @@ This file is part of "Boîte A Outils"
     along with Boîte A Outils.  If not, see <https://www.gnu.org/licenses/>.
 #ce
 
-Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
+Func _DesinstallerBAO()
 
-	Local $iIDButtonDesinstaller, $iIDButtonAnnuler, $iAnnul = False, $iDeleteGUI = False, $eGet, $iRapport = 0, $iRapportInsc = 0, $iEteindre = 0, $sInput, $iIDInputInfo, $sProgDes, $t = 0, $sNomFichier = StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - Rapport intervention.bao"
+	Local $iIDButtonDesinstaller, $iIDButtonAnnuler, $iAnnul = False, $iDeleteGUI = False, $eGet, $iRapport = 0, $iRapportInsc = 0, $iEteindre = 0, $sInput, $iIDInputInfo, $sProgDes, $t = 0, $sNomFichier = StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - " & @ComputerName & " - Rapport intervention.bao"
 	Local $sNomRapportComplet = @LocalAppDataDir & "\bao\" & $sNomFichier
 
 	if $sNom <> "" Then
@@ -51,7 +51,10 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		$iIDButtonDesinstaller = GUICtrlCreateButton("Désinstaller", 100, 80, 90, 25, $BS_DEFPUSHBUTTON)
 		$iIDButtonAnnuler = GUICtrlCreateButton("Annuler", 210, 80, 90, 25)
 
-
+		If $iModeTech = 1 Then
+			GUICtrlSetState($iIDCheckRapport, $GUI_DISABLE)
+			GUICtrlSetState($iIDCheckComplet, $GUI_DISABLE)
+		EndIf
 
 		GUISetState(@SW_SHOW)
 
@@ -94,59 +97,68 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 		$sSplashTxt = "Enregistrement des changements apportés"
 		SplashTextOn("Désinstallation de BAO", $sSplashTxt, $iSplashWidth, $iSplashHeigh, $iSplashX, $iSplashY, $iSplashOpt, "", $iSplashFontSize)
 
-		_FileWriteLog($hLog, "Enregistrement des changements saisi dans le champs intervention")
+		If $iModeTech = 0 Then
 
-		_SaveInter()
+			_FileWriteLog($hLog, "Enregistrement des changements saisi dans le champs intervention")
 
-		If $iRapportInsc = 1 Then
-			_FileWriteLog($hLog, "Inscription automatique des changements logiciels et matériels")
-			_SaveChangeToInter()
-		EndIf
+			_SaveInter()
 
-		_FileWriteLog($hLog, "Fermeture des logs")
-		FileClose($hLog)
-
-		_CompleterRapport($iRapport, $sNomRapportComplet)
-
-		Local $iRetour = 0
-
-		$sSplashTxt = $sSplashTxt & @LF & "Sauvegarde du rapport"
-		ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
-
-		If StringLeft(@ScriptDir, 2) <> "\\" Then
-			Local $nb = 0
-			Do
-				$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomRapportComplet, $sFTPDossierRapports & $sNomFichier)
-				$nb+=1
-			Until $iRetour <> -1 or $nb = 3
-		Else
-			Local $aFileToDel = FileReadToArray(@LocalAppDataDir & "\bao\FichierASupprimer.txt")
-			If @error = 0 Then
-				For $sFileToDel In $aFileToDel
-					FileDelete($sFileToDel)
-				Next
+			If $iRapportInsc = 1 Then
+				_FileWriteLog($hLog, "Inscription automatique des changements logiciels et matériels")
+				_SaveChangeToInter()
 			EndIf
 
-		EndIf
+			_FileWriteLog($hLog, "Fermeture des logs")
+			FileClose($hLog)
 
-		; Sauvegarde du rapport complet sur le pc
-		FileCopy($sNomRapportComplet, @AppDataCommonDir & "\BAO\" & $sNomFichier, 9)
+			_CompleterRapport($iRapport, $sNomRapportComplet)
 
-		If $iRetour <> 1 Then
-			FileCopy($sNomRapportComplet, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
-			$iRetour = 1
-		EndIf
+			Local $iRetour = 0
 
-		if($iRetour = 1) Then
-			If(_FichierCacheExist("Suivi") And _FichierCache("Suivi") <> 1) Then
-				_FinIntervention(_FichierCache("Suivi"), $sFTPAdresse, $sFTPUser, $sFTPPort, $sInput)
-				_SupprimerIDSuivi(_FichierCache("Suivi"))
+			$sSplashTxt = $sSplashTxt & @LF & "Sauvegarde du rapport"
+			ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
+
+			If StringLeft(@ScriptDir, 2) <> "\\" Then
+				Local $nb = 0
+				Do
+					$iRetour = _EnvoiFTP($sNomRapportComplet, $sFTPDossierRapports & $sNomFichier)
+					$nb+=1
+				Until $iRetour <> -1 or $nb = 3
+			Else
+				Local $aFileToDel = FileReadToArray(@LocalAppDataDir & "\bao\FichierASupprimer.txt")
+				If @error = 0 Then
+					For $sFileToDel In $aFileToDel
+						FileDelete($sFileToDel)
+					Next
+				EndIf
+
+			EndIf
+
+			; Sauvegarde du rapport complet sur le pc
+			FileCopy($sNomRapportComplet, @AppDataCommonDir & "\BAO\" & $sNomFichier, 9)
+
+			If $iRetour <> 1 Then
+				FileCopy($sNomRapportComplet, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
+				$iRetour = 1
+			EndIf
+
+			if($iRetour = 1) Then
+				If(_FichierCacheExist("Suivi") And _FichierCache("Suivi") <> 1) Then
+					_FinIntervention(_FichierCache("Suivi"), $sInput)
+					;_SupprimerIDSuivi(_FichierCache("Suivi"))
+				EndIf
+
+				If _FichierCacheExist("EnCours") Then
+					If FileExists(_FichierCache("EnCours")) Then
+						FileDelete(_FichierCache("EnCours"))
+					EndIf
+				EndIf
 			EndIf
 		EndIf
 
 		$sSplashTxt = $sSplashTxt & @LF & "Suppression des dépendances de BAO"
 		ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
-		_ReiniBAO($sFTPAdresse, $sFTPUser, $sFTPPort)
+		_ReiniBAO()
 		$sSplashTxt = $sSplashTxt & @LF & "Suppression de BAO"
 		ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
 		_Uninstall($iEteindre)
@@ -159,7 +171,7 @@ Func _DesinstallerBAO($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierRapports)
 	EndIf
 EndFunc
 
-Func _ReiniBAO($sFTPAdresse, $sFTPUser, $sFTPPort)
+Func _ReiniBAO()
 
 	If(_FichierCacheExist("Fondecran") = 1) Then
 		_ActivationFondecran()
@@ -195,7 +207,7 @@ Func _ReiniBAO($sFTPAdresse, $sFTPUser, $sFTPPort)
 
 	If _FichierCacheExist("Supervision") Then
 		Local $sFTPDossierCapture = IniRead($sConfig, "FTP", "DossierCapture", "")
-		_EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, "", $sFTPDossierCapture & $sNom & ".png", 1)
+		_EnvoiFTP("", $sFTPDossierCapture & $sNom & ".png", 1)
 
 		If StringLeft(@ScriptDir, 2) <> "\\" Then
 			FileDelete(@ScriptDir & "\Cache\Supervision\" & $sNomCapture)
@@ -207,7 +219,9 @@ Func _ReiniBAO($sFTPAdresse, $sFTPUser, $sFTPPort)
 		_UninstallDWAgent()
 	EndIf
 
-	DirRemove(@LocalAppDataDir & "\bao", 1)
+	If Not DirRemove(@LocalAppDataDir & "\bao", 1) Then
+		_FileWriteLog($hLog, 'Suppression du dossier "' & @LocalAppDataDir & "\bao" & '" impossible')
+	EndIf
 	RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")
 	_UACEnable()
 
@@ -230,11 +244,15 @@ Func _Uninstall($iRep)
 	FileDelete(@UserProfileDir & "\Downloads\BAO-sfx.exe")
 	Run(@ComSpec & ' /c del "' & @DesktopDir & '\ZHPCleaner*"', "", @SW_HIDE)
 
-	If $sRestauration = 1 Then
+	If $iModeTech = 0 And $sRestauration = 1 Then
 		_Restauration($sSociete & " - Fin d'intevervention")
 	EndIf
 
     If @Compiled And StringLeft(@ScriptDir, 2) = $HomeDrive Then
+		If $iModeTech = 1 And FileExists(@ScriptDir & "\Rapports") Then
+			DirCopy(@ScriptDir & "\Rapports", @DesktopDir & "\Rapports", 1)
+			_Attention("Les rapports ont été sauvegardés sur le bureau")
+		EndIf
 		ShellExecute ( @ComSpec , ' /c RMDIR /S /Q "' & FileGetShortName(@ScriptDir) & '"', "" , "", @SW_HIDE )
 	EndIf
 
@@ -256,12 +274,15 @@ EndFunc
 ; ===============================================================================================================================
 Func _ChangerMode()
 
-	If(StringLeft($sNom, 4) <> "Tech") Then ;Mode lecture
-		_FichierCache("Client", -1)
-		_FichierCache("Client", "Tech " & $sNom)
+	If($iModeTech = 0) Then
+		_FichierCache("Technicien", 1)
+		_FileWriteLog($hLog, 'Passage en mode Technicien')
 	Else
-		_FichierCache("Client", -1)
-		_FichierCache("Client", StringTrimLeft($sNom, 5))
+		_FichierCache("Technicien", -1)
+		_FileWriteLog($hLog, 'Passage en mode Client')
+		_FichierCache("Intervention", -1)
+		If DirCreate($sDossierRapport) = 0 Then	_Erreur("Impossible de créer le dossier '" & $sDossierRapport & "' sur le bureau")
+		FileCopy(@ScriptDir & "\A copier\*", $sDossierRapport & "\", 8)
 	EndIf
 
 EndFunc

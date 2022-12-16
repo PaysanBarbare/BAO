@@ -18,16 +18,16 @@ This file is part of "Boîte A Outils"
     along with Boîte A Outils.  If not, see <https://www.gnu.org/licenses/>.
 #ce
 
-Func _Supervision($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
+Func _Supervision()
 
 	Local $iRetour
 
-	If StringLeft($sNom, 4) <> "Tech" Then
+	If($iModeTech = 0) Then
 		If _FichierCacheExist("Supervision") = 0 Then
 
 			_GetResolution()
 
-			$iRetour = _SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
+			$iRetour = _SendCapture()
 
 			If $iRetour = 1 Then
 				_ChangerEtatBouton($iIDAction, "Activer")
@@ -119,7 +119,7 @@ Func _MakeCapture()
 	Return $return
 EndFunc
 
-Func _SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
+Func _SendCapture()
 
 	Local $iRetour = 0, $bCapt = False
 
@@ -130,7 +130,7 @@ Func _SendCapture($sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierCapture)
 	If $bCapt Then
 		Local $nb = 0
 		Do
-			$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sCheminCapture & $sNomCapture, $sFTPDossierCapture & $sNomCapture, 0, 1)
+			$iRetour = _EnvoiFTP($sCheminCapture & $sNomCapture, $sFTPDossierCapture & $sNomCapture, 0, 1)
 			$nb+=1
 		Until $iRetour <> -1 or $nb = 3
 
@@ -148,7 +148,7 @@ Func _SendCaptureLocal()
 	EndIf
 EndFunc
 
-Func _CreerIndexSupervision($sFTPAdresse, $sFTPUser, $sFTPPort)
+Func _CreerIndexSupervision()
 
 	GUICtrlSetData($statusbar, " Envoi fichier index.php sur FTP")
 	GUICtrlSetData($statusbarprogress, 20)
@@ -166,7 +166,7 @@ Func _CreerIndexSupervision($sFTPAdresse, $sFTPUser, $sFTPPort)
 		If($sFTPAdresse <> "" And $sFTPUser <> "" And $sFTPDossierCapture) Then
 			Local $nb = 0
 			Do
-				$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, $sNomFichier, $sFTPDossierCapture & 'index.php')
+				$iRetour = _EnvoiFTP($sNomFichier, $sFTPDossierCapture & 'index.php')
 				$nb+=1
 			Until $iRetour <> -1 Or $nb=3
 
@@ -195,12 +195,28 @@ EndFunc
 
 Func _DesactivationFondecran()
 	If _FichierCacheExist("Fondecran") = 0 Then
-		Local $sWallpaper = RegRead("HKEY_CURRENT_USER\Control Panel\Desktop\", "WallPaper")
+		Local $sWallpaper = RegRead("HKEY_CURRENT_USER\Control Panel\Desktop\", "WallPaper"), $bVerifWallpaper = False
 		If $sWallpaper <> "" Then
-			_FileWriteLog($hLog, "Désactivation du fond d'écran")
-			_FichierCache("Fondecran", $sWallpaper)
-			RegWrite("HKEY_CURRENT_USER\Control Panel\Desktop","WallPaper","REG_SZ",'')
-			ControlSend('Program Manager', '', '', '{F5}')
+			If Not FileExists($sWallpaper) Then
+				If FileExists(@AppDataDir & '\Microsoft\Windows\Themes\TranscodedWallpaper') Then
+					If FileCopy(@AppDataDir & '\Microsoft\Windows\Themes\TranscodedWallpaper', $sWallpaper) Then
+						_FileWriteLog($hLog, "Restauration du fond d'écran avant désactivation (" & $sWallpaper & ")")
+						$bVerifWallpaper = True
+					Else
+						_FileWriteLog($hLog, "Désactivation du fond d'écran impossible : copie de TranscodeWallpaper échouée")
+					EndIf
+				Else
+					_FileWriteLog($hLog, "Désactivation du fond d'écran impossible car l'image n'a pas été trouvée")
+				EndIf
+			Else
+				$bVerifWallpaper = True
+			EndIf
+			If $bVerifWallpaper Then
+				_FileWriteLog($hLog, "Désactivation du fond d'écran")
+				_FichierCache("Fondecran", $sWallpaper)
+				RegWrite("HKEY_CURRENT_USER\Control Panel\Desktop","WallPaper","REG_SZ",'')
+				ControlSend('Program Manager', '', '', '{F5}')
+			EndIf
 		EndIf
 	EndIf
 EndFunc

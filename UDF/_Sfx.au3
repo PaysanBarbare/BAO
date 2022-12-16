@@ -23,7 +23,7 @@ Auteur : Bastien ROUCHES
 Fonction : Création de fichier auto extractible avec 7zip et envoi sur FTP
 #ce
 
-Func _CreerSFX($sFTPAdresse, $sFTPUser, $sFTPPort)
+Func _CreerSFX()
 
 	_FileWriteLog($hLog, 'Création SFX')
 	; Création de l'archive 7z
@@ -44,11 +44,9 @@ Func _CreerSFX($sFTPAdresse, $sFTPUser, $sFTPPort)
 	RunWait(@ComSpec & ' /c copy /b "' & @ScriptDir & '\Outils\7z\7zsd_All.sfx" + "' & @ScriptDir & '\Outils\7z\sfx.config" + "' & @ScriptDir & '\Outils\7z\BAO.7z" "' & @ScriptDir & '\Outils\7z\BAO-sfx.exe"', @ScriptDir & "\Outils\7z\", @SW_HIDE)
 	GUICtrlSetData($statusbarprogress, 60)
 
-	Local $sFTPDossierSFX = IniRead($sConfig, "FTP", "DossierSFX", "")
-
 	Local $iRetour, $nb = 0
 	Do
-		$iRetour = _EnvoiFTP($sFTPAdresse, $sFTPUser, $sFTPPort, @ScriptDir & "\Outils\7z\BAO-sfx.exe", $sFTPDossierSFX & "BAO-sfx.exe")
+		$iRetour = _EnvoiFTP(@ScriptDir & "\Outils\7z\BAO-sfx.exe", $sFTPDossierSFX & "BAO-sfx.exe")
 		$nb+=1
 	Until $iRetour <> -1 Or $nb = 3
 

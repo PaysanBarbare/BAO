@@ -35,11 +35,13 @@ $aBalise["GC"] = "Carte graphique"
 $aBalise["HDD?"] = "Disque"
 $aBalise["WHDD"] = "Disque dur"
 
-Func _ExporterRapport()
+Func _ExporterRapport($sFichier="")
 	_ChangerEtatBouton($iIDAction, "Patienter")
 
-	Local $sData
-	$sData = FileRead(@LocalAppDataDir & "\bao\entete.bao")
+	Local $sData, $hExport
+	$sData = '; Ce fichier peut être lu avec "Lecteur-bao.exe" présent dans le dossier "Outils" de BAO' & @CRLF
+	$sData &= FileRead(@LocalAppDataDir & "\bao\infosclient.bao")
+	$sData &= FileRead(@LocalAppDataDir & "\bao\entete.bao")
 	$sData &= FileRead(@LocalAppDataDir & "\bao\infosys.bao")
 	$sData &= @CRLF & "[UPDATE]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\infosysupd.bao") & "[/UPDATE]" & @CRLF
 	$sData &= @CRLF & "[INSTALL]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\install.bao") & @CRLF & "[/INSTALL]" & @CRLF
@@ -50,40 +52,143 @@ Func _ExporterRapport()
 	$sData &= @CRLF & "[LOGS]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\logs.txt") & "[/LOGS]" & @CRLF
 
     ; Display a save dialog to select a file.
-	Local $sFileSaveDialog = FileSaveDialog("Choisissez un répertoire", @DesktopDir, "Fichiers Boite à Outils (*.bao)", 0, "Rapport intervention.bao")
-    If @error = 0 Then
-        ; Retrieve the filename from the filepath e.g. Example.au3.
-        Local $sFileName = StringTrimLeft($sFileSaveDialog, StringInStr($sFileSaveDialog, "\", $STR_NOCASESENSEBASIC, -1))
+	If $sFichier = "" Then
+		Local $sFileSaveDialog = FileSaveDialog("Choisissez un répertoire", @DesktopDir, "Fichiers Boite à Outils (*.bao)", 0, "Rapport intervention.bao")
+		If @error = 0 Then
+			; Retrieve the filename from the filepath e.g. Example.au3.
+			Local $sFileName = StringTrimLeft($sFileSaveDialog, StringInStr($sFileSaveDialog, "\", $STR_NOCASESENSEBASIC, -1))
 
-        ; Check if the extension .au3 is appended to the end of the filename.
-        Local $iExtension = StringInStr($sFileName, ".", $STR_NOCASESENSEBASIC)
+			; Check if the extension .au3 is appended to the end of the filename.
+			Local $iExtension = StringInStr($sFileName, ".", $STR_NOCASESENSEBASIC)
 
-        ; If a period (dot) is found then check whether or not the extension is equal to .au3.
-        If $iExtension Then
-            ; If the extension isn't equal to .au3 then append to the end of the filepath.
-            If Not (StringTrimLeft($sFileName, $iExtension - 1) = ".bao") Then $sFileSaveDialog &= ".bao"
-        Else
-            ; If no period (dot) was found then append to the end of the file.
-            $sFileSaveDialog &= ".bao"
-        EndIf
-		If(FileExists($sFileSaveDialog)) Then
-			_Attention("Le fichier existe déjà, merci de choisir un nom différent")
-		Else
-			_FileWriteLog($hLog, "Export du rapport : " & $sFileSaveDialog)
-			Local $hExport = FileOpen($sFileSaveDialog, 1)
-			FileWrite($hExport, $sData)
-			FileClose($hExport)
+			; If a period (dot) is found then check whether or not the extension is equal to .au3.
+			If $iExtension Then
+				; If the extension isn't equal to .au3 then append to the end of the filepath.
+				If Not (StringTrimLeft($sFileName, $iExtension - 1) = ".bao") Then $sFileSaveDialog &= ".bao"
+			Else
+				; If no period (dot) was found then append to the end of the file.
+				$sFileSaveDialog &= ".bao"
+			EndIf
+			If(FileExists($sFileSaveDialog)) Then
+				_Attention("Le fichier existe déjà, merci de choisir un nom différent")
+			Else
+				_FileWriteLog($hLog, "Export du rapport : " & $sFileSaveDialog)
+				$hExport = FileOpen($sFileSaveDialog, 1)
+				FileWrite($hExport, $sData)
+				FileClose($hExport)
+			EndIf
 		EndIf
-    EndIf
-
+	Else
+		_FileWriteLog($hLog, "Export du rapport automatique : " & $sFichier)
+		$hExport = FileOpen($sFichier, 1)
+		FileWrite($hExport, $sData)
+		FileClose($hExport)
+	EndIf
 	_ChangerEtatBouton($iIDAction, "Activer")
 
+EndFunc
+
+Func _RapportInfosClient($sFileClient, $sNomClient = "", $sPrenomClient = "", $sSocieteClient = "", $sTech = "", $iPin = "", $sAdresse = "", $sPhone = "", $sMail = "", $sDevices = "", $sCase = "", $sResolution = "", $sPassword = "", $iAutologon = 0)
+		Local $bRetour = False
+
+		_FileWriteLog($hLog, 'Enregistrement du fichier "' & $sFileClient & '"')
+		Local $hInfosClient = FileOpen($sFileClient, 10) ; overwrite
+		If $hInfosClient <> -1 Then
+			FileWriteLine($hInfosClient, "[TRACKING]" & $iPin & "[/TRACKING]")
+			FileWriteLine($hInfosClient, "[LASTNAME]" & $sNomClient & "[/LASTNAME]")
+			FileWriteLine($hInfosClient, "[FIRSTNAME]" & $sPrenomClient & "[/FIRSTNAME]")
+			FileWriteLine($hInfosClient, "[COMPANY]" & $sSocieteClient & "[/COMPANY]")
+			FileWriteLine($hInfosClient, "[ADDRESS]" & StringReplace($sAdresse, @CRLF, "[BR]") & "[/ADDRESS]")
+			FileWriteLine($hInfosClient, "[PHONE]" & $sPhone & "[/PHONE]")
+			FileWriteLine($hInfosClient, "[MAIL]" & $sMail & "[/MAIL]")
+			FileWriteLine($hInfosClient, "")
+			FileWriteLine($hInfosClient, "[TECH]" & $sTech & "[/TECH]")
+			FileWriteLine($hInfosClient, "[DEVICES]" & StringReplace($sDevices, @CRLF, "[BR]") & "[/DEVICES]")
+			FileWriteLine($hInfosClient, "[CASE]" & StringReplace($sCase, @CRLF, "[BR]") & "[/CASE]")
+			FileWriteLine($hInfosClient, "[RESOLUTION]" & StringReplace($sResolution, @CRLF, "[BR]") & "[/RESOLUTION]")
+			FileWriteLine($hInfosClient, "[PASSWORD]" & $sPassword & "[/PASSWORD]")
+			FileWriteLine($hInfosClient, "[AUTOLOGON]" & $iAutologon & "[/AUTOLOGON]")
+			FileClose($hInfosClient)
+			$bRetour = True
+		Else
+			_FileWriteLog($hLog, 'Impossible d' & "'" & 'enregistrer le fichier "' & $sFileClient & '"')
+		EndIf
+		return $bRetour
+EndFunc
+
+Func _GetInfosClient($sFileClient)
+
+	Local $aArrayClient, $aCatTmp, $mInfos[]
+
+	If FileExists($sFileClient) Then
+
+		If _FileReadToArray($sFileClient, $aArrayClient, 0) Then
+			For $sAClient In $aArrayClient
+				$aCatTmp = StringRegExp($sAClient, "\[(\w+)\](.+)\[/", 1)
+				If UBound($aCatTmp) = 2 Then
+					$mInfos[$aCatTmp[0]] = $aCatTmp[1]
+				EndIf
+			Next
+		Else
+			_FileWriteLog($hLog, 'Erreur lors de la lecture du fichier "' & $sFileClient & '"')
+		EndIf
+	Else
+		_FileWriteLog($hLog, 'Erreur : "' & $sFileClient & '" absent')
+	EndIf
+
+	Return $mInfos
+EndFunc
+
+Func _GetTech($sFileClient)
+
+	Local $aArrayClient, $sTech, $sTMPpos
+
+	If FileExists($sFileClient) Then
+
+		If _FileReadToArray($sFileClient, $aArrayClient, 0) Then
+			For $sAClient In $aArrayClient
+				If StringLeft($sAClient, 6) = "[TECH]" Then
+					$sTMPpos = StringInStr($sAClient, "[/TECH]")
+					$sTech = StringTrimRight(StringTrimLeft($sAClient, 6), 7)
+				EndIf
+			Next
+		EndIf
+	EndIf
+
+	Return $sTech
+EndFunc
+
+Func _SetTech($sFileClient, $sTech)
+
+	Local $aArrayClient, $sRewrite, $hFile
+
+	If $sTech <> "" Then
+
+		If FileExists($sFileClient) Then
+			If _FileReadToArray($sFileClient, $aArrayClient, 0) Then
+				For $sAClient In $aArrayClient
+					If StringLeft($sAClient, 6) = "[TECH]" Then
+						$sRewrite &= "[TECH]" & $sTech & "[/TECH]" & @CRLF
+					Else
+						$sRewrite &= $sAClient & @CRLF
+					EndIf
+				Next
+				$hFile = FileOpen($sFileClient, 2)
+				FileWrite($hFile, $sRewrite)
+				FileClose($hFile)
+			EndIf
+		EndIf
+	EndIf
+
+	Return $sTech
 EndFunc
 
 Func _CompleterRapport($iRapport, $sNomRapportComplet)
 	Local $sData
 	FileCopy(@LocalAppDataDir & "\bao\rapport.bao", $sDossierRapport & "\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " - Rapport Intervention.txt", 1)
-	$sData = FileRead(@LocalAppDataDir & "\bao\entete.bao")
+	$sData = '; Ce fichier peut être lu avec "Lecteur-bao.exe" présent dans le dossier "Outils" de BAO' & @CRLF
+	$sData &= FileRead(@LocalAppDataDir & "\bao\infosclient.bao")
+	$sData &= FileRead(@LocalAppDataDir & "\bao\entete.bao")
 	$sData &= FileRead(@LocalAppDataDir & "\bao\infosys.bao")
 	$sData &= @CRLF & "[UPDATE]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\infosysupd.bao") & @CRLF & "[/UPDATE]" & @CRLF
 	$sData &= @CRLF & "[INSTALL]" & @CRLF & FileRead(@LocalAppDataDir & "\bao\install.bao") & @CRLF & "[/INSTALL]" & @CRLF
@@ -167,9 +272,14 @@ Func _RapportParseur($iIDTABInfossys)
 EndFunc
 
 Func _SaveInter()
-	$hRapport = FileOpen($sFileRapport, 2)
-	FileWrite($hRapport,GUICtrlRead($iIDEditInter))
-	FileClose($hRapport)
+	If $iModeTech = 0 Then
+		$hRapport = FileOpen($sFileRapport, 2)
+		FileWrite($hRapport,GUICtrlRead($iIDEditInter))
+		FileClose($hRapport)
+	EndIf
+	If _FichierCacheExist("EnCours") Then
+		_ExporterRapport(_FichierCache("EnCours"))
+	EndIf
 EndFunc
 
 Func _SaveChangeToInter()
@@ -182,8 +292,9 @@ Func _SaveChangeToInter()
 			$bOKch = True
 			_FileWriteLog($hLog, "Inscription des changements de config dans le rapport")
 			$sToadd = "### Changements apportés ###" & @CRLF
+
 			For $i = 0 To UBound($aArrayRapportupd) - 1
-				$aUpd = StringRegExp($aArrayRapportupd[$i], "\[(\w+)\](.+)\[", 1)
+				$aUpd = StringRegExp($aArrayRapportupd[$i], "\[(\w+)\](.*)\[", 1)
 				$sToadd&=$aBalise[$aUpd[0]] & " mis à jour : " & $aUpd[1] & @CRLF
 			Next
 			$sToadd &= @CRLF

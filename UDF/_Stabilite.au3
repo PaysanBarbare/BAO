@@ -137,6 +137,7 @@ Func _TestsStabilite()
 
 	While ($idMsgInst <> $GUI_EVENT_CLOSE)
 
+		_UpdateEveryMin()
 		Switch $idMsgInst
 
 			Case $iButtonMemoire

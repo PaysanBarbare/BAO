@@ -578,7 +578,7 @@ Func _MenuMod($aEnr)
 				EndIf
 
 			Case $iIDButtonSupprimer
-				IniDelete(@ScriptDir & "\Logiciels\" & $aEnr[13], $aEnr[1])
+				IniDelete(@ScriptDir & "\Logiciels\" & $aEnr[15], $aEnr[1])
 				ExitLoop
 
 			Case $iIDButtonOuvrir
