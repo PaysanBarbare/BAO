@@ -65,7 +65,7 @@ EndFunc
 ; ===============================================================================================================================
 Func _GetInfoSysteme($iReset = 0)
 
-	If _FichierCacheExist("OS") And $iReset = 0 Then
+	If _FichierCacheExist("OS") = 1 And $iReset = 0 Then
 		$hInfosys = FileOpen($sFileInfosysUpd, 2)
 	ElseIf $iReset = 1 Then
 		$hInfosys = FileOpen($sFileInfosys, 2)
@@ -353,6 +353,7 @@ EndFunc
 
 Func _CalculFS()
 	$iFreeSpace = Round(DriveSpaceFree($HomeDrive & "\") / 1024, 2)
+	$iTotalSpace = Round(DriveSpaceTotal($HomeDrive & "\") / 1024, 2)
 EndFunc
 
 Func _CalculFSGain()

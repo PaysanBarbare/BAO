@@ -31,7 +31,7 @@ Func _EnvoiFTP($sFichier, $sDossier, $bRemove = 0, $bCheckmdp = 0)
 			Local $hGUIFTP = GUICreate("Envoi sur FTP/SFTP", 400, 105)
 			GUICtrlCreateLabel('Saisissez le mot de passe FTP/SFTP (' & $sFTPUser & '@' & $sFTPAdresse & ') :',10, 15)
 			Local $iPWD = GUICtrlCreateInput("", 10, 42, 200, 20, $ES_PASSWORD)
-
+			GUICtrlSetState(-1, $GUI_FOCUS)
 			Local $iMem = GUICtrlCreateCheckbox("Mémoriser le mot de passe ?", 220, 40)
 
 			If($bCheckmdp = 1) Then
@@ -197,6 +197,7 @@ Func _RecupFTP()
 				Local $hGUIFTP = GUICreate("Récupération FTP/SFTP", 400, 105)
 				GUICtrlCreateLabel('Saisissez le mot de passe FTP/SFTP (' & $sFTPUser & '@' & $sFTPAdresse & ') :',10, 15)
 				Local $iPWD = GUICtrlCreateInput("", 10, 42, 200, 20, $ES_PASSWORD)
+				GUICtrlSetState(-1, $GUI_FOCUS)
 				Local $iMem = GUICtrlCreateCheckbox("Mémoriser le mot de passe ?", 220, 40)
 
 				Local $iIDValider = GUICtrlCreateButton("Valider", 125, 70, 150, 25, $BS_DEFPUSHBUTTON)

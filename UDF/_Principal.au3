@@ -38,9 +38,9 @@ Func _InitialisationBAO($sConfig)
 	Else
 		; Création du fichier config.ini
 		IniWriteSection($sConfig,"Parametrages", "Societe=MyBigCorporation"&@LF&"Dossier=Rapport"&@LF&"Icones=1"&@LF&"Restauration=0"&@CRLF)
-		IniWriteSection($sConfig,"Installation", "Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Safari Brave Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh OnlyOffice wps-office-free"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler FoxitReader ImgBurn JavaRuntime TeamViewer"&@CRLF)
+		IniWriteSection($sConfig,"Installation", "Moteur=Chocolatey"&@LF&"Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Brave Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh OnlyOffice wps-office-free"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler FoxitReader ImgBurn JavaRuntime TeamViewer"&@CRLF)
 		IniWriteSection($sConfig,"BureauDistant", "Agent=DWAgent"&@LF&"Mail=votreadressemail@domaine.fr"&@CRLF)
-		IniWriteSection($sConfig,"Desinfection", "Programmes de desinfection=Privazer RogueKiller AdwCleaner MalwareByte ZHPCleaner EsetOnlineScanner"&@CRLF)
+		IniWriteSection($sConfig,"Desinfection", "Programmes de desinfection=Privazer RogueKiller AdwCleaner MalwareByte ZHPCleaner EsetOnlineScanner UserDiag1"&@CRLF)
 		IniWriteSection($sConfig, "Associations", "Defaut=0,0,0,0"&@CRLF)
 		IniWriteSection($sConfig, "FTP", "Protocol=sftp"&@LF&"Adresse="&@LF&"Utilisateur="&@LF&"Port=22"&@LF&"DossierRapports=/www/rapports/"&@LF&"DossierSFX=/www/dl/"&@LF&"DossierSuivi=/www/suivi/"&@LF&"DossierCapture=/www/capture/"&@CRLF)
 	EndIf
@@ -77,9 +77,19 @@ Func _SaveConfig($sSociete, $sDossierRapport, $iIcones, $sRestauration, $sBD, $s
 
 EndFunc
 
-Func _SaveConfigInstallation($sListeSoftsDefaut, $sListeSoftsInternet, $sListeSoftsBureautique, $sListeSoftsMultimedia, $sListeSoftsDivers)
+Func _SaveConfigInstallation($sListeSoftsDefaut, $sListeSoftsInternet, $sListeSoftsBureautique, $sListeSoftsMultimedia, $sListeSoftsDivers, $sMoteur)
 
-	IniWriteSection($sConfig,"Installation", "Defaut="&$sListeSoftsDefaut&@LF&"1="&$sListeSoftsInternet&@LF&"2="&$sListeSoftsBureautique&@LF&"3="&$sListeSoftsMultimedia&@LF&"4="&$sListeSoftsDivers)
+	IniWriteSection($sConfig,"Installation", "Moteur="&$sMoteur&@LF&"Defaut="&$sListeSoftsDefaut&@LF&"1="&$sListeSoftsInternet&@LF&"2="&$sListeSoftsBureautique&@LF&"3="&$sListeSoftsMultimedia&@LF&"4="&$sListeSoftsDivers)
+
+EndFunc
+
+Func _SaveResetConfig($sMoteur)
+
+	If $sMoteur = "Winget" Then
+		IniWriteSection($sConfig,"Installation", "Moteur=Winget"&@LF&"Defaut=Google.Chrome TheDocumentFoundation.LibreOffice CodecGuide.K-LiteCodecPack.Basic 7zip.7zip"&@LF&"1=Internet Google.Chrome Mozilla.Firefox Opera.Opera Brave.Brave Mozilla.Thunderbird"&@LF&"2=Bureautique Apache.OpenOffice TheDocumentFoundation.LibreOffice ONLYOFFICE.DesktopEditors Kingsoft.WPSOffice"&@LF&"3=Multimedia CodecGuide.K-LiteCodecPack.Basic Microsoft.Skype VideoLAN.VLC dotPDN.paintdotnet Google.EarthPro Apple.iTunes"&@LF&"4=Divers 7zip.7zip Adobe.Acrobat.Reader.64-bit Piriform.CCleaner Piriform.Defraggler Foxit.FoxitReader LIGHTNINGUK.ImgBurn Oracle.JavaRuntimeEnvironment TeamViewer.TeamViewer"&@CRLF)
+	Else
+		IniWriteSection($sConfig,"Installation", "Moteur=Chocolatey"&@LF&"Defaut=GoogleChrome LibreOffice-fresh k-litecodecpackbasic 7Zip"&@LF&"1=Internet GoogleChrome Firefox Opera Brave Thunderbird"&@LF&"2=Bureautique OpenOffice LibreOffice-fresh OnlyOffice wps-office-free"&@LF&"3=Multimedia k-litecodecpackbasic Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes"&@LF&"4=Divers 7Zip AdobeReader CCleaner CDBurnerXP Defraggler FoxitReader ImgBurn JavaRuntime TeamViewer"&@CRLF)
+	EndIf
 
 EndFunc
 
@@ -89,18 +99,26 @@ Func _PremierLancement()
 	Local $iIDTabMode = GUICtrlCreateTab(10, 10, 500, 220)
 	Local $iIDTabModeClient = GUICtrlCreateTabItem("Client")
 	Local $aSuivi = _FileListToArrayRec(@ScriptDir & "\Rapports\Nouvelle\", "*.bao")
+	Local $aSuivi2 = _FileListToArrayRec(@ScriptDir & "\Rapports\En cours\", "*.bao")
 	Local $iIDCombo = -1
 	Local $iTech
 
 	GUICtrlCreateGroup("Choix de l'intervention", 20, 40, 360, 80)
 	GUICtrlSetFont (-1, 9, 800)
 
-	If $aSuivi <> "" And _FichierCacheExist("Suivi") = 0 Then
+	If ($aSuivi <> "" Or $aSuivi2 <> "") And _FichierCacheExist("Suivi") = 0 Then
 		GUICtrlCreateLabel('Choisissez le client dans la liste : ',30, 60)
 		$iIDCombo = GUICtrlCreateCombo("Aucun",30, 85, 340)
-		For $i=1 To $aSuivi[0]
-			GUICtrlSetData($iIDCombo, StringTrimRight($aSuivi[$i], 4))
-		Next
+		If ($aSuivi <> "") Then
+			For $i=1 To $aSuivi[0]
+				GUICtrlSetData($iIDCombo, StringTrimRight("Nouvelle\" & $aSuivi[$i], 4))
+			Next
+		EndIf
+		If ($aSuivi2 <> "") Then
+			For $i=1 To $aSuivi2[0]
+				GUICtrlSetData($iIDCombo, StringTrimRight("En cours\" & $aSuivi2[$i], 4))
+			Next
+		EndIf
 	Else
 		GUICtrlCreateLabel("Aucune intervention disponible", 120, 80)
 	EndIf
@@ -136,7 +154,7 @@ Func _PremierLancement()
 	Local $iIDValider = GUICtrlCreateButton("Valider", 170, 235, 180, 25, $BS_DEFPUSHBUTTON)
 	GUISetState(@SW_SHOW)
 
-	Local $iIdNom, $bClose = 0, $sTech
+	Local $iIdNom, $bClose = 0, $sTech, $sToEnCours
 
 	While 1
 		$iIdNom = GUIGetMsg()
@@ -172,18 +190,29 @@ Func _PremierLancement()
 							If GUICtrlRead($iSocieteClient) <> "" Then
 								$sNom = _ChaineSansAccents(GUICtrlRead($iSocieteClient))
 							Else
-								$sNom = _ChaineSansAccents(GUICtrlRead($iNomClient) & " " & GUICtrlRead($iPrenomClient))
+								If GUICtrlRead($iPrenomClient) <> "" Then
+									$sNom = _ChaineSansAccents(GUICtrlRead($iNomClient) & " " & GUICtrlRead($iPrenomClient))
+								Else
+									$sNom = _ChaineSansAccents(GUICtrlRead($iNomClient))
+								EndIf
 							EndIf
 							_FichierCache("Proaxive", $sNom & " - " & @ComputerName & " - Rapport intervention.bao")
+							_FichierCache("EnCours", @ScriptDir & "\Rapports\En cours\" & StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - " & @ComputerName & " - Rapport intervention.bao" )
 							ExitLoop
 						Else
 							_Attention("Merci de saisir au moins le nom du client ou sa société")
 						EndIf
 					Else
-						_SetTech(@ScriptDir & "\Rapports\Nouvelle\" & GUICtrlRead($iIDCombo) & ".bao", $sTech)
-						FileCopy(@ScriptDir & "\Rapports\Nouvelle\" & GUICtrlRead($iIDCombo) & ".bao", @ScriptDir & "\Rapports\En cours\" & GUICtrlRead($iIDCombo) & ".bao", 9)
-						FileMove(@ScriptDir & "\Rapports\Nouvelle\" & GUICtrlRead($iIDCombo) & ".bao", $sFileInfosClient)
-						_FichierCache("EnCours", @ScriptDir & "\Rapports\En cours\" & GUICtrlRead($iIDCombo) & ".bao")
+						_SetTech(@ScriptDir & "\Rapports\" & GUICtrlRead($iIDCombo) & ".bao", $sTech)
+						$sToEnCours = StringReplace(GUICtrlRead($iIDCombo), "Nouvelle\", "En cours\")
+						If StringInStr(GUICtrlRead($iIDCombo), "Nouvelle\") Then
+							FileMove(@ScriptDir & "\Rapports\" & GUICtrlRead($iIDCombo) & ".bao", @ScriptDir & "\Rapports\" & $sToEnCours & ".bao", 9)
+							FileCopy(@ScriptDir & "\Rapports\" & $sToEnCours & ".bao", $sFileInfosClient)
+							_FichierCache("EnCours", @ScriptDir & "\Rapports\" & $sToEnCours & ".bao")
+						Else
+							FileCopy(@ScriptDir & "\Rapports\" & GUICtrlRead($iIDCombo) & ".bao", $sFileInfosClient)
+							_FichierCache("EnCours", @ScriptDir & "\Rapports\" & $sToEnCours & ".bao")
+						EndIf
 						Local $mInfosClientTmp = _GetInfosClient($sFileInfosClient)
 						Local $sTNomClient, $sTPrenomClient, $sTSocieteClient, $sTTracking
 						If MapExists($mInfosClientTmp, "LASTNAME") Then $sTNomClient = $mInfosClientTmp["LASTNAME"]
@@ -201,7 +230,10 @@ Func _PremierLancement()
 						If $sTSocieteClient <> "" Then
 							$sNom = _ChaineSansAccents($sTSocieteClient)
 						Else
-							$sNom = _ChaineSansAccents($sTNomClient & " " & $sTPrenomClient)
+							If $sTPrenomClient <> "" Then
+								$sTPrenomClient = " " & $sTPrenomClient
+							EndIf
+							$sNom = _ChaineSansAccents($sTNomClient & $sTPrenomClient)
 						EndIf
 						FileDelete(@ScriptDir & "\Proaxive\" & GUICtrlRead($iIDCombo) & ".bao")
 						_FichierCache("Proaxive", GUICtrlRead($iIDCombo) & ".bao")
@@ -223,6 +255,12 @@ Func _PremierLancement()
 	$sNom = StringRegExpReplace($sNom, "(?s)[^a-z0-9A-Z-_ ]", "")
 
 	GUIDelete()
+
+	If $bClose = 1 Then
+		_FileWriteLog($hLog, "Fermeture par l'utilisateur : désinstallation de BAO")
+		$sNom = ""
+		_DesinstallerBAO()
+	EndIf
 
 	_FichierCache("Client", $sNom)
 
@@ -246,12 +284,6 @@ Func _PremierLancement()
 		EndIf
 	Else
 		_FichierCache("FS_START", $iFreeSpace)
-	EndIf
-
-	If $bClose = 1 Then
-		_FileWriteLog($hLog, "Fermeture par l'utilisateur : désinstallation de BAO")
-		$sNom = ""
-		_DesinstallerBAO()
 	EndIf
 
 	If($iModeTech = 0 And $iFreeSpace < 30) Then
@@ -301,8 +333,9 @@ Func _ChangerEtatBouton($iIDBouton, $sEtat)
 
 	Switch $sEtat
 		Case "Activer"
+			GuiFlatButton_SetColors($iIDBouton, 0x0078d7, 0xffffff, 0x0078d7)
 			GUICtrlSetState($iIDBouton, 64)
-			GUICtrlSetColor($iIDBouton, $COLOR_GREEN)
+			;GUICtrlSetColor($iIDBouton, $COLOR_GREEN)
 
 		Case "Desactiver"
 			GUICtrlSetState($iIDBouton, 64)
@@ -517,6 +550,7 @@ EndFunc
 Func _IsInternetConnected()
 
 	Local $dData = _GetIP()
+
     If $dData <> -1 Then
 		Return 1
 	Else
@@ -619,49 +653,41 @@ Func _UACEnable()
 EndFunc
 
 Func _Restart()
-	run(@ScriptDir & "\run.bat", "", @SW_HIDE)
+	ShellExecute(@DesktopDir & '\BAO.lnk')
 	Exit
 EndFunc
 
+Func _UpdateEverySec()
+	$aMemStats = MemGetStats()
+	GUICtrlSetData($iIDRAMlibre, "Utilisation mémoire vive : " & $aMemStats[$MEM_LOAD] & '%')
+	GUICtrlSetData ($sHeure, @MDAY &"/"& @MON &"/"& @YEAR &" - "& @HOUR &":"& @MIN)
+EndFunc
+
 Func _UpdateEveryMin()
-	If @MIN <> $iMin Then
 
-		GUICtrlSetData ($sHeure, @MDAY &"/"& @MON &"/"& @YEAR &" - "& @HOUR &":"& @MIN)
-		$iMin = @MIN
+	If(GUICtrlRead($iIDCheckboxwu) = $GUI_CHECKED) Then
+		Run(@ComSpec & ' /c net stop wuauserv & net stop bits & net stop dosvc', '', @SW_HIDE)
+	EndIf
 
-		If Not($sYear = @YEAR And $sMon = @MON And $sDay = @MDAY) Then
-			_FileWriteLog($hLog, "Correction automatique de l'heure")
-			_UpdEdit($iIDEditLog, $hLog)
-			_Attention("L'horloge a été resynchronisée, vérifiez la pile de BIOS", 1)
-			$sYear = @YEAR
-			$sMon = @MON
-			$sDay = @MDAY
-		EndIf
+	$iFreeSpacech = $iFreeSpace
+	_CalculFS()
+	If($iFreeSpacech <> $iFreeSpace) Then
+		GUICtrlSetData($iIDespacelibre, $HomeDrive & " " & $iFreeSpace & " Go libre sur " & $iTotalSpace & " Go")
+		$iFreeSpace = $iFreeSpacech
+	EndIf
 
-		If(GUICtrlRead($iIDCheckboxwu) = $GUI_CHECKED) Then
-			Run(@ComSpec & ' /c net stop wuauserv & net stop bits & net stop dosvc', '', @SW_HIDE)
-		EndIf
+	If $iModeTech = 0 And _FichierCacheExist("Supervision") = 1 Then
+		_SendCaptureLocal()
+	EndIf
 
-		$iFreeSpacech = $iFreeSpace
-		_CalculFS()
-		If($iFreeSpacech <> $iFreeSpace) Then
-			GUICtrlSetData($iIDespacelibre, $HomeDrive & " " & $iFreeSpacech & " Go libre")
-			$iFreeSpace = $iFreeSpacech
-		EndIf
 
-		$aMemStats = MemGetStats()
-		GUICtrlSetData($iIDRAMlibre, "RAM : " & $aMemStats[$MEM_LOAD] & '% utilisée')
+EndFunc
 
-		If IsInt(@MIN / 5) Then
-			If $iModeTech = 0 And _FichierCacheExist("Supervision") Then
-				_SendCapture()
-			ElseIf $iModeTech = 1 Then
-				_CreerIndexSupervisionLocal()
-			EndIf
-		ElseIf $iModeTech = 0 And _FichierCacheExist("Supervision") Then
-			_SendCaptureLocal()
-		EndIf
-
+Func _UpdateSupervision()
+	If $iModeTech = 0 And _FichierCacheExist("Supervision") = 1 Then
+		_SendCapture()
+	ElseIf $iModeTech = 1 Then
+		_CreerIndexSupervisionLocal()
 	EndIf
 EndFunc
 
@@ -670,10 +696,10 @@ Func _ActivationAutologon($sDomaine, $sClientMdp = "")
 	_FileWriteLog($hLog, 'Activation Autologon')
 	_UpdEdit($iIDEditLog, $hLog)
 	$sSubKey = RegEnumKey("HKEY_USERS\.DEFAULT\Software\Microsoft\IdentityCRL\StoredIdentities", 1)
-	If $sSubKey = "" Then
-		$sAutoUser = @UserName
-	Else
+	If $sSubKey = @UserName Then
 		$sAutoUser = "MicrosoftAccount\" & $sSubKey
+	Else
+		$sAutoUser = @UserName
 	EndIf
 
 	If $sClientMdp = "" Then
@@ -725,22 +751,27 @@ Func _APropos()
 ;~ 		EndIf
 ;~ 	EndIf
 
-	Local $hGUIapropos = GUICreate("A propos")
+	Local $hGUIapropos = GUICreate("A propos", 400, 450)
 
     Local $iIdApropos = GUICtrlCreateLabel('A propos de "Boîte A Outils"', 80, 10, 300)
+	GUISetFont(Default, Default, Default, "Courrier New")
 	GUICtrlSetFont($iIdApropos, 12, 800)
 	GUICtrlCreateLabel("Version "& $sVersion,10, 45)
 	If $iVersion = 1 Then
 		GUICtrlCreateLabel("Nouvelle version disponible !",220, 45)
 		GUICtrlSetColor(-1, $COLOR_RED)
 	EndIf
-	GUICtrlCreateLabel('"Boîte A Outils" est un logiciel d' & "'" & 'aide au dépannage informatique'&@CRLF&"Licence : GPL-3.0-or-later"&@CRLF&"https://www.isergues.fr"&@CRLF&"Copyright 2019 - 2022 Bastien Rouches", 10, 75)
+	GUICtrlCreateLabel('"Boîte A Outils" est un logiciel d' & "'" & 'aide au dépannage informatique'&@CRLF&"Licence : GPL-3.0-or-later"&@CRLF&"https://www.isergues.fr"&@CRLF&"Copyright 2019 - " & @YEAR & " Bastien Rouches", 10, 75)
  	GUICtrlCreateLabel("Aller sur le site du logiciel : ", 40, 145)
-	local $iIdLien = GUICtrlCreateButton("https://boiteaoutils.xyz", 200, 140, 190)
+	local $iIdLien = GuiFlatButton_Create("https://boiteaoutils.xyz", 200, 140, 170, 22)
 	GUICtrlCreateLabel("Encourager le développeur : ", 40, 170)
-	local $iIdDon = GUICtrlCreateButton("Faire un don", 200, 165, 190)
+	local $iIdDon = GuiFlatButton_Create("Faire un don", 200, 165, 170, 22)
 
- 	GUICtrlCreateLabel("Licences des logiciels :"&@CRLF&""&@CRLF&"DWService Agent : MPLv2"&@CRLF&"Chocolatey Open Source : Apache 2.0"&@CRLF&"Snappy Driver Installer Origin : GNU General Public License"&@CRLF&"Windows-ISO-Downloader : Heidoc"&@CRLF&"PrivaZer : Licence jointe avec le logiciel"&@CRLF&"7zip :  GNU LGPL"&@CRLF&"Smartmontools :  GNU GPL"&@CRLF&"SetUserFTA : Freeware"&@CRLF&"Proaxive : GNU-GPL"&@CRLF&""&@CRLF&""&@CRLF&"Les logiciels personnalisables par l'utilisateur sont soumis à leurs licences"&@CRLF&"respectives", 10, 195)
+	GUICtrlCreateGroup("Licences des logiciels :", 10, 195, 380, 200)
+	GUICtrlSetFont (-1, 9, 800)
+	Local $listlog = GUICtrlCreateList("DWService Agent : MPLv2", 20, 215, 360, 180)
+	GUICtrlSetData($listlog, "Chocolatey Open Source : Apache 2.0|Snappy Driver Installer Origin : GNU General Public License|Windows-ISO-Downloader : Heidoc|PrivaZer : Licence jointe avec le logiciel|7zip :  GNU LGPL|Smartmontools :  GNU GPL|SetUserFTA : Freeware|Proaxive : GNU-GPL|UserDiag : https://userdiag.com/cgu")
+ 	GUICtrlCreateLabel("Les logiciels personnalisables par l'utilisateur sont soumis à leurs licences"&@CRLF&"respectives", 20, 410)
 	GUISetState(@SW_SHOW)
 
 	Local $iIdAc

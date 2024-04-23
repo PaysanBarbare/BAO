@@ -276,7 +276,7 @@ Func _MenuMod($aEnr)
 
 	Local $iCombo, $sCombo, $btmpmod = False, $sTmpdom, $bChoco = False
 	Local $aListDoc = _FileListToArrayRec(@ScriptDir & "\Logiciels\", "*.ini", 1, 0, 1)
-	Local $hGUIMenuMod = GUICreate('Modification de logiciel (maintenez la touche "MAJ" pour ouvrir directement)', 600, 300)
+	Local $hGUIMenuMod = GUICreate('Modification de logiciel', 600, 300)
 	GUICtrlCreateLabel("Nom du logiciel :", 10, 10)
 	Local $iNomLogiciel = GUICtrlCreateInput($aEnr[1], 160, 8, 140)
 	GUICtrlSetState(-1, $GUI_DISABLE)

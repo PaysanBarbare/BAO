@@ -1,0 +1,8 @@
+### Transfert de données ###
+- Sauvegarde des données de l'ancien ordinateur
+- Copie des données sur le nouvel ordinateur
+- Récupération des favoris et des mots de passe de navigateur
+- Installation des logiciels principaux
+- Installation des mises à jour de Windows
+- Tests de bon fonctionnement
+

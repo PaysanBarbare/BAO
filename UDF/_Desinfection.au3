@@ -169,7 +169,6 @@ Func _Desinstalleur()
 
 	While $idMsgDes <> $GUI_EVENT_CLOSE And $idMsgDes <> $iIDBQuit
 
-		_UpdateEveryMin()
 		Switch $idMsgDes
 
 			Case $iIDBDes
@@ -575,6 +574,8 @@ Func _ResetBrowser()
 									_FileWriteLog($hLog, 'Attention, les bookmarks du profil "Default" n' & "'" & 'ont pas été récupérés')
 									_Attention('Attention, "BookmarksSVG" du profil "Default" de ' & $sBrowser & ' n' & "'" & 'a pas pu être renommé en "Bookmarks". Essayez manuellement')
 									ShellExecuteWait($mBrowsers[$sBrowser] & '\User Data\Default\')
+								ElseIf $bBookmark = 1 Then
+									FileDelete($mBrowsers[$sBrowser] & '\User Data\Default\Bookmarks')
 								EndIf
 								$bBookmark = 0
 								GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| 1 | En cours")
@@ -582,7 +583,7 @@ Func _ResetBrowser()
 								_FileWriteLog($hLog, 'Le dossier "' & $mBrowsers[$sBrowser] & '\User Data\Default\' & '" n' & "'existe pas")
 							EndIf
 
-							Local $iProfil = 1
+							Local $iProfil = 1, $bBookmark = 0
 							While FileExists($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\")
 								If (FileExists($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\")) Then
 									ControlSetText("Nettoyage des navigateurs : 1 - Mode manuel", "", "Static1", 'Navigateur : ' & $sBrowser & ' - Profil : Profile ' & $iProfil  & @Lf & 'Utilisez le menu "BAO - Nettoyage" dans la barre de favoris (CTRL + SHIFT + B)')
@@ -615,6 +616,8 @@ Func _ResetBrowser()
 										_FileWriteLog($hLog, 'Attention, les bookmarks du profil "Profile ' & $iProfil & '" n' & "'" & 'ont pas été récupérés')
 										_Attention('Attention, "BookmarksSVG" du profil "Profile ' & $iProfil & '" de ' & $sBrowser & ' n' & "'" & 'a pas pu être renommé en "Bookmarks". Essayez manuellement')
 										ShellExecuteWait($mBrowsers[$sBrowser] & '\User Data\Profile ' & $iProfil & '\')
+									ElseIf $bBookmark = 1 Then
+										FileDelete($mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks")
 									EndIf
 									$bBookmark = 0
 									GUICtrlSetData($iIDListView[$sBrowser], $sBrowser & "| " & ($iProfil + 1) & " | En cours")
@@ -657,6 +660,8 @@ Func _ResetBrowser()
 								_FileWriteLog($hLog, "Attention, les bookmarks d'Opera n'ont pas été récupérés")
 								_Attention('Attention, "BookmarksSVG" du profil "Default" d' & "'" & 'Opera n' & "'" & 'a pas pu être renommé en "Bookmarks". Essayez manuellement')
 								ShellExecuteWait(@AppDataDir & '\Opera Software\Opera Stable\')
+							ElseIf $bBookmark = 1 Then
+								FileDelete(@AppDataDir & '\Opera Software\Opera Stable\Bookmarks')
 							EndIf
 							$bBookmark = 0
 							GUICtrlSetData($iIDListView["Opera"], "Opera| 1 | Terminé")

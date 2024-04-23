@@ -703,6 +703,7 @@ Func _SFTP_FileGet($hConnection, $sRemoteFile, $sLocalFile = "", $fFailIfExists 
 
     Local $sLine
     StdinWrite($hConnection, 'get -- "' & $sRemoteFile & '"' & $sLocalFile & @CRLF)
+
     While 1
         $sLine = StdoutRead($hConnection)
         If ProcessExists($hConnection) = 0 Then

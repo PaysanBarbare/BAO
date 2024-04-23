@@ -1,1 +1,1 @@
-.pdf, AcroExch.Document.DC
+.pdf, Acrobat.Document.DC

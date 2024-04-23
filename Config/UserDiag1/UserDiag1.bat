@@ -9,10 +9,7 @@ goto:eof
 goto:eof
 
 :run
-set dirscript=%~dp0
-REGEDIT /S "%~dp0\DeleteNewsAndInterestOpenOnHover.reg"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0\PcNeuf.ps1"
-pause
+"%~dp0\UserDiag1.exe" --diag1
 goto:eof
 
 :uninstall

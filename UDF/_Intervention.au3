@@ -305,8 +305,8 @@ Func _CreerIntervention($sFile="", $bModif = False)
 					_Attention("Complétez au moins le nom du client ou la société")
 				ElseIf GUICtrlRead($iInterSuivi) = $GUI_CHECKED And Not IsInt(GUICtrlRead($iInterPin)+0) Then
 					_Attention("Le code de suivi client doit être un entier à 4 chiffres")
-				ElseIf GUICtrlRead($iInterSuivi) = $GUI_CHECKED And (GUICtrlRead($iInterPin) < 999 Or GUICtrlRead($iInterPin) > 9999) Then
-					_Attention("Le code de suivi client doit être compris entre 1000 et 9999")
+				ElseIf GUICtrlRead($iInterSuivi) = $GUI_CHECKED And (GUICtrlRead($iInterPin) < 1 Or GUICtrlRead($iInterPin) > 9999) Then
+					_Attention("Le code de suivi client doit être compris entre 1 et 9999")
 				Else
 					$sNNomClient = GUICtrlRead($iInterNom)
 					$sNPrenomClient = GUICtrlRead($iInterPrenom)
@@ -326,6 +326,7 @@ Func _CreerIntervention($sFile="", $bModif = False)
 
 					If GUICtrlRead($iInterSuivi) = $GUI_CHECKED Then
 						$sNPIN = GUICtrlRead($iInterPin)
+						$sNPIN = StringFormat("%04d", $sNPIN)
 						If GUICtrlRead($iInterChoix) = "Nouvelle intervention" Then
 							$iPIN = _CreerPIN($sNPIN)
 							$sNPIN = $iPIN
@@ -334,6 +335,7 @@ Func _CreerIntervention($sFile="", $bModif = False)
 						EndIf
 					Else
 						$iPIN = GUICtrlRead($iInterPin)
+						$iPIN = StringFormat("%04d", $iPIN)
 						$sNPIN = ""
 					EndIf
 					If GUICtrlRead($iInterNew) = $GUI_CHECKED Then
@@ -539,7 +541,7 @@ Func _PrintInter($sNomFichierToPrint, $sDefaut = "printdefault")
     $s_html &= '		<div class="column">'
 	$s_html &= '    		<label>Mot(s) de passe </label><input type="text" value="' & $sFMDP & '" >'
 	$s_html &= '    	</div>'
-	If _FichierCacheExist("Intervention") Then
+	If _FichierCacheExist("Intervention") = 1 Then
 		$s_html &= '    	<div class="column">'
 		$s_html &= '    		<label>Code de suivi </label><input type="text" value="' & $sFTracking & '" >'
 		$s_html &= '    	</div>'
@@ -590,9 +592,10 @@ Func _RechercherInter($sRecherche)
 EndFunc
 
 Func _RechercherNouvellesInterventions()
+	Local $sFichierTrouve
 	GUICtrlSetData($iIDListResult, "")
 	GUICtrlSetData($iIDInputRecherche, "")
-	$hSearch = FileFindFirstFile(@ScriptDir & "\Rapports\Nouvelle\*.bao")
+	Local $hSearch = FileFindFirstFile(@ScriptDir & "\Rapports\Nouvelle\*.bao")
 	If $hSearch <> -1 Then
 		 While 1
 			$sFichierTrouve = FileFindNextFile($hSearch)
@@ -631,8 +634,9 @@ Func _CreerPIN($iPIN=0)
 	EndIf
 
 	While 1
-		If FileExists(@ScriptDir & '\Cache\Suivi\' & $iPIN & '.txt') Then
+		If FileExists(@ScriptDir & '\Cache\Suivi\' & StringFormat("%04d", $iPIN) & '.txt') Then
 			$iPIN += 1
+			$iPIN = StringFormat("%04d", $iPIN)
 			If $iPIN > 9999 Then
 				$iPIN = Random(1000, 9999, 1)
 			EndIf
@@ -642,7 +646,7 @@ Func _CreerPIN($iPIN=0)
 	WEnd
 
 	If $bCreateFile Then
-		$hSuivi = FileOpen(@ScriptDir & '\Cache\Suivi\' & $iPIN & '.txt', 9)
+		$hSuivi = FileOpen(@ScriptDir & '\Cache\Suivi\' & StringFormat("%04d", $iPIN) & '.txt', 9)
 		FileClose($hSuivi)
 	EndIf
 
@@ -664,7 +668,9 @@ Func _CreerIDSuivi()
 		EndIf
 
 		$iPIN = InputBox("Code de suivi", $sQuestion, $iPIN, " 4")
+
 		If($iPIN <> "" And $iModeTech = 0) Then
+			$iPIN = StringFormat("%04d", $iPIN)
 			If _FichierCache("Suivi") = 1 Then
 				_FichierCache("Suivi", $iPIN)
 			Else
@@ -690,13 +696,15 @@ Func _CreerIDSuivi()
 		Else
 			_Attention("Ce code est déjà utilisé, merci de renouveller l'opération avec un code différent")
 		EndIf
+	Else
+		Return -1
 	EndIf
 EndFunc
 
 Func _CompleterSuivi($sFile="", $bClot=False)
 
 	Local $hGUIsuivi = GUICreate("Compléter le suivi", 400, 140)
-	Local $iPIN, $eGet, $iRetour, $iIDCloture, $iNBEl = False, $iIDCombo, $aNouvelleInter, $aInterEnCours
+	Local $iPIN, $eGet, $iRetour, $iIDCloture, $iNBEl = False, $iIDCombo, $aNouvelleInter, $aInterEnCours, $iRet
 
 	If($iModeTech = 1) Then
 		If $sFile <> "" Then
@@ -744,7 +752,11 @@ Func _CompleterSuivi($sFile="", $bClot=False)
 	Else
 		$iPIN = _FichierCache("Suivi")
 		If $iPIN = 1 Then
-			_CreerIDSuivi()
+			$iRet = _CreerIDSuivi()
+			If $iRet = -1 Then
+				GUIDelete($hGUIsuivi)
+				Return
+			EndIf
 			$iPIN = _FichierCache("Suivi")
 		EndIf
 		GUICtrlCreateLabel("Ajouter une information de suivi au client : " & $sNom & " (" & $iPIN & ")", 10, 10)
@@ -1067,7 +1079,7 @@ Func _CalcStats()
 										$aTot[5] += 1
 										$mTechsTrouves[$sTmpTech][3] += 1
 										$mTechsTrouves[$sTmpTech][5] += 1
-									ElseIf StringMid($sTMPDate,1, 7) = @YEAR & "/" & (@MON - 1) Then
+									ElseIf StringMid($sTMPDate,1, 7) = @YEAR & "/" & StringFormat("%02i", (@MON - 1)) Then
 										$aTot[4] += 1
 										$aTot[5] += 1
 										$mTechsTrouves[$sTmpTech][4] += 1

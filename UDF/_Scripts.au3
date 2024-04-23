@@ -139,9 +139,9 @@ Func _Scripts()
 	_UpdEdit($iIDEditLog, $hLog)
 
 	If(StringRight($sScriptname, 4) = ".bat" Or StringRight($sScriptname, 4) = ".cmd" Or StringRight($sScriptname, 4) = ".reg") Then
-		RunWait(@ComSpec & ' /c "' & $sDocscript & $sScriptname & '"')
+		RunWait(@ComSpec & ' /c "' & $sDocscript & $sScriptname & '"', $sDocscript)
 	ElseIf (StringRight($sScriptname, 4) = ".ps1") Then
-		RunWait(@ComSpec & ' /k "powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' & $sDocscript & $sScriptname & '"')
+		RunWait(@ComSpec & ' /k "powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' & $sDocscript & $sScriptname & '"', $sDocscript)
 	Else
 		ShellExecute($sScriptname, "", $sDocscript)
 	EndIf

@@ -22,9 +22,9 @@ Func _BureauDistant()
 
 	Local $programFilesDir = RegRead("HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion", "ProgramFilesDir")
 
-	If $sMailBD <> "" Then
+	If $sAgent = "DWAgent" And $sMailBD <> "" Then
 
-		If($iModeTech = 0) And FileExists($programFilesDir & "\DWAgent\runtime\dwagent.exe") Then
+		If $iModeTech = 0 And $sMailBD <> "" And FileExists($programFilesDir & "\DWAgent\runtime\dwagent.exe") Then
 			If(_FichierCacheExist("BureauDistant") = 1) Then
 				_FileWriteLog($hLog, 'Désinstallation DWAgent')
 				_UninstallDWAgent()
@@ -49,6 +49,7 @@ Func _BureauDistant()
 							Local $hGUIDWS = GUICreate("Activation du bureau distant", 400, 105)
 							GUICtrlCreateLabel('Saisissez le mot de passe DWService pour "' & $sMailBD & '" :',10, 15)
 							Local $iPWD = GUICtrlCreateInput("", 10, 42, 200, 20, $ES_PASSWORD)
+							GUICtrlSetState(-1, $GUI_FOCUS)
 							Local $iMem = GUICtrlCreateCheckbox("Mémoriser le mot de passe ?", 220, 40)
 
 							Local $iIDValider = GUICtrlCreateButton("Valider", 125, 70, 150, 25, $BS_DEFPUSHBUTTON)
@@ -113,12 +114,25 @@ Func _BureauDistant()
 					 _ChangerEtatBouton($iIDAction, "Desactiver")
 				EndIf
 			Else
-			  ShellExecute("chrome", 'https://www.dwservice.net/fr/login.html')
+			  ShellExecute('https://www.dwservice.net/fr/login.html')
 			EndIf
 		EndIf
 		_UpdEdit($iIDEditLog, $hLog)
-	Else
+	ElseIf $sAgent = "DWAgent" Then
 		_Attention("L'adresse email de votre compte DWS doit être renseignée dans le fichier config.ini")
+		_ChangerEtatBouton($iIDAction, "Desactiver")
+	ElseIf $sAgent = "TeamViewer QS" And $iModeTech = 1 Then
+		ShellExecute("https://web.teamviewer.com/remote-support")
+	Else
+		_FileWriteLog($hLog, 'Démarrage du bureau distant (' & $sAgent & ')')
+		_ChangerEtatBouton($iIDAction, "Patienter")
+		If MapExists($aMenu, $sAgent) Then
+			_Telecharger($aMenu[$sAgent])
+			_Executer($sAgent)
+		Else
+			_FileWriteLog($hLog, 'Erreur : ' & $sAgent & ' absent des liens')
+			_Attention("Erreur : " & $sAgent & " n'existe pas dans les liens")
+		EndIf
 		_ChangerEtatBouton($iIDAction, "Desactiver")
 	EndIf
 EndFunc

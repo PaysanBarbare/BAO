@@ -128,7 +128,7 @@ Func _SauvegardeAutomatique()
 	GUICtrlCreateGroup("PC Destination", 20, 175, 360, 50)
 	Local $iIDPCSource = GUICtrlCreateButton("Activer le partage", 30, 195, 120)
 	GUICtrlSetTip(-1, 'Dossier de destination : "' & $sDossierRapport & '\Sauvegarde réseau"')
-	If _FichierCacheExist("Partage") And _FichierCache("Partage") = 1 Then
+	If _FichierCacheExist("Partage") = 1 And _FichierCache("Partage") = 1 Then
 		_ChangerEtatBouton($iIDPCSource, "Activer")
 	EndIf
 	;GUICtrlCreateLabel("Nom de l'ordinateur : ", 30, 175)
@@ -161,27 +161,27 @@ Func _SauvegardeAutomatique()
 			Else
 				GUICtrlSetState($iIDRestauBureau, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
 			EndIf
-		ElseIf $eGet = $iIDRestauFavoris Then
-			If (GUICtrlRead($iIDRestauFavoris) = $GUI_CHECKED) Then
-				Local $aFolderBrowsers = _FileListToArray(GUICtrlRead($iIDInputrestaur) & "\Autres données\", "*", 2)
-				If @error = 0 Then
-					Local $sErrorBrowserNotInstalled
-					For $sFolderBrowser In $aFolderBrowsers
-						If MapExists($mProfilsBrowsers, $sFolderBrowser) Then
-							If Not FileExists($mProfilsBrowsers[$sFolderBrowser]) Then
-								$sErrorBrowserNotInstalled &= " - " & $sFolderBrowser & @CRLF
-							EndIf
-						EndIf
-					Next
-					If $sErrorBrowserNotInstalled <> "" Then
-						_Attention("Attention, les navigateurs suivant ne sont pas installés, les favoris et mots de passe ne seront pas restaurés : " & @CRLF & $sErrorBrowserNotInstalled)
-						$sErrorBrowserNotInstalled = ""
-					EndIf
-				Else
-					_Attention("Attention : choisissez d'abord un dossier à restaurer")
-					GUICtrlSetState($iIDRestauFavoris, $GUI_UNCHECKED)
-				EndIf
-			EndIf
+;~ 		ElseIf $eGet = $iIDRestauFavoris Then
+;~ 			If (GUICtrlRead($iIDRestauFavoris) = $GUI_CHECKED) Then
+;~ 				Local $aFolderBrowsers = _FileListToArray(GUICtrlRead($iIDInputrestaur) & "\Autres données\", "*", 2)
+;~ 				If @error = 0 Then
+;~ 					Local $sErrorBrowserNotInstalled
+;~ 					For $sFolderBrowser In $aFolderBrowsers
+;~ 						If MapExists($mProfilsBrowsers, $sFolderBrowser) Then
+;~ 							If Not FileExists($mProfilsBrowsers[$sFolderBrowser]) Then
+;~ 								$sErrorBrowserNotInstalled &= " - " & $sFolderBrowser & @CRLF
+;~ 							EndIf
+;~ 						EndIf
+;~ 					Next
+;~ 					If $sErrorBrowserNotInstalled <> "" Then
+;~ 						_Attention("Attention, les navigateurs suivant ne sont pas installés, les favoris et mots de passe ne seront pas restaurés : " & @CRLF & $sErrorBrowserNotInstalled)
+;~ 						$sErrorBrowserNotInstalled = ""
+;~ 					EndIf
+;~ 				Else
+;~ 					_Attention("Attention : choisissez d'abord un dossier à restaurer")
+;~ 					GUICtrlSetState($iIDRestauFavoris, $GUI_UNCHECKED)
+;~ 				EndIf
+;~ 			EndIf
 		ElseIf $eGet = $iIDButtonDemarrerRestau Then
 			If FileExists(GUICtrlRead($iIDInputrestaur)) Then
 				If StringInStr(GUICtrlRead($iIDInputrestaur), $sDossierRapport) And GUICtrlRead($iIDRestaurUtil) = $GUI_UNCHECKED Then
@@ -195,7 +195,7 @@ Func _SauvegardeAutomatique()
 		ElseIf $eGet = $iIDInputCopy Then
 			ClipPut(GUICtrlRead($iIDInputShare))
 		ElseIf $eGet = $iIDPCSource Then
-			If _FichierCacheExist("Partage") And _FichierCache("Partage") = 1 Then
+			If _FichierCacheExist("Partage") = 1 And _FichierCache("Partage") = 1 Then
 				_FileWriteLog($hLog, 'Désactivation du partage')
 				RunWait(@ComSpec & ' /C net user bao_share /delete', "", @SW_HIDE)
 				RunWait(@ComSpec & ' /C net share SAUV /delete', "", @SW_HIDE)
@@ -321,12 +321,12 @@ Func _SauvegardeAutomatique()
 						;MsgBox(0, "",_SQLite_LibVersion())
 						For $sTmpDoc In $aTempFF
 							If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups")) Then
-								DirCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\Autres données\Firefox\", 1)
+								DirCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", 1)
 								_FileWriteLog($hLog, "Marque-pages de Firefox (" & $sTmpDoc & ") sauvegardés")
 							EndIf
 							If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")) Then
 
-								FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite", 9)
+								FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", $sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", 9)
 								If $iSizeBookmarkFF <> 0 And FileGetSize(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite") > $iSizeBookmarkFF Then
 									$iSizeBookmarkFF = FileGetSize(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")
 									Local $hFileSizeFF = FileOpen($sDossierDesti & "\Autres données\Firefox.txt", 2)
@@ -336,13 +336,13 @@ Func _SauvegardeAutomatique()
 								_FileWriteLog($hLog, "Nettoyage du profil " & $sTmpDoc & " de Firefox")
 								; Nettoyage de l'historique tout en gardant les favoris:
 								;ConsoleWrite("_SQLite_LibVersion=" & _SQLite_LibVersion() & @CRLF)
-								_SQLite_Open($sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite")
+								_SQLite_Open($sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")
 								_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
 								_SQLite_Close()
 							EndIf
 							If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json") And FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db")) Then
-								FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\logins.json", 9)
-								FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\key4.db", 9)
+								FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json", $sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json", 9)
+								FileCopy(@AppDataDir & "\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db", $sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db", 9)
 							EndIf
 						Next
 						_SQLite_Shutdown()
@@ -351,8 +351,8 @@ Func _SauvegardeAutomatique()
 					EndIf
 
 					; Opera
-					If (FileExists(@AppDataDir & "\Opera Software\Opera Stable")) Then
-						FileCopy(@AppDataDir & "\Opera Software\Opera Stable\Bookmarks", $sDossierDesti & "\Autres données\Opera\", 9)
+					If (FileExists(@AppDataDir & "\Opera Software\Opera Stable\Bookmarks")) Then
+						FileCopy(@AppDataDir & "\Opera Software\Opera Stable\Bookmarks", $sDossierDesti & "\AppData\Roaming\Opera Software\Opera Stable\Bookmarks", 9)
 						;FileCopy(@AppDataDir & "\Opera Software\Opera Stable\Login Data", $sDossierDesti & "\Autres données\Opera\", 9)
 						_FileWriteLog($hLog, "Sauvegarde d'Opera")
 					Else
@@ -361,18 +361,18 @@ Func _SauvegardeAutomatique()
 
 					For $sBrowser In $aBrowsers
 						Local $iSizeBookmark
-						If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\")) Then
+						If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks")) Then
 							_FileWriteLog($hLog, 'Sauvegarde de ' & $sBrowser)
 							If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks")) Then
 								$iSizeBookmark = FileGetSize($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks")
-								FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Bookmarks", 9)
+								FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks", $sDossierDesti & "\AppData\Local" & $mBrowsers[$sBrowser] & "\User Data\Default\Bookmarks", 9)
 							EndIf
 							;If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Login Data")) Then
 							;	FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Default\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Login Data", 9)
 							;EndIf
 
 							Local $iProfil = 1
-							While FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\")
+							While FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks")
 								If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks")) Then
 									If FileGetSize($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks") > $iSizeBookmark Then
 										$iSizeBookmark = FileGetSize($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks")
@@ -380,7 +380,7 @@ Func _SauvegardeAutomatique()
 										FileWriteLine($hFileSize, "Profile " & $iProfil)
 										FileClose($hFileSize)
 									EndIf
-									FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Bookmarks", 9)
+									FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", $sDossierDesti & "\AppData\Local" & $mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", 9)
 								EndIf
 								;If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data")) Then
 								;	FileCopy($mProfilsBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Login Data", 9)
@@ -431,7 +431,7 @@ Func _SauvegardeAutomatique()
 				Next
 
 				If (FileExists(@LocalAppDataDir & "\Microsoft\Outlook")) Then
-					DirCopy(@LocalAppDataDir & "\Microsoft\Outlook", $sDossierDesti & "\Autres données\Outlook", 1)
+					DirCopy(@LocalAppDataDir & "\Microsoft\Outlook", $sDossierDesti & "\AppData\Local\Microsoft\Outlook", 1)
 					_FileWriteLog($hLog, "PST de Microsoft Outlook sauvegardés")
 				EndIf
 
@@ -513,7 +513,7 @@ Func _SauvegardeAutomatique()
 					_Attention("Espace sur le disque " & $sLetter & " insuffisant")
 					_FileWriteLog($hLog, '  Dossier "' & $sSource & '" non sauvegardé : espace disque insuffisant')
 				Else
-					RunWait(@ComSpec & ' /c robocopy "' & $sSource & '" "' & $sDossierDesti & '" /E /B /R:1 /W:1 /XJ /XD "' & $sSource & '\Appdata"')
+					RunWait(@ComSpec & ' /c robocopy "' & $sSource & '" "' & $sDossierDesti & '" /E /B /R:1 /W:1 /XJ /XD "' & $sSource & '\AppData"')
 					_FileWriteLog($hLog, 'Dossier "' & $sSource & '" : ' & Round(DirGetSize($sDossierDesti) / (1024 * 1024 * 1024), 2) & " sur " & Round((DirGetSize($sSource) - DirGetSize($sSource & "\Appdata")) / (1024 * 1024 * 1024), 2) & " Go copiés")
 				EndIf
 
@@ -522,22 +522,22 @@ Func _SauvegardeAutomatique()
 					Local $aBrowsersSlave = MapKeys($mProfilsBrowsersSlave)
 
 					; Firefox
-					If (FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles")) Then
+					If (FileExists($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles")) Then
 						Local $iSizeBookmarkFF = 0
-						Local $aTempFF = _FileListToArray($sSource & "\Roaming\Mozilla\Firefox\Profiles\", "*", 2)
+						Local $aTempFF = _FileListToArray($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\", "*", 2)
 						;_Attention(@ScriptDir & "\Outils\sqlite3.dll")
 						_SQLite_Startup(@ScriptDir & "\Outils\sqlite3.dll", False, 1)
 						;MsgBox(0, "",_SQLite_LibVersion())
 						For $sTmpDoc In $aTempFF
-							If (FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups")) Then
-								DirCopy($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\Autres données\Firefox\", 1)
+							If (FileExists($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups")) Then
+								DirCopy($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", $sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\bookmarkbackups", 1)
 								_FileWriteLog($hLog, "Marque-pages de Firefox (" & $sTmpDoc & ") sauvegardés")
 							EndIf
-							If (FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")) Then
+							If (FileExists($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")) Then
 
-								FileCopy($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite", 9)
-								If $iSizeBookmarkFF <> 0 And FileGetSize($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite") > $iSizeBookmark Then
-									$iSizeBookmarkFF = FileGetSize($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")
+								FileCopy($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", $sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite", 9)
+								If $iSizeBookmarkFF <> 0 And FileGetSize($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite") > $iSizeBookmark Then
+									$iSizeBookmarkFF = FileGetSize($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")
 									Local $hFileSizeFF = FileOpen($sDossierDesti & "\Autres données\Firefox.txt", 2)
 									FileWriteLine($hFileSizeFF, $sTmpDoc)
 									FileClose($hFileSizeFF)
@@ -545,13 +545,13 @@ Func _SauvegardeAutomatique()
 								_FileWriteLog($hLog, "Nettoyage du profil " & $sTmpDoc & " de Firefox")
 								; Nettoyage de l'historique tout en gardant les favoris:
 								;ConsoleWrite("_SQLite_LibVersion=" & _SQLite_LibVersion() & @CRLF)
-								_SQLite_Open($sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\places.sqlite")
+								_SQLite_Open($sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\places.sqlite")
 								_SQLite_Exec(-1, "DELETE FROM moz_historyvisits; VACUUM;")
 								_SQLite_Close()
 							EndIf
-							If (FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json") And FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db")) Then
-								FileCopy($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\logins.json", 9)
-								FileCopy($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db", $sDossierDesti & "\Autres données\Firefox\" & $sTmpDoc & "\key4.db", 9)
+							If (FileExists($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json") And FileExists($sSource & "\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db")) Then
+								FileCopy($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json", $sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\logins.json", 9)
+								FileCopy($sSource & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db", $sDossierDesti & "\AppData\Roaming\Mozilla\Firefox\Profiles\" & $sTmpDoc & "\key4.db", 9)
 							EndIf
 						Next
 						_SQLite_Shutdown()
@@ -560,8 +560,8 @@ Func _SauvegardeAutomatique()
 					EndIf
 
 					; Opera
-					If (FileExists($sSource & "\Roaming\Opera Software\Opera Stable")) Then
-						FileCopy($sSource & "\Roaming\Opera Software\Opera Stable\Bookmarks", $sDossierDesti & "\Autres données\Opera\", 9)
+					If (FileExists($sSource & "\AppData\Roaming\Opera Software\Opera Stable\Bookmarks")) Then
+						FileCopy($sSource & "\AppData\Roaming\Opera Software\Opera Stable\Bookmarks", $sDossierDesti & "\AppData\Roaming\Opera Software\Opera Stable", 9)
 						;FileCopy($sSource & "\Roaming\Opera Software\Opera Stable\Login Data", $sDossierDesti & "\Autres données\Opera\", 9)
 					Else
 						_FileWriteLog($hLog, "Opera : aucun profil trouvé")
@@ -573,11 +573,11 @@ Func _SauvegardeAutomatique()
 
 					For $sBrowser In $aBrowsersSlave
 						Local $iSizeBookmark
-						If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\")) Then
+						If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks")) Then
 							_FileWriteLog($hLog, 'Sauvegarde de ' & $sBrowser)
 							If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks")) Then
 								$iSizeBookmark = FileGetSize($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks")
-								FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Bookmarks", 9)
+								FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Bookmarks", $sDossierDesti & "\AppData\Local" & $mBrowsers[$sBrowser] & "\User Data\Default\Bookmarks", 9)
 							EndIf
 							;If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Login Data")) Then
 							;	FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Default\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Default\Login Data", 9)
@@ -592,7 +592,7 @@ Func _SauvegardeAutomatique()
 										FileWriteLine($hFileSize, "Profile " & $iProfil)
 										FileClose($hFileSize)
 									EndIf
-									FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Bookmarks", 9)
+									FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", $sDossierDesti & "\AppData\Local" & $mBrowsers[$sBrowser] & "\User Data\Profile " & $iProfil & "\Bookmarks", 9)
 								EndIf
 								;If (FileExists($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data")) Then
 								;	FileCopy($mProfilsBrowsersSlave[$sBrowser] & "\User Data\Profile " & $iProfil & "\Login Data", $sDossierDesti & "\Autres données\" & $sBrowser & "\Profile " & $iProfil & "\Login Data", 9)
@@ -606,7 +606,7 @@ Func _SauvegardeAutomatique()
 				EndIf
 
 				If (FileExists($sSource & "\AppData\Local\Microsoft\Outlook")) Then
-					DirCopy($sSource & "\AppData\Local\Microsoft\Outlook", $sDossierDesti & "\Autres données\Outlook", 1)
+					DirCopy($sSource & "\AppData\Local\Microsoft\Outlook", $sDossierDesti & "\AppData\Local\Microsoft\Outlook", 1)
 					_FileWriteLog($hLog, "PST de Microsoft Outlook sauvegardés")
 				EndIf
 
@@ -705,16 +705,12 @@ Func _SauvegardeAutomatique()
 				DirCopy($sDossierSourceRestau & "\Autres données", $sDossierRestau & "\Autres données", 0)
 			Else
 				_FileWriteLog($hLog, 'Dossier "Autres données" absent de la sauvegarde')
-				If $iNav = 1 Then
-					_Attention("Le dossier à restaurer ne contient pas les sauvegardes de navigateurs")
-					$iNav = 0
-				EndIf
 			EndIf
 		EndIf
 
 		If $iNav = 1 Then
 
-			If FileExists($sDossierRestau & "\Autres données") Then
+			If FileExists($sDossierRestau & "\AppData") Then
 				_BrowserClose()
 				Local $sBrowserProfilToRestaur
 
@@ -722,15 +718,15 @@ Func _SauvegardeAutomatique()
 
 					If (FileExists($mProfilsBrowsers[$sBrowser] & "\User Data\Default\")) Then
 
-						If FileExists($sDossierRestau & "\Autres données\" & $sBrowser & "\") Then
+						If FileExists($sDossierRestau & "\AppData\Local" & $mBrowsers[$sBrowser] & "\") Then
 
 							If FileExists($sDossierRestau & "\Autres données\" & $sBrowser & ".txt") Then
-								$sBrowserProfilToRestaur = $sDossierRestau & "\Autres données\" & $sBrowser & "\" & FileReadLine($sDossierRestau & "\Autres données\" & $sBrowser & ".txt")
+								$sBrowserProfilToRestaur = $sDossierRestau & "\AppData\Local" & $mBrowsers[$sBrowser] & "\" & FileReadLine($sDossierRestau & "\Autres données\" & $sBrowser & ".txt")
 							Else
-								$sBrowserProfilToRestaur = $sDossierRestau & "\Autres données\" & $sBrowser & "\Default"
+								$sBrowserProfilToRestaur = $sDossierRestau & "\AppData\Local" & $mBrowsers[$sBrowser] & "\Default"
 							EndIf
 
-							If FileCopy($sBrowserProfilToRestaur & "\*", $mProfilsBrowsers[$sBrowser] & "\User Data\Default\", 9) Then
+							If FileCopy($sBrowserProfilToRestaur & "\Bookmarks", $mProfilsBrowsers[$sBrowser] & "\User Data\Default\Bookmarks", 9) Then
 								_FileWriteLog($hLog, 'Restauration de ' & $sBrowser & ' réussie')
 							Else
 								_FileWriteLog($hLog, 'Echec de la restauration de ' & $sBrowser)
@@ -745,7 +741,7 @@ Func _SauvegardeAutomatique()
 				If (FileExists(@AppDataDir & "\Mozilla\Firefox\Profiles")) Then
 
 					If FileExists($sDossierRestau & "\Autres données\Firefox.txt") Then
-						$sBrowserProfilToRestaur = $sDossierRestau & "\Autres données\Firefox\" & FileReadLine($sDossierRestau & "\Autres données\Firefox.txt")
+						$sBrowserProfilToRestaur = $sDossierRestau & "\AppData\Roaming\Mozilla\Firefox\" & FileReadLine($sDossierRestau & "\Autres données\Firefox.txt")
 						Local $aTempFF = _FileListToArray(@AppDataDir & "\Mozilla\Firefox\Profiles\", "*default-release", 2)
 						If FileCopy($sBrowserProfilToRestaur & "\*",  @AppDataDir & "\Mozilla\Firefox\Profiles\" & $aTempFF[1] & "\", 1) Then
 							_FileWriteLog($hLog, "Marque-pages de Firefox restaurés")
@@ -759,8 +755,8 @@ Func _SauvegardeAutomatique()
 
 				; Opera
 				If (FileExists(@AppDataDir & "\Opera Software\Opera Stable")) Then
-					If FileExists($sDossierRestau & "\Autres données\Opera\") Then
-						FileCopy($sDossierRestau & "\Autres données\Opera\", @AppDataDir & "\Opera Software\Opera Stable", 9)
+					If FileExists($sDossierRestau & "\AppData\Roaming\Opera Software\Opera Stable\Bookmarks") Then
+						FileCopy($sDossierRestau & "\AppData\Roaming\Opera Software\Opera Stable\Bookmarks", @AppDataDir & "\Opera Software\Opera Stable\Bookmarks", 9)
 					EndIf
 				Else
 					_FileWriteLog($hLog, "Données d'Opera non restaurées car ce navigateur n'est pas installé")

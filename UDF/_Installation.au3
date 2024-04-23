@@ -22,7 +22,7 @@ Func _InstallationAutomatique()
 
 	_ChangerEtatBouton($iIDAction, "Patienter")
 	Local $iIDButtonDefaut, $iIDButtonDeselectionner, $iIDButtonSelectionner, $iIDCache, $iIDDefaut, $iIDButtonInstaller, $iTitreBureautique, $iTitreDivers, $iTitreInternet, $iTitreMultimedia, $iEDivers, $iEBureautique, $iEInternet, $iEMultimedia
-
+	Local $sMoteur=IniRead($sConfig, "Installation", "Moteur", "winget")
 	Local $sListeSoftsInternet = IniRead($sConfig, "Installation", "1", "Internet GoogleChrome Firefox Opera Safari Thunderbird")
 	Local $sListeSoftsBureautique = IniRead($sConfig, "Installation", "2", "Bureautique OpenOffice LibreOffice-fresh")
 	Local $sListeSoftsMultimedia = IniRead($sConfig, "Installation", "3", "Multimedia K-LiteCodecPackFull Skype VLC Paint.net GoogleEarth GoogleEarthPro iTunes")
@@ -61,10 +61,10 @@ Func _InstallationAutomatique()
 		$iHauteurCadre2 = $aListeSoftsDivers[0] * 20 + 25
 	EndIf
 
-	Local $hGUIInst = GUICreate("Sélection des programmes à installer", 400,$iHauteurCadre1 + $iHauteurCadre2 + 130)
+	Local $hGUIInst = GUICreate("Sélection des programmes à installer", 600,$iHauteurCadre1 + $iHauteurCadre2 + 150)
 
 	If($iModeTech = 0) Then
-		GUICtrlCreateGroup($sGroupe1, 10, 10, 180, $iHauteurCadre1)
+		GUICtrlCreateGroup($sGroupe1, 10, 10, 280, $iHauteurCadre1)
 		For $p = 1 To $aListeSoftsInternet[0]
 			$idCheckboxInternet[$p-1] = GUICtrlCreateCheckbox($aListeSoftsInternet[$p], 20, 20 * ($p - 1) + 25)
 			If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsInternet[$p]) <> -1) Then
@@ -72,15 +72,15 @@ Func _InstallationAutomatique()
 			EndIf
 		Next
 
-		GUICtrlCreateGroup($sGroupe2, 210, 10, 180, $iHauteurCadre1)
+		GUICtrlCreateGroup($sGroupe2, 310, 10, 280, $iHauteurCadre1)
 		For $p = 1 To $aListeSoftsBureautique[0]
-			$idCheckboxBureautique[$p-1] = GUICtrlCreateCheckbox($aListeSoftsBureautique[$p], 220, 20 * ($p - 1) + 25)
+			$idCheckboxBureautique[$p-1] = GUICtrlCreateCheckbox($aListeSoftsBureautique[$p], 320, 20 * ($p - 1) + 25)
 			If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsBureautique[$p]) <> -1) Then
 				GUICtrlSetState (-1, 1)
 			EndIf
 		Next
 
-		GUICtrlCreateGroup($sGroupe3, 10,$iHauteurCadre1 + 30 , 180, $iHauteurCadre2)
+		GUICtrlCreateGroup($sGroupe3, 10,$iHauteurCadre1 + 30 , 280, $iHauteurCadre2)
 		For $p = 1 To $aListeSoftsMultimedia[0]
 			$idCheckboxMultimedia[$p-1] = GUICtrlCreateCheckbox($aListeSoftsMultimedia[$p], 20, $iHauteurCadre1 + 20 * ($p - 1) + 50)
 			If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsMultimedia[$p]) <> -1) Then
@@ -88,40 +88,44 @@ Func _InstallationAutomatique()
 			EndIf
 		Next
 
-		GUICtrlCreateGroup($sGroupe4, 210, $iHauteurCadre1 + 30 , 180, $iHauteurCadre2)
+		GUICtrlCreateGroup($sGroupe4, 310, $iHauteurCadre1 + 30 , 280, $iHauteurCadre2)
 		For $p = 1 To $aListeSoftsDivers[0]
-			$idCheckboxDivers[$p-1] = GUICtrlCreateCheckbox($aListeSoftsDivers[$p], 220, $iHauteurCadre1 + 20 * ($p - 1) + 50)
+			$idCheckboxDivers[$p-1] = GUICtrlCreateCheckbox($aListeSoftsDivers[$p], 320, $iHauteurCadre1 + 20 * ($p - 1) + 50)
 			If(_ArraySearch($aListeSoftsDefaut, $aListeSoftsDivers[$p]) <> -1) Then
 				GUICtrlSetState (-1, 1)
 			EndIf
 		Next
 
-		GUICtrlCreateLabel("Sélectionner", 15, $iHauteurCadre1 + $iHauteurCadre2 + 45)
-		$iIDButtonSelectionner = GUICtrlCreateButton("Tous", 90, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
-		$iIDButtonDeselectionner = GUICtrlCreateButton("Aucun", 165, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
-		$iIDButtonDefaut = GUICtrlCreateButton("Par défaut", 240, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
+		GUICtrlCreateLabel("Sélectionner :", 115, $iHauteurCadre1 + $iHauteurCadre2 + 45)
+		$iIDButtonSelectionner = GUICtrlCreateButton("Tous", 190, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
+		$iIDButtonDeselectionner = GUICtrlCreateButton("Aucun", 265, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
+		$iIDButtonDefaut = GUICtrlCreateButton("Par défaut", 340, $iHauteurCadre1 + $iHauteurCadre2 + 40, 70, 25)
 
-		If StringLeft(@ScriptDir, 2) = "\\" Then
+		If StringLeft(@ScriptDir, 2) = "\\" And $sMoteur <> "winget" Then
 			$iIDCache = GUICtrlCreateCheckbox("Utiliser le cache sur le partage ?", 20, $iHauteurCadre1 + $iHauteurCadre2 + 70)
 			GUICtrlSetState (-1, 1)
 		EndIf
 
 		$iIDDefaut = GUICtrlCreateDummy()
 	Else
-		$iTitreInternet = GUICtrlCreateInput($sGroupe1, 10, 10, 180, 20)
-		$iEInternet = GUICtrlCreateEdit(_ArrayToString($aListeSoftsInternet, @CRLF, 1), 20, 35, 160, $iHauteurCadre1 - 20)
+		$iTitreInternet = GUICtrlCreateInput($sGroupe1, 10, 10, 280, 20)
+		$iEInternet = GUICtrlCreateEdit(_ArrayToString($aListeSoftsInternet, @CRLF, 1), 20, 35, 260, $iHauteurCadre1 - 20)
 
-		$iTitreBureautique = GUICtrlCreateInput($sGroupe2, 210, 10, 180, 20)
-		$iEBureautique = GUICtrlCreateEdit(_ArrayToString($aListeSoftsBureautique, @CRLF, 1), 220, 35, 160, $iHauteurCadre1 - 20)
+		$iTitreBureautique = GUICtrlCreateInput($sGroupe2, 310, 10, 280, 20)
+		$iEBureautique = GUICtrlCreateEdit(_ArrayToString($aListeSoftsBureautique, @CRLF, 1), 320, 35, 260, $iHauteurCadre1 - 20)
 
-		$iTitreMultimedia = GUICtrlCreateInput($sGroupe3, 10, $iHauteurCadre1 + 30 , 180, 20)
-		$iEMultimedia = GUICtrlCreateEdit(_ArrayToString($aListeSoftsMultimedia, @CRLF, 1), 20, $iHauteurCadre1 + 60, 160, $iHauteurCadre1 + 30)
+		$iTitreMultimedia = GUICtrlCreateInput($sGroupe3, 10, $iHauteurCadre1 + 30 , 280, 20)
+		$iEMultimedia = GUICtrlCreateEdit(_ArrayToString($aListeSoftsMultimedia, @CRLF, 1), 20, $iHauteurCadre1 + 60, 260, $iHauteurCadre1 + 30)
 
-		$iTitreDivers = GUICtrlCreateInput($sGroupe4, 210, $iHauteurCadre1 + 30 , 180, 20)
-		$iEDivers = GUICtrlCreateEdit(_ArrayToString($aListeSoftsDivers, @CRLF, 1), 220,  $iHauteurCadre1 + 60, 160, $iHauteurCadre1 + 30)
+		$iTitreDivers = GUICtrlCreateInput($sGroupe4, 310, $iHauteurCadre1 + 30 , 280, 20)
+		$iEDivers = GUICtrlCreateEdit(_ArrayToString($aListeSoftsDivers, @CRLF, 1), 320,  $iHauteurCadre1 + 60, 260, $iHauteurCadre1 + 30)
 
-		GUICtrlCreateLabel("Cocher par défaut (saisissez les noms des logiciels séparés par un espace)", 20, $iHauteurCadre1 + $iHauteurCadre2 + 45)
-		$iIDDefaut = GUICtrlCreateInput($sListeSoftsDefaut, 20, $iHauteurCadre1 + $iHauteurCadre2 + 65)
+		GUICtrlCreateLabel("Cocher par défaut (saisissez les noms des logiciels séparés par un espace) :", 20, $iHauteurCadre1 + $iHauteurCadre2 + 35)
+		$iIDDefaut = GUICtrlCreateInput($sListeSoftsDefaut, 20, $iHauteurCadre1 + $iHauteurCadre2 + 55, 560)
+		GUICtrlCreateLabel("Moteur d'installation à utiliser :", 20, $iHauteurCadre1 + $iHauteurCadre2 + 88)
+		Local $iIDMoteur = GUICtrlCreateCombo("WinGet", 170, $iHauteurCadre1 + $iHauteurCadre2 + 85, 80)
+		Local $iIDResetList = GUICtrlCreateCheckbox("Réinitialiser listes", 260, $iHauteurCadre1 + $iHauteurCadre2 + 85)
+		GUICtrlSetData($iIDMoteur, "Chocolatey", $sMoteur)
 
 		$iIDButtonSelectionner = GUICtrlCreateDummy()
 		$iIDButtonDeselectionner = GUICtrlCreateDummy()
@@ -130,9 +134,9 @@ Func _InstallationAutomatique()
 	EndIf
 
 	If $iModeTech = 0 Then
-		$iIDButtonInstaller = GUICtrlCreateButton("Installer", 100, $iHauteurCadre1 + $iHauteurCadre2 + 100, 200, 25, $BS_DEFPUSHBUTTON)
+		$iIDButtonInstaller = GUICtrlCreateButton("Installer", 200, $iHauteurCadre1 + $iHauteurCadre2 + 115, 200, 25, $BS_DEFPUSHBUTTON)
 	Else
-		$iIDButtonInstaller = GUICtrlCreateButton("Sauvegarder les changements", 100, $iHauteurCadre1 + $iHauteurCadre2 + 100, 200, 25, $BS_DEFPUSHBUTTON)
+		$iIDButtonInstaller = GUICtrlCreateButton("Sauvegarder les changements", 200, $iHauteurCadre1 + $iHauteurCadre2 + 115, 200, 25, $BS_DEFPUSHBUTTON)
 	EndIf
 
 	 ; Boucle jusqu'à ce que l'utilisateur quitte.
@@ -227,7 +231,12 @@ Func _InstallationAutomatique()
 						$sListeSoftsInternet = GUICtrlRead($iTitreInternet) & " " & StringStripWS(StringReplace(GUICtrlRead($iEInternet), @CRLF, " "), 7)
 						$sListeSoftsMultimedia = GUICtrlRead($iTitreMultimedia) & " " & StringStripWS(StringReplace(GUICtrlRead($iEMultimedia), @CRLF, " "), 7)
 						$sListeSoftsDefaut = StringStripWS(GUICtrlRead($iIDDefaut), 7)
-						_SaveConfigInstallation($sListeSoftsDefaut, $sListeSoftsInternet, $sListeSoftsBureautique, $sListeSoftsMultimedia, $sListeSoftsDivers)
+						$sMoteur = GUICtrlRead($iIDMoteur)
+						If GUICtrlRead($iIDResetList) = $GUI_CHECKED Then
+							_SaveResetConfig($sMoteur)
+						Else
+							_SaveConfigInstallation($sListeSoftsDefaut, $sListeSoftsInternet, $sListeSoftsBureautique, $sListeSoftsMultimedia, $sListeSoftsDivers, $sMoteur)
+						EndIf
 						_Attention("Les changements ont été sauvegardés")
 						ExitLoop
 					Else
@@ -250,45 +259,77 @@ Func _InstallationAutomatique()
 
 	If($iModeTech = 0 And $idMsgInst = $iIDButtonInstaller And UBound($aSofts) > 0) Then
 
-		;$sListeSofts = _ArrayToString($aListeSofts, " ")
-		If FileExists( @AppDataCommonDir & "\chocolatey\choco.exe") = 0 Then
-			_FileWriteLog($hLog, 'Installation de Chocolatey')
-			GUICtrlSetData($statusbar, " Préparation de l'installation")
-			GUICtrlSetData($statusbarprogress, 5)
-			Local $sEnvVar = EnvGet("PATH")
-
-			EnvSet("PATH", $sEnvVar & ";" & @AppDataCommonDir & "\Chocolatey\bin")
-			EnvUpdate()
-			RunWait(@ComSpec & ' /c ' & '@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command " [System.Net.ServicePointManager]::SecurityProtocol = 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://chocolatey.org/install.ps1''))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"', "", @SW_HIDE)
-
-			GUICtrlSetData($statusbarprogress, 10)
-
+		If $sMoteur <> "winget" Then
+			;$sListeSofts = _ArrayToString($aListeSofts, " ")
 			If FileExists( @AppDataCommonDir & "\chocolatey\choco.exe") = 0 Then
-				ClipPut(@ComSpec & ' /c ' & '@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command " [System.Net.ServicePointManager]::SecurityProtocol = 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://chocolatey.org/install.ps1''))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"')
-				_Attention("PowerShell n'est pas installé ou Chocolatey n'a pu s'installer. Fin de l'éxécution (cmd dans le presse papier)")
-				GUICtrlSetData($statusbar, "")
-				GUICtrlSetData($statusbarprogress, 0)
-				_ChangerEtatBouton($iIDAction, "Desactiver")
+				_FileWriteLog($hLog, 'Installation de Chocolatey')
+				GUICtrlSetData($statusbar, " Préparation de l'installation")
+				GUICtrlSetData($statusbarprogress, 5)
+				Local $sEnvVar = EnvGet("PATH")
+
+				EnvSet("PATH", $sEnvVar & ";" & @AppDataCommonDir & "\Chocolatey\bin")
+				EnvUpdate()
+				RunWait(@ComSpec & ' /c ' & '@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command " [System.Net.ServicePointManager]::SecurityProtocol = 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://chocolatey.org/install.ps1''))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"', "", @SW_HIDE)
+
+				GUICtrlSetData($statusbarprogress, 10)
+
+				If FileExists( @AppDataCommonDir & "\chocolatey\choco.exe") = 0 Then
+					ClipPut(@ComSpec & ' /c ' & '@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command " [System.Net.ServicePointManager]::SecurityProtocol = 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://chocolatey.org/install.ps1''))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"')
+					_Attention("PowerShell n'est pas installé ou Chocolatey n'a pu s'installer. Fin de l'éxécution (cmd dans le presse papier)")
+					GUICtrlSetData($statusbar, "")
+					GUICtrlSetData($statusbarprogress, 0)
+					_ChangerEtatBouton($iIDAction, "Desactiver")
+				Else
+					_FichierCache("Installation", 1)
+				EndIf
 			Else
+				_FileWriteLog($hLog, 'Chocolatey est déjà installé')
 				_FichierCache("Installation", 1)
 			EndIf
+
+			If(_FichierCacheExist("Installation") = 1) Then
+
+				If $iIDCache = 1 Then
+					_FileWriteLog($hLog, 'Cache sur ' & @ScriptDir & '\Cache\Choco"')
+					RunWait( @ComSpec & ' /c ' & 'choco config set cacheLocation "' & @ScriptDir & '\Cache\Choco"', "", @SW_HIDE)
+				Else
+					_FileWriteLog($hLog, 'Cache dossier temp')
+					RunWait( @ComSpec & ' /c ' & 'choco config unset cacheLocation', "", @SW_HIDE)
+				EndIf
+
+				_InstallationEnCours($aSofts)
+
+				GUICtrlSetData($statusbar, "")
+				GUICtrlSetData($statusbarprogress, 0)
+				_ChangerEtatBouton($iIDAction, "Activer")
+			EndIf
 		Else
-			_FileWriteLog($hLog, 'Chocolatey est déjà installé')
 			_FichierCache("Installation", 1)
-		EndIf
-
-		If(_FichierCacheExist("Installation") = 1) Then
-
- 			If $iIDCache = 1 Then
-				_FileWriteLog($hLog, 'Cache sur ' & @ScriptDir & '\Cache\Choco"')
-				RunWait( @ComSpec & ' /c ' & 'choco config set cacheLocation "' & @ScriptDir & '\Cache\Choco"', "", @SW_HIDE)
- 			Else
-				_FileWriteLog($hLog, 'Cache dossier temp')
- 				RunWait( @ComSpec & ' /c ' & 'choco config unset cacheLocation', "", @SW_HIDE)
- 			EndIf
-
-			_InstallationEnCours($aSofts)
-
+			GUICtrlSetData($statusbar, " Préparation de l'installation de WinGet")
+			GUICtrlSetData($statusbarprogress, 5)
+			_FileWriteLog($hLog, 'Installation avec WinGet')
+			If Not FileExists(@UserProfileDir & '\AppData\Local\Microsoft\WindowsApps\winget.exe') Then
+				If MapExists($aMenu, "WinGet-install") Then
+					If(_Telecharger($aMenu["WinGet-install"])) Then
+						GUICtrlSetData($statusbar, " Installation de WinGet en cours")
+						GUICtrlSetData($statusbarprogress, 30)
+						RunWait(@ComSpec & ' /c "powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' & $sProgrun & '"')
+					Else
+						 _Attention('Echec du téléchargement de "WinGet-install"')
+						 _ChangerEtatBouton($iIDAction, "Desactiver")
+					EndIf
+				Else
+					_Attention("WinGet-install ne fait pas parti des logiciels de BAO. Installation impossible")
+					_FileWriteLog($hLog, "WinGet-install introuvable")
+					 _ChangerEtatBouton($iIDAction, "Desactiver")
+				EndIf
+			EndIf
+			If Not FileExists(@UserProfileDir & '\AppData\Local\Microsoft\WindowsApps\winget.exe') Then
+				_Attention("Winget n'a pas été trouvé sur cet ordinateur, abandon de l'installation", 1)
+				_FileWriteLog($hLog, '"Winget" non présent sur cet ordinateur, abandon')
+			Else
+				_InstallationWingetEnCours($aSofts)
+			EndIf
 			GUICtrlSetData($statusbar, "")
 			GUICtrlSetData($statusbarprogress, 0)
 			_ChangerEtatBouton($iIDAction, "Activer")
@@ -438,7 +479,87 @@ Func _InstallationEnCours($aSofts)
 
 	_UpdEdit($iIDEditLog, $hLog)
 	_UpdEdit($iIDEditLogInst, $hInstallation)
-	FileClose($sFileInstallation)
+	FileClose($hInstallation)
+
+	If($sProgErr <> "" Or $sDejaInstalle <> "") Then
+		If $sProgErr <> "" Then
+			$sMessFin = "Les programmes suivants n'ont pas été installé : " & @lf & $sProgErr & "Réessayez ou installez-les manuellement" & @LF & @LF
+		EndIf
+
+		If $sDejaInstalle <> "" Then
+			$sMessFin &= "Les programmes suivants étaient déjà installés : " & @lf & $sDejaInstalle
+		EndIf
+
+		_Attention($sMessFin, 1)
+
+	EndIf
+
+EndFunc
+
+Func _InstallationWingetEnCours($aSofts)
+
+	Local $iPidChoco, $sOutput, $aArray, $iPerc, $sProgErr = "", $iInstallOk, $aListeInstall, $sDejaInstalle, $sMessFin
+	GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
+
+	$hInstallation = FileOpen($sFileInstallation,1)
+
+	For $po = 0 To (UBound($aSofts) - 1)
+
+		$iInstallOk = 0
+
+		Local $aListeInstall = _ListeProgrammes()
+		$aListeInstall = _ArrayUnique($aListeInstall)
+
+		For $i = 1 To $aListeInstall[0]
+			If StringInStr($aListeInstall[$i], " ") Then
+				_ArrayAdd($aListeInstall, StringReplace($aListeInstall[$i], " ", ""))
+			EndIf
+			If StringInStr($aListeInstall[$i], "-") Then
+				_ArrayAdd($aListeInstall, StringReplace($aListeInstall[$i], "-", ""))
+			EndIf
+		Next
+
+		If _ArraySearch($aListeInstall, $aSofts[$po]) = -1 Then
+
+			GUICtrlSetData($statusbar, " Installation de " &  $aSofts[$po])
+			_FileWriteLog($hLog, "Installation de " &  $aSofts[$po])
+
+			$iPerc = (($po * 90) / UBound($aSofts)) + 10
+			GUICtrlSetData($statusbarprogress, $iPerc)
+			$iPidChoco = Run( @ComSpec & ' /c ' & 'winget install --accept-source-agreements --accept-package-agreements --silent --id ' & $aSofts[$po], "",@SW_HIDE, $STDOUT_CHILD)
+			While ProcessExists($iPidChoco)
+				If GUIGetMsg() = $iIDCancelDL Then
+					ProcessClose($iPidChoco)
+				EndIf
+			WEnd
+
+			;ProcessWaitClose($iPidChoco)
+			$sOutput = StdoutRead($iPidChoco)
+			If StringInStr($sOutput, "existant") > 0 Then
+				_FileWriteLog($hLog, $aSofts[$po] & " déjà installé")
+				$sDejaInstalle &= " - " & $aSofts[$po] & @LF
+			ElseIf StringInStr($sOutput, "correctement") = 0 Then
+				_FileWriteLog($hLog, "Echec installation " & $aSofts[$po])
+				$sProgErr &= " - " & $aSofts[$po] & @LF
+			Else
+				$iInstallOk = 1
+			EndIf
+
+			If $iInstallOk = 1 Then
+				_FileWriteLog($hLog, "Installatin réussie de " & $aSofts[$po])
+				FileWrite($hInstallation, $aSofts[$po] & "[BR]")
+			EndIf
+		Else
+			$sDejaInstalle &= " - " & $aSofts[$po] & @LF
+		EndIf
+	Next
+
+	GUICtrlSetData($statusbarprogress, 100)
+	GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
+
+	_UpdEdit($iIDEditLog, $hLog)
+	_UpdEdit($iIDEditLogInst, $hInstallation)
+	FileClose($hInstallation)
 
 	If($sProgErr <> "" Or $sDejaInstalle <> "") Then
 		If $sProgErr <> "" Then

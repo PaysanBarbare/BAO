@@ -20,11 +20,10 @@ This file is part of "Boîte A Outils"
 
 Func _DesinstallerBAO()
 
-	Local $iIDButtonDesinstaller, $iIDButtonAnnuler, $iAnnul = False, $iDeleteGUI = False, $eGet, $iRapport = 0, $iRapportInsc = 0, $iEteindre = 0, $sInput, $iIDInputInfo, $sProgDes, $t = 0, $sNomFichier = StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - " & @ComputerName & " - Rapport intervention.bao"
+	Local $iIDButtonDesinstaller, $iIDButtonAnnuler, $eGet, $iRapport = 0, $iRapportInsc = 0, $iEteindre = 0, $sInput, $iIDInputInfo, $sProgDes, $t = 0, $sNomFichier = StringReplace(StringLeft(_NowCalc(),10), "/", "") & " " & $sNom & " - " & @ComputerName & " - Rapport intervention.bao"
 	Local $sNomRapportComplet = @LocalAppDataDir & "\bao\" & $sNomFichier
 
 	if $sNom <> "" Then
-		$iDeleteGUI = True
 		Local $hGUIdes = GUICreate("Désinstallation de BAO", 400, 120)
 		Local $iIDCheckComplet = GUICtrlCreateCheckbox("Completer automatiquement le rapport", 10, 10)
 		If _FichierCacheExist("Inscription") = 1 Then
@@ -64,10 +63,11 @@ Func _DesinstallerBAO()
 			$eGet = GUIGetMsg()
 		WEnd
 	Else
-		$iAnnul = True
+		ShellExecute ( @ComSpec , ' /c RMDIR /S /Q "' & @LocalAppDataDir & "\bao" & '"', "" , "", @SW_HIDE )
+		Exit
 	EndIf
 
-	If ($eGet = $iIDButtonDesinstaller And $iAnnul = False) Then
+	If ($eGet = $iIDButtonDesinstaller) Then
 
 		If(GUICtrlRead($iIDCheckComplet) = $GUI_CHECKED) Then
 			$iRapportInsc = 1
@@ -85,13 +85,8 @@ Func _DesinstallerBAO()
 			$sInput = GUICtrlRead($iIDInputInfo)
 		EndIf
 
-		$iAnnul = True
-		$iDeleteGUI = False
-
 		GUIDelete()
-	EndIf
 
-	If ($iAnnul) Then
 		_FileWriteLog($hLog, "Désinstallation de BAO")
 
 		$sSplashTxt = "Enregistrement des changements apportés"
@@ -108,18 +103,16 @@ Func _DesinstallerBAO()
 				_SaveChangeToInter()
 			EndIf
 
+			$sSplashTxt = $sSplashTxt & @LF & "Sauvegarde du rapport"
+			ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
+
 			_FileWriteLog($hLog, "Fermeture des logs")
 			FileClose($hLog)
 
 			_CompleterRapport($iRapport, $sNomRapportComplet)
 
-			Local $iRetour = 0
-
-			$sSplashTxt = $sSplashTxt & @LF & "Sauvegarde du rapport"
-			ControlSetText("Désinstallation de BAO", "", "Static1", $sSplashTxt)
-
 			If StringLeft(@ScriptDir, 2) <> "\\" Then
-				Local $nb = 0
+				Local $nb = 0, $iRetour = 0
 				Do
 					$iRetour = _EnvoiFTP($sNomRapportComplet, $sFTPDossierRapports & $sNomFichier)
 					$nb+=1
@@ -132,28 +125,26 @@ Func _DesinstallerBAO()
 					Next
 				EndIf
 
-			EndIf
-
-			; Sauvegarde du rapport complet sur le pc
-			FileCopy($sNomRapportComplet, @AppDataCommonDir & "\BAO\" & $sNomFichier, 9)
-
-			If $iRetour <> 1 Then
-				FileCopy($sNomRapportComplet, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
-				$iRetour = 1
-			EndIf
-
-			if($iRetour = 1) Then
-				If(_FichierCacheExist("Suivi") And _FichierCache("Suivi") <> 1) Then
+				If(_FichierCacheExist("Suivi") = 1 And _FichierCache("Suivi") <> 1) Then
 					_FinIntervention(_FichierCache("Suivi"), $sInput)
 					;_SupprimerIDSuivi(_FichierCache("Suivi"))
 				EndIf
 
-				If _FichierCacheExist("EnCours") Then
+				If _FichierCacheExist("EnCours") = 1 Then
 					If FileExists(_FichierCache("EnCours")) Then
-						FileDelete(_FichierCache("EnCours"))
+						If FileDelete(_FichierCache("EnCours")) Then
+							_FichierCache("EnCours", -1)
+						EndIf
 					EndIf
 				EndIf
 			EndIf
+		EndIf
+
+		; Sauvegarde du rapport complet sur le pc
+		FileCopy($sNomRapportComplet, @AppDataCommonDir & "\BAO\" & $sNomFichier, 9)
+
+		If StringLeft(@ScriptDir, 2) = "\\" Then
+			FileCopy($sNomRapportComplet, @ScriptDir & "\Rapports\" & @YEAR & "-" & @MON & "\", 9)
 		EndIf
 
 		$sSplashTxt = $sSplashTxt & @LF & "Suppression des dépendances de BAO"
@@ -164,11 +155,10 @@ Func _DesinstallerBAO()
 		_Uninstall($iEteindre)
 		SplashOff()
 		Exit
-	EndIf
-
-	If $iDeleteGUI Then
+	Else
 		GUIDelete()
 	EndIf
+
 EndFunc
 
 Func _ReiniBAO()
@@ -197,15 +187,15 @@ Func _ReiniBAO()
 
 	If(_FichierCacheExist("Partage") = 1) Then
 		RunWait(@ComSpec & ' /C net share SAUV /delete', "", @SW_HIDE)
-		If _FichierCacheExist("PartageProtege1") Then
+		If _FichierCacheExist("PartageProtege1") = 1 Then
 			RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Control\Lsa\","everyoneincludesanonymous","REG_DWORD", 0)
 		EndIf
-		If _FichierCacheExist("PartageProtege2") Then
+		If _FichierCacheExist("PartageProtege2") = 1 Then
 			RegWrite($HKLM & "\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters", "restrictnullsessaccess", "REG_DWORD", 1)
 		EndIf
 	EndIf
 
-	If _FichierCacheExist("Supervision") Then
+	If _FichierCacheExist("Supervision") = 1 Then
 		Local $sFTPDossierCapture = IniRead($sConfig, "FTP", "DossierCapture", "")
 		_EnvoiFTP("", $sFTPDossierCapture & $sNom & ".png", 1)
 
@@ -218,8 +208,9 @@ Func _ReiniBAO()
 	If(_FichierCacheExist("BureauDistant") = 1) Then
 		_UninstallDWAgent()
 	EndIf
+	ShellExecute ( @ComSpec , ' /c RMDIR /S /Q "' & @LocalAppDataDir & "\bao" & '"', "" , "", @SW_HIDE )
 
-	If Not DirRemove(@LocalAppDataDir & "\bao", 1) Then
+	If FileExists(@LocalAppDataDir & "\bao") Then
 		_FileWriteLog($hLog, 'Suppression du dossier "' & @LocalAppDataDir & "\bao" & '" impossible')
 	EndIf
 	RegDelete("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce\", "BAO")

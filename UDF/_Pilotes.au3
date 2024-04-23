@@ -22,16 +22,25 @@ Func _InstallationPilotes()
 	_ChangerEtatBouton($iIDAction, "Patienter")
 	If($iModeTech = 1) Then
 		_FileWriteLog($hLog, 'Téléchargement de la base de données de pilotes')
-		_UpdEdit($iIDEditLog, $hLog)
-		_Telecharger($aMenu["SDI"])
-		Local $sDocexe = _Executer("SDI", "", 1)
-		Run(@ComSpec & ' /c "' & $sDocexe & '\autoupdate.bat"', $sDocexe)
-		;_Debug(@ComSpec & ' /c "' & $sDocexe & 'autoupdate.bat"')
+		If MapExists($aMenu, "SDI") Then
+			_Telecharger($aMenu["SDI"])
+			Local $sDocexe = _Executer("SDI", "", 1)
+			Run(@ComSpec & ' /c "' & $sDocexe & '\autoupdate.bat"', $sDocexe)
+			;_Debug(@ComSpec & ' /c "' & $sDocexe & 'autoupdate.bat"')
+		Else
+			_FileWriteLog($hLog, 'Erreur : SDI absent des liens')
+			_Attention("Erreur : SDI n'existe pas dans les liens")
+		EndIf
 	Else
 		_FileWriteLog($hLog, 'Recherche et installation de pilotes manquants')
-		_UpdEdit($iIDEditLog, $hLog)
-		_Telecharger($aMenu["SDI"])
-		_Executer("SDI")
+		If MapExists($aMenu, "SDI") Then
+			_Telecharger($aMenu["SDI"])
+			_Executer("SDI")
+		Else
+			_FileWriteLog($hLog, 'Erreur : SDI absent des liens')
+			_Attention("Erreur : SDI n'existe pas dans les liens")
+		EndIf
 	EndIf
+	_UpdEdit($iIDEditLog, $hLog)
 	_ChangerEtatBouton($iIDAction, "Desactiver")
 EndFunc

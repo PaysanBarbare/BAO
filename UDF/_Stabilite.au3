@@ -25,22 +25,23 @@ Func _TestsStabilite()
 	GUICtrlSetData($statusbar, "Contrôles en cours, patientez")
 
 	Local $iIDrun, $sStress, $sOutput, $aAssoc[0][2], $hAssoc, $iBoutonInput, $iBoutonAssoc, $sReadComboFile, $sComboDoc, $sReadInput, $sReadComboVeille, $sComboDefaut, $sDevProb, $hFileConfig, $aDefautAsso
+	Global $iResBat, $iDebBat, $iBoutonBatt, $sTimBatt, $g_aidLabel[4]
 
 	$aDefautAsso = _ArrayFromString(IniRead($sConfig, "Associations", "Defaut", ""), ",")
-	Local $hMat = GUICreate("Centre de contrôles", 1200, 600)
-	GUICtrlCreateGroup("Choisissez un outil", 10, 10, 380, 190)
+	Global $hMat = GUICreate("Centre de contrôles", 1200, 600)
+	GUICtrlCreateGroup("Choisissez un outil", 10, 10, 380, 120)
 	GUICtrlSetFont (-1, 9, 800)
 	Local $iButtonMemoire = GUICtrlCreateButton("Test de mémoire vive", 20, 30, 360)
 	Local $iButtonRess = GUICtrlCreateButton("Moniteur de ressources", 20, 60, 360)
 	Local $iButtonFiabilite = GUICtrlCreateButton("Moniteur de fiabilité", 20, 90, 360)
 
-	GUICtrlCreateGroup("Association de fichiers", 10, 200, 380,390)
+	GUICtrlCreateGroup("Association de fichiers", 10, 130, 380,350)
 	GUICtrlSetFont (-1, 9, 800)
 	GUICtrlSetData($statusbarprogress, 25)
-	Local $iBoutonAff = GUICtrlCreateButton("Afficher toutes les associations du système", 20, 220, 360)
-	Local $iBoutonMod = GUICtrlCreateButton("Modifier les fichiers de configuration", 20, 250, 360)
+	Local $iBoutonAff = GUICtrlCreateButton("Afficher toutes les associations du système", 20, 150, 360)
+	Local $iBoutonMod = GUICtrlCreateButton("Modifier les fichiers de configuration", 20, 180, 360)
 
-	GUICtrlCreateLabel("Choississez vos réglages : ", 20, 280)
+	GUICtrlCreateLabel("Choississez vos réglages : ", 20, 210)
 
 	Local $aDossiersAssoc = _FileListToArray(@ScriptDir & "\Config\Associations\", "*", 2)
 	Local $aFichiers
@@ -51,18 +52,52 @@ Func _TestsStabilite()
 		For $k = 1 To $aDossiersAssoc[0]
 
 			$aFichiers = _FileListToArray(@ScriptDir & "\Config\Associations\" & $aDossiersAssoc[$k], "*.txt", 1)
-			_ArrayAdd($iCombo, GUICtrlCreateCombo($aDossiersAssoc[$k], 20, 275 + ($k * 25), 175))
+			_ArrayAdd($iCombo, GUICtrlCreateCombo($aDossiersAssoc[$k], 20, 205 + ($k * 25), 175))
 		Next
 	EndIf
 
-	GUICtrlCreateLabel("Configuration actuelle du système: ", 205, 280)
-	Local $sEditAssoc = GUICtrlCreateEdit("", 205, 300, 175, 240, $ES_READONLY)
-	Local $iBoutonAssocALL = GUICtrlCreateButton("Appliquer", 20, 275 + ($k * 25), 175)
+	GUICtrlCreateLabel("Configuration actuelle du système: ", 205, 210)
+	Local $sEditAssoc = GUICtrlCreateEdit("", 205, 230, 175, 200, $ES_READONLY)
+	Local $iBoutonAssocALL = GUICtrlCreateButton("Appliquer", 20, 205 + ($k * 25), 175)
 	$k = 1
-	GUICtrlCreateGraphic(20, 545, 360, 1, $SS_BLACKRECT)
+	GUICtrlCreateGraphic(20, 435, 360, 1, $SS_BLACKRECT)
 
-	$iBoutonInput = GUICtrlCreateInput("", 20, 555, 175, 25)
-	$iBoutonAssoc = GUICtrlCreateButton("Appliquer cette association", 205, 555, 175)
+	$iBoutonInput = GUICtrlCreateInput("", 20, 445, 175, 25)
+	$iBoutonAssoc = GUICtrlCreateButton("Appliquer cette association", 205, 445, 175)
+
+	GUICtrlCreateGroup("Autonomie de la batterie", 10, 480, 380,110)
+	GUICtrlSetFont (-1, 9, 800)
+	$iBoutonBatt = GUICtrlCreateButton("Démarrer le test", 220, 497, 150)
+	$iDebBat = GUICtrlCreateLabel("", 220, 530, 150, 25)
+	$iResBat = GUICtrlCreateLabel("", 220, 550, 150, 25)
+
+	Local $aData = _WinAPI_GetSystemPowerStatus()
+	If Not @error Then
+        If BitAND($aData[1], 128) Then
+			GUICtrlCreateLabel('Alimentation : N/A', 20, 500, 90)
+			GUICtrlSetState($iBoutonBatt, $GUI_DISABLE)
+		Else
+			For $i = 0 To 3
+					$g_aidLabel[$i] = GUICtrlCreateLabel('...', 120, 500 + 20 * $i, 60)
+			Next
+
+			GUICtrlCreateLabel('Alimentation :', 20, 500, 90)
+			GUICtrlCreateLabel('Status :', 20, 520, 70)
+			GUICtrlCreateLabel('Charge :', 20, 540, 90)
+			GUICtrlCreateLabel('Temps restant :', 20, 560, 90)
+			AdlibRegister('_BatteryStatus', 5000)
+
+			If (_FichierCacheExist("AutonomieStart") = 1) Then
+				GUICtrlSetData($iBoutonBatt, "Arrêter le test")
+				GUICtrlSetData($iDebBat, "Début : " & _FichierCache("AutonomieStart"))
+				AdlibRegister('_AutonomieBatt', 6000)
+			EndIf
+		EndIf
+	Else
+		GUICtrlCreateLabel('Vérification batterie impossible', 20, 500, 90)
+		GUICtrlSetState($iBoutonBatt, $GUI_DISABLE)
+	EndIf
+
 
 	GUICtrlCreateGroup("Etat SMART des disques durs", 400, 10, 390,380)
 	GUICtrlSetFont (-1, 9, 800)
@@ -137,7 +172,6 @@ Func _TestsStabilite()
 
 	While ($idMsgInst <> $GUI_EVENT_CLOSE)
 
-		_UpdateEveryMin()
 		Switch $idMsgInst
 
 			Case $iButtonMemoire
@@ -184,6 +218,26 @@ Func _TestsStabilite()
 					GUICtrlSetState($iBoutonAssoc, $GUI_ENABLE)
 				Else
 					_Attention("Le format est incorrect")
+				EndIf
+
+			Case $iBoutonBatt
+				If (_FichierCacheExist("AutonomieStart") = 0) Then
+					_FileWriteLog($hLog, 'Test autonomie de la batterie')
+					_UpdEdit($iIDEditLog, $hLog)
+					_FichierCache("AutonomieStart", _NowCalc())
+					_FichierCache("AutonomieBatterie", _NowCalc())
+					GUICtrlSetData($iBoutonBatt, "Arrêter le test")
+					GUICtrlSetData($iDebBat, "Début : " & _FichierCache("AutonomieStart"))
+					AdlibRegister('_AutonomieBatt', 6000)
+				Else
+					$sTimBatt = _DateDiff("s", _FichierCache("AutonomieStart"), _NowCalc())
+					_FichierCache("AutonomieStart", -1)
+					_FichierCache("AutonomieBatterie", -1)
+					_AddToInter("Autonomie de la batterie : " & _Sec2Time($sTimBatt) & @CRLF)
+					_FileWriteLog($hLog, 'Fin du test autonomie de la batterie')
+					GUICtrlSetData($iResBat, "Autonomie totale : " & _Sec2Time($sTimBatt))
+					GUICtrlSetData($iBoutonBatt, "Démarrer le test")
+					AdlibUnRegister('_AutonomieBatt')
 				EndIf
 
 			Case $iBoutonVeille
@@ -244,6 +298,7 @@ Func _TestsStabilite()
 		$idMsgInst = GUIGetMsg()
 	WEnd
 
+	AdlibUnRegister('_BatteryStatus')
 	GUIDelete($hMat)
 
 	_ChangerEtatBouton($iIDAction, "Activer")
@@ -439,4 +494,88 @@ Func _AlignementSSD($iIDEditAlign)
 	Else
 		_GUICtrlRichEdit_AppendText($iIDEditAlign, "Erreur : ne peut être vérifié avec cet outil")
 	EndIf
+EndFunc
+
+Func _BatteryStatus()
+        Local $aData = _WinAPI_GetSystemPowerStatus()
+        If @error Then Return
+
+        If BitAND($aData[1], 128) Then
+                $aData[0] = 'N/A'
+                For $i = 1 To 3
+                        $aData[$i] = ''
+                Next
+        Else
+                Switch $aData[0]
+                        Case 0
+                                $aData[0] = 'Sur batterie'
+                        Case 1
+                                $aData[0] = 'Sur secteur'
+                        Case Else
+                                $aData[0] = 'Inconnu'
+                EndSwitch
+                Switch $aData[2]
+                        Case 0 To 100
+                                $aData[2] &= '%'
+                        Case Else
+                                $aData[2] = 'Inconnu'
+                EndSwitch
+                Switch $aData[3]
+                        Case -1
+                                $aData[3] = 'Inconnu'
+                        Case Else
+                                Local $H, $M
+                                $H = ($aData[3] - Mod($aData[3], 3600)) / 3600
+                                $M = ($aData[3] - Mod($aData[3], 60)) / 60 - $H * 60
+                                $aData[3] = StringFormat($H & ':%02d', $M)
+                EndSwitch
+                If BitAND($aData[1], 8) Then
+                        $aData[1] = 'En charge'
+                Else
+                        Switch BitAND($aData[1], 0xF)
+                                Case 1
+                                        $aData[1] = 'Haut'
+                                Case 2
+                                        $aData[1] = 'Bas'
+                                Case 4
+                                        $aData[1] = 'Critique'
+                                Case Else
+                                        $aData[1] = 'Inconnu'
+                        EndSwitch
+                EndIf
+        EndIf
+        For $i = 0 To 3
+                GUICtrlSetData($g_aidLabel[$i], $aData[$i])
+		Next
+EndFunc   ;==>_BatteryStatus
+
+Func _AutonomieBatt()
+	Local $sTimBatt = _DateDiff("s", _FichierCache("AutonomieStart"), _FichierCache("AutonomieBatterie"))
+	If _DateDiff("s", _FichierCache("AutonomieBatterie"), _NowCalc()) < 30 Then
+		_FichierCache("AutonomieBatterie", _NowCalc())
+		GUICtrlSetData($iResBat, "Sur batterie depuis : " & _Sec2Time($sTimBatt))
+	Else
+		AdlibUnRegister('_AutonomieBatt')
+		_FichierCache("AutonomieStart", -1)
+		_FichierCache("AutonomieBatterie", -1)
+		_Attention("Autonomie de la batterie : " & _Sec2Time($sTimBatt))
+		_AddToInter("Autonomie de la batterie : " & _Sec2Time($sTimBatt) & @CRLF)
+		_FileWriteLog($hLog, 'Fin du test autonomie de la batterie')
+		GUICtrlSetData($iResBat, "Autonomie : " & _Sec2Time($sTimBatt))
+		GUICtrlSetData($iBoutonBatt, "Démarrer le test")
+	EndIf
+EndFunc
+
+Func _Sec2Time($nr_sec)
+	Local $sRetour, $sec2time_hour, $sec2time_min
+	If Int($nr_sec) > 3600 Then
+		$sec2time_hour = Int($nr_sec / 3600)
+		$sec2time_min = Int(($nr_sec - $sec2time_hour * 3600) / 60)
+		$sRetour = $sec2time_hour & "h" & StringFormat('%02d', $sec2time_min)
+	Else
+		$sec2time_min = Int($nr_sec / 60)
+		$sRetour = $sec2time_min & " min"
+	EndIf
+
+	Return $sRetour
 EndFunc

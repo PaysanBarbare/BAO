@@ -273,13 +273,41 @@ EndFunc
 
 Func _SaveInter()
 	If $iModeTech = 0 Then
+		; onglet client
+		If GUICtrlRead($iENomClient) = "" And GUICtrlRead($iESocieteClient) = "" Then
+			_Attention("Complétez au moins le nom du client ou la société")
+		Else
+			$sFNomClient = GUICtrlRead($iENomClient)
+			$sFPrenomClient = GUICtrlRead($iEPrenomClient)
+			$sFSocieteClient = GUICtrlRead($iESocieteClient)
+			$sFAdresse = GUICtrlRead($iEAdresse)
+			$sFTel = GUICtrlRead($iETel)
+			$sFMail = GUICtrlRead($iEMail)
+			$sFMateriel = GUICtrlRead($iEMateriel)
+			$sFDescription = GUICtrlRead($iEDescription)
+			$sFMDP = GUICtrlRead($iEMdp)
+			If $sFTech <> GUICtrlRead($iETechnicien) Then
+				$sFTech = GUICtrlRead($iETechnicien)
+				WinSetTitle($hGUIBAO, "", $sSociete & " - Tech " & $sFTech & " - Boîte A Outils (bêta) " & $sVersion)
+			EndIf
+			If _RapportInfosClient($sFileInfosClient, $sFNomClient, $sFPrenomClient, $sFSocieteClient, $sFTech, "", $sFAdresse, $sFTel, $sFMail, $sFMateriel, $sFDescription, "", $sFMDP) Then
+;~ 				If StringLeft(@ScriptDir, 2) = "\\" Then
+;~ 					_ExporterRapport(@ScriptDir & "\Proaxive\" & $sNom & " - " & @ComputerName & " - Rapport intervention.bao")
+;~ 				EndIf
+			Else
+				_Attention("Erreur lors de l'enregistrement des informations client")
+			EndIf
+		EndIf
+
+		; onglet intervention
 		$hRapport = FileOpen($sFileRapport, 2)
 		FileWrite($hRapport,GUICtrlRead($iIDEditInter))
 		FileClose($hRapport)
+		If _FichierCacheExist("EnCours") = 1 Then
+			_ExporterRapport(_FichierCache("EnCours"))
+		EndIf
 	EndIf
-	If _FichierCacheExist("EnCours") Then
-		_ExporterRapport(_FichierCache("EnCours"))
-	EndIf
+
 EndFunc
 
 Func _SaveChangeToInter()
@@ -341,6 +369,13 @@ Func _GetModele($sFichierModele)
 	$hRapport = FileOpen($sFileRapport, 1)
 	FileWrite($hRapport, FileRead($hIntertmp))
 	FileClose($hIntertmp)
+	_UpdEdit($iIDEditInter, $hRapport)
+	FileClose($hRapport)
+EndFunc
+
+Func _AddToInter($sText)
+	$hRapport = FileOpen($sFileRapport, 1)
+	FileWrite($hRapport, $sText)
 	_UpdEdit($iIDEditInter, $hRapport)
 	FileClose($hRapport)
 EndFunc

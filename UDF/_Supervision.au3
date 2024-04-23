@@ -222,11 +222,12 @@ Func _DesactivationFondecran()
 EndFunc
 
 Func _ActivationFondecran()
-	If _FichierCacheExist("Fondecran") Then
+	If _FichierCacheExist("Fondecran") = 1 Then
 		Local $sWallpaper = _FichierCache("Fondecran")
 		If $sWallpaper <> "" Then
 			_FileWriteLog($hLog, "Réactivation du fond d'écran")
 			RegWrite("HKEY_CURRENT_USER\Control Panel\Desktop","WallPaper","REG_SZ",$sWallpaper)
+			DllCall("User32.dll","int","SystemParametersInfo","int",20,"int",0,"str",$sWallpaper,"int",0)
 			ControlSend('Program Manager', '', '', '{F5}')
 		EndIf
 	EndIf
