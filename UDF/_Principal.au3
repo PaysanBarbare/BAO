@@ -43,6 +43,7 @@ Func _InitialisationBAO($sConfig)
 		IniWriteSection($sConfig,"Desinfection", "Programmes de desinfection=Privazer RogueKiller AdwCleaner MalwareByte ZHPCleaner EsetOnlineScanner UserDiag1"&@CRLF)
 		IniWriteSection($sConfig, "Associations", "Defaut=0,0,0,0"&@CRLF)
 		IniWriteSection($sConfig, "FTP", "Protocol=sftp"&@LF&"Adresse="&@LF&"Utilisateur="&@LF&"Port=22"&@LF&"DossierRapports=/www/rapports/"&@LF&"DossierSFX=/www/dl/"&@LF&"DossierSuivi=/www/suivi/"&@LF&"DossierCapture=/www/capture/"&@CRLF)
+		IniWriteSection($sConfig, "ISO", "Win10_20H2_x64.iso="&@LF&"Win10_22H2_x64.iso="&@LF&"Win11_23H2_x64.iso="&@CRLF)
 	EndIf
 
 EndFunc

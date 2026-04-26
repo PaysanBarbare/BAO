@@ -22,7 +22,7 @@ Func _MiseAJourOS()
 
 	_ChangerEtatBouton($iIDAction, "Patienter")
 
-	Local $iNoWIN=0, $iNoOFF=0, $iNoAutre=0, $l=0, $eGet, $iBT[0], $iHauteur, $sNomF, $iBT[0], $aWIN[0], $aOFF[0], $aAUTRE[0]
+	Local $iNoWIN=0, $iNoOFF=0, $iNoAutre=0, $l=0, $eGet, $aISO[0], $iBT[0], $iHauteur, $sNomF, $iBT[0], $aWIN[0], $aOFF[0], $aAUTRE[0], $iNBIso
 
 	Local $aTmpWIN = _FileListToArray(@ScriptDir & "\Cache\ISO\", "*win*.*", 1)
 	If @error Then
@@ -62,20 +62,31 @@ Func _MiseAJourOS()
 		EndIf
 	EndIf
 
-	If $iHauteur < 6 Then
-		$iHauteur = 6
+	$iNBIso = UBound($aISOliste)
+
+	If $iHauteur < (4 + $iNBIso) Then
+		$iHauteur = (4 + $iNBIso)
 	EndIf
 
 	Local $hGUImaj = GUICreate("Windows et Office", 800, $iHauteur * 25 + 50)
 
-	GUICtrlCreateGroup("Outils", 5, 10, 160, $iHauteur * 25 + 30)
+	GUICtrlCreateGroup("Outils", 5, 10, 160, 4 * 25 + 30)
 	Local $iIDAdd = GUICtrlCreateButton("Ouvrir dossier ISO", 10, 30, 150, 20)
-	Local $iIDISODO = GUICtrlCreateButton("Windows ISO Downloader", 10, 55, 150, 20)
-	Local $iIDMCT = GUICtrlCreateButton("Media Creation Tool", 10, 80, 150, 20)
-	Local $iIDUSB = GUICtrlCreateButton("Copier ISO avec Rufus", 10, 105, 150, 20)
-	Local $iIDSite = GUICtrlCreateButton("setup.office.com", 10, 130, 150, 20)
+	Local $iIDMCT = GUICtrlCreateButton("Media Creation Tool.bat", 10, 55, 150, 20)
+	Local $iIDUSB = GUICtrlCreateButton("Copier ISO avec Rufus", 10, 80, 150, 20)
+	Local $iIDSite = GUICtrlCreateButton("setup.office.com", 10, 105, 150, 20)
+	Local $iBTNTmp, $aISOLink[]
 
-	GUICtrlCreateGroup("Windows", 175, 10, 200, $iHauteur * 25 + 30)
+	If($iNBIso > 0) Then
+		GUICtrlCreateGroup("Téléchargement ISO", 5, 145, 160, $iNBIso * 25)
+		For $k = 1 To $aISOliste[0][0]
+			$iBTNTmp = GUICtrlCreateButton($aISOliste[$k][0], 10, 140 + ($k*25), 150, 20)
+			_ArrayAdd($aISO, $iBTNTmp)
+			$aISOLink[$iBTNTmp] = $aISOliste[$k][1]
+		Next
+	EndIf
+
+	GUICtrlCreateGroup("Windows", 175, 10, 200, $iHauteur * 25 + 35)
 
 	If $iNoWIN =  0 Then
 		For $j = 1 To $aWIN[0]
@@ -85,7 +96,7 @@ Func _MiseAJourOS()
 		GUICtrlCreateLabel("Aucun ISO/IMG/EXE trouvé", 180, 30)
 	EndIf
 
-	GUICtrlCreateGroup("Office", 385, 10, 200, $iHauteur * 25 + 30)
+	GUICtrlCreateGroup("Office", 385, 10, 200, $iHauteur * 25 + 35)
 
 	If $iNoOFF = 0 Then
 		For $l = 1 To $aOFF[0]
@@ -95,7 +106,7 @@ Func _MiseAJourOS()
 		GUICtrlCreateLabel("Aucun ISO/IMG/EXE trouvé", 390, 30)
 	EndIf
 
-	GUICtrlCreateGroup("Autre", 595, 10, 200, $iHauteur * 25 + 30)
+	GUICtrlCreateGroup("Autre", 595, 10, 200, $iHauteur * 25 + 35)
 
 	If $iNoAutre = 0 Then
 		For $m = 1 To $aAUTRE[0]
@@ -107,6 +118,10 @@ Func _MiseAJourOS()
 
 	If UBound($iBT) = 0 Then
 		_ArrayAdd($iBT, 1000)
+	EndIf
+
+	If UBound($aISO) = 0 Then
+		_ArrayAdd($aISO, 1000)
 	EndIf
 
 	GUISetState(@SW_SHOW)
@@ -125,8 +140,8 @@ Func _MiseAJourOS()
 
 			Case $iIDMCT
 				GUIDelete($hGUImaj)
-				If(_Telecharger($aMenu["MediaCreationTool"])) Then
-					_Executer("MediaCreationTool")
+				If(_Telecharger($aMenu["MediaCreationTool.bat"])) Then
+					_Executer("MediaCreationTool.bat")
 				EndIf
 				ExitLoop
 
@@ -137,19 +152,16 @@ Func _MiseAJourOS()
 				EndIf
 				ExitLoop
 
-			Case $iIDISODO
-				GUIDelete($hGUImaj)
-				$sNomF = _DlISO()
-				If($sNomF <> "") Then
-					_Attention('"' & $sNomF & '" a bien été téléchargé. Vous pouvez maintenant l' & "'" & 'installer à partir du bouton "Windows et Office"')
-				EndIf
-				ExitLoop
-
 			Case $iIDSite
 				GUIDelete($hGUImaj)
 				ShellExecute("https://setup.office.com")
 				ExitLoop
 
+			Case $aISO[0] To $aISO[UBound($aISO)-1]
+				Local $sISOname = GUICtrlRead($eGet)
+				GUIDelete($hGUImaj)
+				_DlISO($sISOname, $aISOLink[$eGet])
+				ExitLoop
 
 			Case $iBT[0] To $iBT[UBound($iBT)-1]
 
@@ -222,106 +234,59 @@ EndFunc
 ; Modified ......:
 ; ===============================================================================================================================
 
-Func _DlISO()
+Func _DlISO($sNomFicIso, $sLink)
 
-	Local $sNomFicIso, $iPIDIsoD, $eGetM, $bStop = False
-	ClipPut("")
+	If($sLink <> "") Then
+		Local $sDestiso = @ScriptDir & "\Cache\ISO\"
+		DirCreate($sDestiso)
 
-	If MapExists($aMenu, "Windows-ISO-Downloader") Then
-		If(_Telecharger($aMenu["Windows-ISO-Downloader"])) Then
-			$iPIDIsoD = _Executer("Windows-ISO-Downloader")
-
-			 Local $hGUIISOd = GUICreate("En attente", 300, 110, 0, 0)
-			 GUICtrlCreateLabel("En attente d'un fichier ISO / IMG dans le presse papier", 10, 10)
-			 GUICtrlCreateLabel('(Merci de cliquer sur "Copier le lien..." sur la droite)', 10, 35)
-			 Local $iIDButtonAnnuleriso = GUICtrlCreateButton("Annuler", 105, 70, 90, 25, $BS_DEFPUSHBUTTON)
-			 GUISetState(@SW_SHOW)
-
-			$eGetM = GUIGetMsg()
-			While $eGetM <> $GUI_EVENT_CLOSE And $eGetM <>  $iIDButtonAnnuleriso
-				If (StringInStr(ClipGet(), ".iso") Or StringInStr(ClipGet(), ".exe") Or StringInStr(ClipGet(), ".img")) Then
-					ProcessClose($iPIDIsoD)
-					ExitLoop
-				ElseIf(StringLeft(ClipGet(), 5) = "https") Then
-					ProcessClose($iPIDIsoD)
-					_Attention('Le fichier va être téléchargé via votre navigateur. Vous pourrez ensuite le renommer et le copier dans le dossier "Cache\ISO\"')
-					ShellExecute(ClipGet())
-					ShellExecute(@ScriptDir & "\Cache\ISO\")
-					$bStop = True
-					ExitLoop
-				EndIf
-				$eGetM = GUIGetMsg()
-			WEnd
-
-			If $eGetM <> $GUI_EVENT_CLOSE And $eGetM <>  $iIDButtonAnnuleriso And $bStop <> True Then
-				GUIDelete($hGUIISOd)
-				Local $sURLiso = ClipGet()
-				Local $aLiensp = StringSplit(ClipGet(), "/")
-				$sNomFicIso = _ArrayPop($aLiensp)
-				If(StringInStr($sNomFicIso, "?")) Then
-					$sNomFicIso = StringLeft($sNomFicIso, StringInStr($sNomFicIso, "?") -1)
-				EndIf
-				$sNomFicIso = InputBox("Nom du fichier", "Entrez le nom du fichier : ", $sNomFicIso)
-
-				If($sNomFicIso <> "") Then
-					Local $sDestiso = @ScriptDir & "\Cache\ISO\"
-					DirCreate($sDestiso)
-
-					Local $sec, $TotalSize, $Bytes, $CalBytes, $Percentage, $hDownload
-					Local $iIsoSize = InetGetSize($sURLiso)
-					If FileExists($sDestiso & $sNomFicIso) And $iIsoSize = FileGetSize($sDestiso) Then
-						_Attention($sDestiso & "existe déjà.")
-					Else
-						_FileWriteLog($hLog, "Téléchargement de " & $sNomFicIso)
-						_UpdEdit($iIDEditLog, $hLog)
-						$hDownload = InetGet($sURLiso, $sDestiso & $sNomFicIso, 1, 1)
-						$TotalSize = Round($iIsoSize / 1024)
-						GUICtrlSetData($statusbar, " Téléchargement de " & $sNomFicIso)
-						GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
-						GUISetState()
-						Do
-							$sec = @SEC
-							$Bytes = Round(InetGetInfo($hDownload,0))
-							While @SEC = $sec
-								Sleep(10)
-								If GUIGetMsg() = $iIDCancelDL Then
-									GUICtrlSetData($statusbar, "")
-									GUICtrlSetData($statusbarprogress, 0)
-									GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
-									InetClose($hDownload)
-									FileDelete($sDestiso & $sNomFicIso)
-									Return $sNomFicIso
-								EndIf
-							WEnd
-							$CalBytes = Round(InetGetInfo($hDownload,0))
-							$TotalSize = $TotalSize - (($CalBytes - $Bytes) /1024)
-							$Percentage = Round($TotalSize /  $iIsoSize * 100000)
-							$Percentage = 100 - $Percentage
-							GUICtrlSetData($statusbarprogress,$Percentage)
-						Until InetGetInfo($hDownload,2)
+		Local $sec, $TotalSize, $Bytes, $CalBytes, $Percentage, $hDownload
+		Local $iIsoSize = InetGetSize($sLink)
+		If FileExists($sDestiso & $sNomFicIso) And $iIsoSize = FileGetSize($sDestiso) Then
+			_Attention($sDestiso & "existe déjà.")
+		Else
+			_FileWriteLog($hLog, "Téléchargement de " & $sNomFicIso)
+			_UpdEdit($iIDEditLog, $hLog)
+			$hDownload = InetGet($sLink, $sDestiso & $sNomFicIso, 1, 1)
+			$TotalSize = Round($iIsoSize / 1024)
+			GUICtrlSetData($statusbar, " Téléchargement de " & $sNomFicIso)
+			GUICtrlSetState($iIDCancelDL, $GUI_ENABLE)
+			GUISetState()
+			Do
+				$sec = @SEC
+				$Bytes = Round(InetGetInfo($hDownload,0))
+				While @SEC = $sec
+					Sleep(10)
+					If GUIGetMsg() = $iIDCancelDL Then
 						GUICtrlSetData($statusbar, "")
 						GUICtrlSetData($statusbarprogress, 0)
 						GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
-						Local $aData = InetGetInfo($hDownload)
-						If @error Then
-							_Attention("Erreur lors du téléchargement de " & $sNomFicIso)
-						Else
-							If FileExists($sDestiso & $sNomFicIso) And FileGetSize($sDestiso & $sNomFicIso) <> $iIsoSize Then
-								_Attention("Echec du téléchargement de " & $sNomFicIso)
-							EndIf
-						EndIf
+						InetClose($hDownload)
+						FileDelete($sDestiso & $sNomFicIso)
+						Return $sNomFicIso
 					EndIf
-				EndIf
+				WEnd
+				$CalBytes = Round(InetGetInfo($hDownload,0))
+				$TotalSize = $TotalSize - (($CalBytes - $Bytes) /1024)
+				$Percentage = Round($TotalSize /  $iIsoSize * 100000)
+				$Percentage = 100 - $Percentage
+				GUICtrlSetData($statusbarprogress,$Percentage)
+			Until InetGetInfo($hDownload,2)
+			GUICtrlSetData($statusbar, "")
+			GUICtrlSetData($statusbarprogress, 0)
+			GUICtrlSetState($iIDCancelDL, $GUI_DISABLE)
+			Local $aData = InetGetInfo($hDownload)
+			If @error Then
+				_Attention("Erreur lors du téléchargement de " & $sNomFicIso)
 			Else
-				ProcessClose($iPIDIsoD)
-				GUIDelete($hGUIISOd)
+				If FileExists($sDestiso & $sNomFicIso) And FileGetSize($sDestiso & $sNomFicIso) <> $iIsoSize Then
+					_Attention("Echec du téléchargement de " & $sNomFicIso)
+				EndIf
 			EndIf
 		EndIf
 	Else
-		_Attention("Windows-ISO-Downloader n'existe pas dans les liens")
+		_Attention('Merci de compléter le lien pour "' & $sNomFicIso & '" dans le fichier config.ini')
 	EndIf
-
-	Return $sNomFicIso
 
 EndFunc
 

@@ -37,6 +37,9 @@ Func _PowerKeepAlive()
 	;	ES_DISPLAY_REQUIRED (0x02) -> Resets display Idle timer
 	;	ES_CONTINUOUS (0x80000000) -> Forces 'continuous mode' -> the above 2 will not need to continuously be reset
 #ce
+	RegWrite($HKLM & "\SOFTWARE\Policies\Microsoft\Power\PowerSettings\5CA83367-6E45-459F-A27B-476B1D01C936","DCSettingIndex","REG_DWORD",0)
+	RegWrite($HKLM & "\SOFTWARE\Policies\Microsoft\Power\PowerSettings\5CA83367-6E45-459F-A27B-476B1D01C936","ACSettingIndex","REG_DWORD",0)
+
 	Local $aRet=DllCall('kernel32.dll','long','SetThreadExecutionState','long',0x80000003)
 	If @error Then Return SetError(2,@error,0x80000000)
 	Return $aRet[0]	; Previous state (typically 0x80000000 [-2147483648])
@@ -57,6 +60,8 @@ EndFunc
 ; ==========================================================================================================================
 
 Func _PowerResetState()
+	RegDelete($HKLM & "\SOFTWARE\Policies\Microsoft\Power\PowerSettings\5CA83367-6E45-459F-A27B-476B1D01C936","DCSettingIndex")
+	RegDelete($HKLM & "\SOFTWARE\Policies\Microsoft\Power\PowerSettings\5CA83367-6E45-459F-A27B-476B1D01C936","ACSettingIndex")
 	; Flag:	ES_CONTINUOUS (0x80000000) -> (default) -> used alone, it resets timers & allows regular sleep/power-savings mode
 	Local $aRet=DllCall('kernel32.dll','long','SetThreadExecutionState','long',0x80000000)
 	If @error Then Return SetError(2,@error,0x80000000)

@@ -5,9 +5,9 @@
 #AutoIt3Wrapper_UseUpx=y
 #AutoIt3Wrapper_Res_Comment=https://boiteaoutils.xyz
 #AutoIt3Wrapper_Res_Description=Boite A Outils
-#AutoIt3Wrapper_Res_Fileversion=1.1.6.0
+#AutoIt3Wrapper_Res_Fileversion=1.1.7.0
 #AutoIt3Wrapper_Res_ProductName=BAO
-#AutoIt3Wrapper_Res_ProductVersion=1.1.6
+#AutoIt3Wrapper_Res_ProductVersion=1.1.7
 #AutoIt3Wrapper_Res_CompanyName=Isergues Informatique
 #AutoIt3Wrapper_Res_LegalCopyright=Bastien Rouches
 #AutoIt3Wrapper_Res_Language=1036
@@ -63,7 +63,7 @@ This file is part of "Boîte A Outils"
 
 Opt("MustDeclareVars", 1)
 
-Global $sVersion = "1.1.6" ; 22/03/24
+Global $sVersion = "1.1.7" ; 26/04/26
 
 #include-once
 #include <APIDiagConstants.au3>
@@ -109,7 +109,7 @@ Global $sVersion = "1.1.6" ; 22/03/24
 _Singleton(@ScriptName, 0)
 
 Local $sDossierRapport, $sConfigDossierRapport, $sNom, $bNonPremierDemarrage = False, $sRetourInfo, $iFreeSpace, $iTotalSpace, $sLabelHDD, $sDem, $iIDAutologon, $sListeProgrammes = @LocalAppDataDir & "\bao\ListeProgrammes.txt", $sOSv, $sSubKey, $sMdps, $sAutoUser, $sDomaine
-Global $hGUIBAO, $iIcones, $sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierSuivi, $sFTPDossierRapports, $sFTPDossierCapture, $sFTPDossierSFX, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iWallpaper, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $aListeProgdes, $sListeProgdes, $aListeTech, $sListeTech, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2), $iSupervision = 0, $sCheminCapture = @ScriptDir & "\Cache\Supervision\", $sNomCapture = $sNom, $iNBCaptures = 0, $iScreenWidth, $iScreenHeight, $iIDBoutonRaf
+Global $hGUIBAO, $iIcones, $sFTPAdresse, $sFTPUser, $sFTPPort, $sFTPDossierSuivi, $sFTPDossierRapports, $sFTPDossierCapture, $sFTPDossierSFX, $iLabelPC, $aResults[], $sInfos, $statusbar, $statusbarprogress, $iWallpaper, $iIDCancelDL, $sProgrun, $sProgrunUNC, $iPidt[], $iIDAction, $aMenu[], $aMenuID[], $sNomDesinstalleur, $sPrivazer, $aListeProgdes, $sListeProgdes, $aListeTech, $sListeTech, $aButtonDes[], $iIDEditRapport, $iIDEditLog, $iIDEditLogInst, $iIDEditLogDesinst, $iIDEditInter, $HKLM, $envChoco = @AppDataCommonDir & "\Chocolatey\", $sRestauration, $sPWDZip, $aListeAvSupp, $releaseid, $idListInfosys, $aProaxiveDelele, $sSociete, $iIDBoutonInscMat, $bActiv = 2, $iAutoAdmin, $sFTPProtocol, $HomeDrive = StringLeft(@WindowsDir,2), $iSupervision = 0, $sCheminCapture = @ScriptDir & "\Cache\Supervision\", $sNomCapture = $sNom, $iNBCaptures = 0, $iScreenWidth, $iScreenHeight, $iIDBoutonRaf, $aISOliste
 Global $sYear = @YEAR, $sMon = @MON, $sDay = @MDAY, $sHeure, $iMin = @MIN, $iIDCheckboxwu, $iIDRestau, $iIDespacelibre, $aMemStats, $iIDRAMlibre, $iFreeSpacech, $iModeTech = 0, $mInfosClient[], $sAgent, $sMailBD, $iIDListStats, $iIDLabelNewInt, $iIDListResult, $iIDInputRecherche, $iIDTABInfosCli
 Global $iIDTAB, $sFPIN, $sFTracking, $sFNomClient, $sFPrenomClient, $sFSocieteClient, $sFAdresse, $sFTel, $sFMail, $sFTech, $sFDescription, $sFMateriel, $sFMDP, $sFAutologon, $iENomClient, $iEPrenomClient, $iESocieteClient, $iEAdresse, $iETel, $iEMail, $iEMateriel, $iEDescription, $iEMdp, $iETechnicien, $iClientInterPrint, $iClientInterPrintSelect
 
@@ -236,6 +236,9 @@ $sFTPDossierRapports = IniRead($sConfig, "FTP", "DossierRapports", "")
 $sFTPDossierCapture = IniRead($sConfig, "FTP", "DossierCapture", "")
 $sFTPDossierSFX = IniRead($sConfig, "FTP", "DossierSFX", "")
 
+; ISO
+$aISOliste = IniReadSection($sConfig, "ISO")
+
  ;set default colors of future buttons
     Local $aColorsEx = _
     [0xffffff, 0X333333, 0xdddddd, _    ; normal    : Background, Text, Border
@@ -261,6 +264,7 @@ EndIf
 $sSplashTxt = $sSplashTxt & @LF & "Désactivation de la mise en veille"
 ControlSetText("Initialisation de BAO (SHIFT = démarrage rapide)", "", "Static1", $sSplashTxt)
 
+; Désactivation mise en veille
 _PowerKeepAlive()
 
 ; Lancement des fonctions à la fermeture
